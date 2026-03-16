@@ -11,6 +11,8 @@
 
 Epic 2 establishes the authoritative schema and file-contract baseline for RuneContext v0.1.0-alpha.1. The implementation follows a **security-first, closed-schema approach** that prioritizes auditability, determinism, and policy neutrality while maintaining lightweight extensibility for advanced users.
 
+All JSON schemas now target **JSON Schema Draft 2020-12** so conditional variants can stay closed safely via `unevaluatedProperties: false` where needed.
+
 ### Key Decision: Closed Schemas with Opt-In Extensions
 
 Rather than allowing arbitrary unknown fields (which creates security/audit risks), all machine-readable artifacts use **closed JSON schemas by default**. A single optional `extensions` object is available when explicitly enabled, enforcing namespaced keys and non-authoritative semantics.
@@ -26,30 +28,35 @@ Rather than allowing arbitrary unknown fields (which creates security/audit risk
 - **Key Fields**: `schema_version` (const 1), `runecontext_version`, `assurance_tier` (enum: plain|verified), `source` (object), `allow_extensions` (boolean, default false).
 - **Source Types**: embedded, git (commit/signed_tag/ref), path (local developer-local).
 - **Git Source Detail**: Supports pinned commits, signed tags with verification, mutable refs (opt-in only), local subdir resolution.
+- **Dialect**: JSON Schema Draft 2020-12 with `unevaluatedProperties: false` on `source` so variant-specific fields remain closed without Draft-7 conditional pitfalls.
 - **Closed**: Yes. Unknown fields rejected.
 - **Extensions**: Yes, optional (when `allow_extensions: true`).
+- **Extensions Keys**: Extension keys require an explicit namespace (`owner.name`) with lowercase alphanumerics plus `._-` inside each segment.
 
 #### bundle.schema.json
 - **Scope**: Context bundle selectors at `bundles/*.yaml`.
 - **Key Fields**: `schema_version` (const 1), `id` (unique), `extends` (parent IDs, max depth 8), `includes`/`excludes` (aspect-aware maps).
 - **Aspect Families**: project, standards, specs, decisions.
 - **Inheritance**: Depth-first, left-to-right linearization; last-matching-rule-wins semantics.
+- **Pattern Grammar**: Include/exclude entries are RuneContext bundle patterns (exact path, `*`, and recursive `**`).
 - **Closed**: Yes. Unknown fields rejected.
-- **Extensions**: Yes, optional (when `allow_extensions: true`).
+- **Extensions**: Yes, optional. Full acceptance still requires project-level validation to confirm the root `runecontext.yaml` has `allow_extensions: true`.
 
 #### change-status.schema.json
 - **Scope**: Change lifecycle metadata at `changes/<change-id>/status.yaml`.
 - **Key Fields**: `schema_version`, `id` (CHG-YYYY-NNN-RAND-slug), `title`, `status` (lifecycle enum), `type` (base enum + x- prefix), `size`, `verification_status` (pending|passed|failed|skipped), traceability fields, `promotion_assessment`.
 - **Type Enum**: project, feature, bug, standard, chore, or custom x-* values.
 - **Promotion Assessment**: Structured status (pending|none|suggested|accepted|completed) with suggested targets (target_type, target_path, summary).
-- **Supersession Validation**: When status=superseded, superseded_by is required; bidirectional consistency enforced.
+- **Supersession Validation**: When `status=superseded`, `superseded_by` is required in-schema; bidirectional consistency remains a project-level cross-file validation rule.
 - **Closed**: Yes. Unknown fields rejected.
-- **Extensions**: Yes, optional (when `allow_extensions: true`).
+- **Extensions**: Yes, optional. Full acceptance still requires project-level validation to confirm the root `runecontext.yaml` has `allow_extensions: true`.
 
 #### context-pack.schema.json
 - **Scope**: Generated deterministic runtime artifact (output of bundle resolution).
 - **Key Fields**: `schema_version` (const 1), `canonicalization` (const rfc8785-jcs), `pack_hash_alg` (const sha256), `pack_hash` (SHA256 hex), `id`, `resolved_from` (metadata), `selected`/`excluded` (file inventories).
-- **Resolved Metadata**: source_mode, source_ref, source_commit (always recorded), source_verification (enum: pinned_commit|verified_signed_tag|unverified_mutable_ref|unverified_local_source|embedded), optional verified_signer_identity, context_bundle_ids.
+- **Resolved Metadata**: source_mode, source_ref, source_verification (enum: pinned_commit|verified_signed_tag|unverified_mutable_ref|unverified_local_source|embedded), context_bundle_ids, and `source_commit` only when `source_mode` is `git`.
+- **Source Consistency**: `embedded` sources must use `source_verification: embedded`; `path` sources must use `source_verification: unverified_local_source`; only `git` sources may carry `source_commit`.
+- **Hashing**: `pack_hash` is SHA256 over the RFC 8785 JCS serialization of the complete pack minus the `pack_hash` field itself, ensuring no circular inputs.
 - **File Inventory**: Path, SHA256 hash, selected_by (ordered rules showing last-matching-rule-wins).
 - **Closed**: Yes, fully. **No extensions permitted in v1 generated artifacts.**
 
@@ -63,6 +70,7 @@ Defines the restricted YAML subset for all machine-readable files:
 - **No Custom Tags**: YAML tags forbidden.
 - **UTF-8 Only**: No other encodings permitted.
 - **Normalized Formatting**: 2-space indentation, no trailing whitespace, Unix LF, single trailing newline in generated artifacts.
+- **Schema Dialect**: JSON Schema Draft 2020-12 across all shipped schemas.
 
 **Canonical Data Model for Hashing**:
 - Parse YAML to nested structure (objects, arrays, strings, numbers, booleans, nulls).
@@ -73,8 +81,8 @@ Defines the restricted YAML subset for all machine-readable files:
 
 **Unknown-Field Behavior**:
 - **Closed Schema Default**: Unknown top-level fields rejected.
-- **Extensions Opt-In**: Optional `extensions` object allowed when `runecontext.yaml` sets `allow_extensions: true`.
-- **Namespaced Keys**: Extension keys must match pattern `[a-z0-9]([a-z0-9.-]*[a-z0-9])?` (e.g., `io.runecode.custom`, `dev.acme.foo`).
+- **Extensions Opt-In**: Optional `extensions` object allowed when `runecontext.yaml` sets `allow_extensions: true`; bundle/status enforcement is project-scoped because the opt-in flag lives in the root file.
+- **Namespaced Keys**: Extension keys must follow the `owner.name` pattern—`[a-z0-9]([a-z0-9._-]*[a-z0-9])?\.[a-z0-9]([a-z0-9._-]*[a-z0-9])?`—so each segment may include underscores or dashes while keeping an explicit namespace separator.
 - **Non-Authoritative**: Extension values are data, not semantics; cannot affect validation, bundle resolution, lifecycle, or policy.
 - **Not in Generated Artifacts**: Context packs and assurance artifacts contain no extensions in v1.
 
@@ -104,38 +112,35 @@ Defines strict structural contracts for human-readable markdown files:
 - Refreshes must be reviewable diffs; never silent rewrites.
 - Always present; never disposable.
 
-### 3. Test Fixtures (fixtures/alpha1-epic2-closed-schemas/)
+### 3. Test Fixtures (`fixtures/schema-contracts/`)
 
-Comprehensive fixture taxonomy covering 11 test categories:
+The shipped fixture set currently contains **15 YAML fixtures** plus a README that distinguishes standalone schema validation from project-level and YAML-profile validation:
 
 #### Valid Cases
 - `valid-runecontext-no-extensions.yaml`: Closed schema, no extensions.
-- `valid-runecontext-with-extensions-optin.yaml`: With `allow_extensions: true`.
+- `valid-runecontext-with-extensions-optin.yaml`: Root opt-in plus a real namespaced `extensions` object.
+- `valid-git-source-signed-tag.yaml`: Signed-tag git source contract.
 - `valid-bundle-closed-schema.yaml`: Bundle with closed schema.
-- `valid-bundle-with-extensions.yaml`: Bundle with namespaced extension keys.
+- `valid-bundle-with-extensions.yaml`: Bundle with namespaced extension keys; requires project-level opt-in.
 - `valid-change-status.yaml`: Complete change status with all fields.
 - `valid-custom-type.yaml`: Change with custom type `x-migration`.
-- `valid-context-pack.yaml`: Generated context pack (fully closed).
+- `valid-superseded-change.yaml`: Superseded change with required `superseded_by`.
+- `valid-context-pack.yaml`: Generated context pack with consistent git provenance and valid 64-character hashes.
 
-#### Rejection Cases
+#### Reject Cases
 - `reject-unknown-field-runecontext.yaml`: Unknown top-level field fails validation.
-- `reject-extensions-without-optin.yaml`: Extensions rejected without `allow_extensions: true`.
-- `reject-yaml-anchors-aliases.yaml`: YAML anchors/aliases violate profile.
+- `reject-unknown-schema-version.yaml`: Unknown schema version fails closed.
+- `reject-bad-extension-key.yaml`: Invalid extension key fails namespacing rules.
 - `reject-context-pack-unknown-field.yaml`: Unknown field in generated artifact fails validation.
-
-#### Additional Test Case Categories (Documented in README)
-- Invalid extension keys (typos, uppercase, missing namespacing)
-- Unknown schema_version values (fail closed)
-- Unknown enum values (fail closed)
-- Unknown source_verification values
-- YAML profile violations (duplicate keys, implicit coercion, custom tags, multiline strings)
+- `reject-yaml-anchors-aliases.yaml`: YAML anchors/aliases violate profile.
+- `reject-extensions-without-optin.yaml`: Project-level rejection case for bundle/status extensions without root opt-in.
 
 ### 4. Updated Documentation
 
 #### docs/implementation-plan/milestone-breakdown.md
 - Marked 14 Epic 2 issues as completed (checked).
 - Consolidated Epic 4 into Epic 2 (canonical data rules integrated with schema contracts).
-- Updated exit criteria to reflect closed schemas, extensions opt-in, YAML profile, JCS hashing.
+- Updated exit criteria to reflect closed schemas, extensions opt-in, YAML profile, JCS hashing, and owner-style extension names.
 - Simplified markdown contract epics to reflect completed sections.
 
 ---
@@ -168,7 +173,7 @@ Comprehensive fixture taxonomy covering 11 test categories:
 - Unknown versions fail closed; RuneCode refuses to proceed if RuneContext version is out of supported range.
 
 ### Context Pack Hashing and Binding
-- Context packs carry top-level `pack_hash` (SHA256 over RFC 8785 JCS).
+- Context packs carry top-level `pack_hash` (SHA256 over RFC 8785 JCS of the full pack minus `pack_hash`).
 - RuneCode can bind and sign this hash in audit/provenance flows.
 - Deterministic hashing ensures local/remote parity.
 
@@ -193,6 +198,7 @@ Comprehensive fixture taxonomy covering 11 test categories:
 - If new schema fields are needed, increment `schema_version` to 2.
 - Implementations may preserve unknown fields from v1 when round-tripping, but must fail on unknown schema_version.
 - Extension opt-in policy remains stable and forward-compatible.
+- Draft 2020-12 remains the target schema dialect unless future validator support forces a migration plan.
 
 ### Generated Artifact Stability
 - Context pack schema is fully closed in v1; no extensions.
@@ -207,7 +213,7 @@ Comprehensive fixture taxonomy covering 11 test categories:
 1. **Schema Validation**: Each fixture (valid and reject) validated against its corresponding JSON schema.
 2. **Profile Compliance**: YAML profile rules (no anchors, UTF-8, etc.) enforced in validation layer.
 3. **Enum Enforcement**: Unknown enum values rejected; custom x-* types accepted for status.type.
-4. **Extension Opt-In**: Extensions rejected by default; accepted when flag set; warning issued.
+4. **Extension Opt-In**: Root schema enforces its own opt-in directly; bundle/status files require project-level validation against the root config, with warnings when extensions are accepted.
 
 ### Parity Tests
 1. **Local/Remote**: Same bundles and status files validated identically in Go and TypeScript implementations.
@@ -245,10 +251,10 @@ The following are explicitly deferred to later alphas:
 - `schemas/MACHINE-READABLE-PROFILE.md`
 - `schemas/MARKDOWN-CONTRACTS.md`
 
-### Fixtures (10 YAML files + 1 README)
-- `fixtures/alpha1-epic2-closed-schemas/README.md`
-- `fixtures/alpha1-epic2-closed-schemas/valid-*.yaml` (7 files)
-- `fixtures/alpha1-epic2-closed-schemas/reject-*.yaml` (4 files)
+### Fixtures (15 YAML files + 1 README)
+- `fixtures/schema-contracts/README.md`
+- `fixtures/schema-contracts/valid-*.yaml` (9 files)
+- `fixtures/schema-contracts/reject-*.yaml` (6 files)
 
 ### Documentation Updates
 - `docs/implementation-plan/milestone-breakdown.md` (marked issues complete, updated epics and exit criteria)
@@ -271,7 +277,7 @@ The following are explicitly deferred to later alphas:
 
 ### Extension Namespacing
 **Q**: Why ownership-style namespacing (e.g., `io.runecode.custom`) rather than simple `x-` prefix?  
-**A**: Ownership namespaces prevent collisions, make typos obvious (misplaced dots fail validation), and audit trails show origin (io.runecode = RuneCode integration, dev.acme = company internal). The rule `[a-z0-9]([a-z0-9.-]*[a-z0-9])?` enforces this.
+**A**: Ownership namespaces prevent collisions, make typos obvious (misplaced dots fail validation), and audit trails show origin (io.runecode = RuneCode integration, dev.acme = company internal). The rule `[a-z0-9]([a-z0-9._-]*[a-z0-9])?\.[a-z0-9]([a-z0-9._-]*[a-z0-9])?` enforces this while still allowing underscores and dashes inside each segment.
 
 ### Why No Extensions in Generated Artifacts?
 **Q**: Why are context packs fully closed; no extensions allowed?  
@@ -292,7 +298,7 @@ The following are explicitly deferred to later alphas:
 - [x] Markdown structure contracts frozen (proposal.md section ordering, standards.md auto-maintenance).
 - [x] All source_verification enum values defined and documented.
 - [x] all type enum values (base + x- prefix) documented.
-- [x] Test fixture taxonomy created with 11 categories covering 15+ fixtures.
+- [x] Test fixture README distinguishes standalone schema, project-level, and YAML-profile validation cases for the shipped 15-fixture set.
 - [x] Milestone-breakdown.md updated with completion status and new exit criteria.
 - [x] Security/audit implications documented (policy neutrality, LLM trust, closed schemas).
 - [x] RuneCode companion-track checkpoints identified (version-gating, parity testing, policy-neutrality validation).

@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-7/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Change Status Schema",
   "description": "Machine-readable lifecycle and traceability state for a RuneContext change. Schema version 1.",
   "type": "object",
@@ -38,7 +38,7 @@
         "closed",
         "superseded"
       ],
-      "description": "Lifecycle status. Superseded changes must include superseded_by."
+      "description": "Lifecycle status. Superseded changes must include `superseded_by`; cross-file bidirectional consistency is enforced by project-level validation, not by this single-file schema."
     },
     "type": {
       "type": "string",
@@ -108,7 +108,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Changes that replace this one. Required when status is 'superseded'."
+      "description": "Changes that replace this one. Required when `status` is `superseded`."
     },
     "verification_status": {
       "type": "string",
@@ -185,7 +185,7 @@
     },
     "extensions": {
       "type": "object",
-      "description": "Optional extensions. Allowed only when runecontext.yaml sets allow_extensions: true. Non-authoritative; cannot affect lifecycle.",
+      "description": "Optional extensions. Allowed only when project-level validation observes `allow_extensions: true` in `runecontext.yaml`. Non-authoritative; cannot affect lifecycle.",
       "additionalProperties": {
         "type": [
           "string",
@@ -197,21 +197,28 @@
         ]
       },
       "propertyNames": {
-        "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$",
-        "description": "Extension keys must be namespaced (e.g., 'dev.acme.custom', 'io.runecode.metadata')."
+        "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?\\.[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+        "description": "Extension keys must be namespaced (e.g., `dev.acme.custom`, `io.runecode.metadata`)."
       }
     }
   },
-  "if": {
-    "properties": {
-      "status": {
-        "const": "superseded"
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "superseded"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "superseded_by"
+        ]
       }
     }
-  },
-  "then": {
-    "required": [
-      "superseded_by"
-    ]
-  }
+  ]
 }

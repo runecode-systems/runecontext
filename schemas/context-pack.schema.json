@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-7/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Context Pack Schema",
   "description": "Deterministic resolved context artifact. Generated, fully closed (no extensions). Schema version 1.",
   "type": "object",
@@ -28,12 +28,12 @@
     "pack_hash_alg": {
       "type": "string",
       "const": "sha256",
-      "description": "Hash algorithm used for pack_hash."
+      "description": "Hash algorithm used for `pack_hash`."
     },
     "pack_hash": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$",
-      "description": "Canonical hash (SHA256) of the resolved pack over RFC 8785 JCS JSON model."
+      "description": "Canonical SHA256 hash of the resolved pack after removing the `pack_hash` field and applying RFC 8785 JCS to the remaining object."
     },
     "id": {
       "type": "string",
@@ -45,7 +45,6 @@
       "required": [
         "source_mode",
         "source_ref",
-        "source_commit",
         "source_verification",
         "context_bundle_ids"
       ],
@@ -67,7 +66,7 @@
         "source_commit": {
           "type": "string",
           "pattern": "^[a-f0-9]{40}$",
-          "description": "Resolved commit SHA (40 hex chars). Always recorded even for signed tags or mutable refs."
+          "description": "Resolved commit SHA (40 hex chars). Required for `git` sources and omitted for source modes that do not resolve a commit."
         },
         "source_verification": {
           "type": "string",
@@ -82,7 +81,7 @@
         },
         "verified_signer_identity": {
           "type": "string",
-          "description": "Signer fingerprint/identity when source_verification is verified_signed_tag. Omitted otherwise."
+          "description": "Signer fingerprint/identity when `source_verification` is `verified_signed_tag`. Omitted otherwise."
         },
         "context_bundle_ids": {
           "type": "array",
@@ -92,7 +91,83 @@
           "minItems": 1,
           "description": "Ordered list of resolved context bundle IDs (including parents via linearization)."
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "source_mode"
+            ],
+            "properties": {
+              "source_mode": {
+                "const": "git"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "source_commit"
+            ],
+            "properties": {
+              "source_verification": {
+                "enum": [
+                  "pinned_commit",
+                  "verified_signed_tag",
+                  "unverified_mutable_ref"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "source_mode"
+            ],
+            "properties": {
+              "source_mode": {
+                "const": "embedded"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_verification": {
+                "const": "embedded"
+              }
+            },
+            "not": {
+              "required": [
+                "source_commit"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "source_mode"
+            ],
+            "properties": {
+              "source_mode": {
+                "const": "path"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_verification": {
+                "const": "unverified_local_source"
+              }
+            },
+            "not": {
+              "required": [
+                "source_commit"
+              ]
+            }
+          }
+        }
+      ]
     },
     "selected": {
       "type": "object",
@@ -100,16 +175,16 @@
       "description": "Selected files by aspect family.",
       "properties": {
         "project": {
-          "$ref": "#/definitions/fileInventory"
+          "$ref": "#/$defs/fileInventory"
         },
         "standards": {
-          "$ref": "#/definitions/fileInventory"
+          "$ref": "#/$defs/fileInventory"
         },
         "specs": {
-          "$ref": "#/definitions/fileInventory"
+          "$ref": "#/$defs/fileInventory"
         },
         "decisions": {
-          "$ref": "#/definitions/fileInventory"
+          "$ref": "#/$defs/fileInventory"
         }
       }
     },
@@ -121,25 +196,25 @@
         "project": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/excludedFile"
+            "$ref": "#/$defs/excludedFile"
           }
         },
         "standards": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/excludedFile"
+            "$ref": "#/$defs/excludedFile"
           }
         },
         "specs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/excludedFile"
+            "$ref": "#/$defs/excludedFile"
           }
         },
         "decisions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/excludedFile"
+            "$ref": "#/$defs/excludedFile"
           }
         }
       }
@@ -150,7 +225,7 @@
       "description": "ISO 8601 timestamp when the pack was generated."
     }
   },
-  "definitions": {
+  "$defs": {
     "fileInventory": {
       "type": "array",
       "items": {

@@ -1,7 +1,7 @@
 {
-  "$schema": "http://json-schema.org/draft-7/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Context Bundle Schema",
-  "description": "Reusable context selector for RuneContext. Supports inheritance, aspect-aware includes/excludes. Schema version 1.",
+  "description": "Reusable context selector for RuneContext. Supports inheritance plus aspect-aware include/exclude rules using RuneContext glob patterns (`*`, `**`, and exact paths). Schema version 1.",
   "type": "object",
   "required": [
     "schema_version",
@@ -34,76 +34,52 @@
       "type": "object",
       "minProperties": 1,
       "additionalProperties": false,
-      "description": "Aspect-aware file/pattern inclusions.",
+      "description": "Aspect-aware include rules. Each string uses RuneContext's bundle pattern grammar: exact relative path, `*` for single-segment wildcard, `**` for recursive wildcard.",
       "properties": {
         "project": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Include patterns under 'project/' aspect."
+          "$ref": "#/$defs/patternList",
+          "description": "Include patterns under the `project/` aspect."
         },
         "standards": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Include patterns under 'standards/' aspect."
+          "$ref": "#/$defs/patternList",
+          "description": "Include patterns under the `standards/` aspect."
         },
         "specs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Include patterns under 'specs/' aspect."
+          "$ref": "#/$defs/patternList",
+          "description": "Include patterns under the `specs/` aspect."
         },
         "decisions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Include patterns under 'decisions/' aspect."
+          "$ref": "#/$defs/patternList",
+          "description": "Include patterns under the `decisions/` aspect."
         }
       }
     },
     "excludes": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Aspect-aware file/pattern exclusions. Applied after includes.",
+      "description": "Aspect-aware exclude rules using the same bundle pattern grammar as `includes`. Applied after includes with last-matching-rule-wins semantics.",
       "properties": {
         "project": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Exclude patterns under 'project/' aspect."
+          "$ref": "#/$defs/patternList",
+          "description": "Exclude patterns under the `project/` aspect."
         },
         "standards": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Exclude patterns under 'standards/' aspect."
+          "$ref": "#/$defs/patternList",
+          "description": "Exclude patterns under the `standards/` aspect."
         },
         "specs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Exclude patterns under 'specs/' aspect."
+          "$ref": "#/$defs/patternList",
+          "description": "Exclude patterns under the `specs/` aspect."
         },
         "decisions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Exclude patterns under 'decisions/' aspect."
+          "$ref": "#/$defs/patternList",
+          "description": "Exclude patterns under the `decisions/` aspect."
         }
       }
     },
     "extensions": {
       "type": "object",
-      "description": "Optional extensions. Allowed only when runecontext.yaml sets allow_extensions: true. Non-authoritative; cannot affect bundle semantics.",
+      "description": "Optional extensions. Allowed only when project-level validation observes `allow_extensions: true` in `runecontext.yaml`. Non-authoritative; cannot affect bundle semantics.",
       "additionalProperties": {
         "type": [
           "string",
@@ -115,8 +91,16 @@
         ]
       },
       "propertyNames": {
-        "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$",
-        "description": "Extension keys must be namespaced (e.g., 'dev.acme.custom', 'io.runecode.metadata')."
+        "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?\\.[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+        "description": "Extension keys must be namespaced (e.g., `dev.acme.custom`, `io.runecode.metadata`)."
+      }
+    }
+  },
+  "$defs": {
+    "patternList": {
+      "type": "array",
+      "items": {
+        "type": "string"
       }
     }
   }

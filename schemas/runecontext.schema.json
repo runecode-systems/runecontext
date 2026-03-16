@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-7/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RuneContext Root Configuration",
   "description": "Project-root configuration for RuneContext version, assurance tier, and source selection. Schema version 1.",
   "type": "object",
@@ -31,10 +31,6 @@
     },
     "source": {
       "type": "object",
-      "required": [
-        "type"
-      ],
-      "additionalProperties": false,
       "description": "Source configuration for embedded or linked RuneContext.",
       "properties": {
         "type": {
@@ -47,128 +43,157 @@
           "description": "Source type: 'embedded' (local), 'git' (linked repository), or 'path' (developer-local)."
         }
       },
-      "allOf": [
+      "required": [
+        "type"
+      ],
+      "oneOf": [
         {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "embedded"
-              }
+          "title": "Embedded source",
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "embedded"
+            },
+            "path": {
+              "type": "string",
+              "description": "Path to embedded RuneContext directory (typically 'runecontext')."
             }
           },
-          "then": {
-            "properties": {
-              "path": {
-                "type": "string",
-                "description": "Path to embedded RuneContext directory (typically 'runecontext')."
-              }
-            },
-            "required": [
-              "path"
-            ],
-            "additionalProperties": false
-          }
+          "required": [
+            "type",
+            "path"
+          ]
         },
         {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "git"
-              }
+          "title": "Git source",
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "git"
+            },
+            "url": {
+              "type": "string",
+              "description": "Git repository URL."
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$",
+              "description": "Pinned commit SHA (40 hex chars). Immutable, preferred for audit."
+            },
+            "signed_tag": {
+              "type": "string",
+              "description": "Signed tag name. Must include 'expect_commit' for verification."
+            },
+            "expect_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$",
+              "description": "Expected commit SHA when resolving a signed tag. Validation fails closed if mismatch."
+            },
+            "ref": {
+              "type": "string",
+              "description": "Mutable branch/ref name. Requires 'allow_mutable_ref: true' and emits warnings."
+            },
+            "allow_mutable_ref": {
+              "type": "boolean",
+              "default": false,
+              "description": "Explicitly opt-in to mutable refs. Mutable refs are not reproducible."
+            },
+            "subdir": {
+              "type": "string",
+              "default": "runecontext",
+              "description": "Subdirectory within the repository containing the RuneContext tree."
             }
           },
-          "then": {
-            "properties": {
-              "url": {
-                "type": "string",
-                "description": "Git repository URL."
-              },
-              "commit": {
-                "type": "string",
-                "pattern": "^[a-f0-9]{40}$",
-                "description": "Pinned commit SHA (40 hex chars). Immutable, preferred for audit."
-              },
-              "signed_tag": {
-                "type": "string",
-                "description": "Signed tag name. Must include 'expect_commit' for verification."
-              },
-              "expect_commit": {
-                "type": "string",
-                "pattern": "^[a-f0-9]{40}$",
-                "description": "Expected commit SHA when resolving a signed tag. Validation fails closed if mismatch."
-              },
-              "ref": {
-                "type": "string",
-                "description": "Mutable branch/ref name. Requires 'allow_mutable_ref: true' and emits warnings."
-              },
-              "allow_mutable_ref": {
-                "type": "boolean",
-                "default": false,
-                "description": "Explicitly opt-in to mutable refs. Mutable refs are not reproducible."
-              },
-              "subdir": {
-                "type": "string",
-                "default": "runecontext",
-                "description": "Subdirectory within the repository containing the RuneContext tree."
-              }
+          "required": [
+            "type",
+            "url"
+          ],
+          "oneOf": [
+            {
+              "required": [
+                "commit"
+              ]
             },
-            "required": [
-              "url"
-            ],
-            "oneOf": [
-              {
-                "required": [
-                  "commit"
-                ]
-              },
-              {
-                "required": [
-                  "signed_tag",
-                  "expect_commit"
-                ]
-              },
-              {
-                "required": [
-                  "ref",
-                  "allow_mutable_ref"
-                ],
-                "properties": {
-                  "allow_mutable_ref": {
-                    "const": true
-                  }
+            {
+              "required": [
+                "signed_tag",
+                "expect_commit"
+              ]
+            },
+            {
+              "required": [
+                "ref",
+                "allow_mutable_ref"
+              ],
+              "properties": {
+                "allow_mutable_ref": {
+                  "const": true
                 }
               }
-            ],
-            "additionalProperties": false
-          }
+            }
+          ]
         },
         {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "path"
-              }
+          "title": "Path source",
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "path"
+            },
+            "path": {
+              "type": "string",
+              "description": "Local path to RuneContext directory. Developer-local only, non-auditable."
             }
           },
-          "then": {
-            "properties": {
-              "path": {
-                "type": "string",
-                "description": "Local path to RuneContext directory. Developer-local only, non-auditable."
-              }
-            },
-            "required": [
-              "path"
-            ],
-            "additionalProperties": false
-          }
+          "required": [
+            "type",
+            "path"
+          ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Optional extensions. Allowed only when `allow_extensions: true` and treated as non-authoritative metadata.",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null",
+          "array",
+          "object"
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?\\.[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+        "description": "Extension keys must use ownership-style namespacing (e.g., `dev.acme.data`, `io.runecode.metadata`)."
+      }
     },
     "allow_extensions": {
       "type": "boolean",
       "default": false,
       "description": "Explicitly opt-in to allow 'extensions' object in hand-authored machine-readable files. When true and extensions present, validation warns."
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "extensions"
+        ]
+      },
+      "then": {
+        "properties": {
+          "allow_extensions": {
+            "const": true
+          }
+        },
+        "required": [
+          "allow_extensions"
+        ]
+      }
+    }
+  ]
 }

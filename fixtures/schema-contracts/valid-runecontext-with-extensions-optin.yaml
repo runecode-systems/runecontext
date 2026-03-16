@@ -5,3 +5,6 @@ source:
   type: embedded
   path: runecontext
 allow_extensions: true
+extensions:
+  io.runecode.metadata:
+    source: "fixture"

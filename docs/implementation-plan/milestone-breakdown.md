@@ -55,8 +55,9 @@ that all later CLI, adapters, and RuneCode integration must share.
 - [x] Issue: define the canonical JSON data model for hashing derived from YAML.
 - [x] Issue: codify RFC 8785 JCS as the canonical hashing serialization; SHA256 for hash
   algorithm.
+- [x] Issue: standardize on JSON Schema Draft 2020-12 so conditional variants can remain closed without reopening the core contracts.
 - [x] Issue: define unknown-field behavior: closed schemas by default; unknown
-  `schema_version` fails closed; optional `extensions` object (namespaced keys,
+  `schema_version` fails closed; optional `extensions` object (owner.name namespaces,
   non-authoritative) allowed only when `runecontext.yaml` sets `allow_extensions: true`;
   no extensions in generated artifacts.
 
@@ -92,6 +93,7 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
 - All v1 JSON schemas are authored and versioned: `runecontext.yaml`, `bundles/*.yaml`,
   `changes/*/status.yaml`, `context-pack.yaml`.
 - The restricted YAML profile and canonical JSON/JCS hashing model are frozen.
+- The schema dialect is frozen at JSON Schema Draft 2020-12 for all v1 contracts.
 - Unknown-field behavior is explicit: closed schemas by default; optional `extensions`
   object with namespaced keys; no extensions in generated artifacts.
 - Schema version 1 files must fail closed on unknown `schema_version` and unknown enum

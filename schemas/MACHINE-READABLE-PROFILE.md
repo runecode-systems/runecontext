@@ -10,6 +10,12 @@ This profile applies to:
 - `changes/*/status.yaml` (change lifecycle)
 - All generated artifacts: `context-pack.yaml`, `assurance/baseline.yaml`, receipt files
 
+## JSON Schema Dialect
+
+- All JSON schemas in `schemas/*.schema.json` use JSON Schema Draft 2020-12.
+- Draft 2020-12 is required so closed contracts can safely combine conditional branches with `unevaluatedProperties: false`.
+- Implementations should standardize on validators that fully support Draft 2020-12 in every language runtime they ship.
+
 ## Restricted YAML Syntax
 
 ### Required Constraints
@@ -96,6 +102,13 @@ Input (JCS): {"id":"my-bundle","schema_version":1}
 SHA256 hash: a1b2c3d4... (64 hex chars)
 ```
 
+### Context Pack Hash Input
+
+- Context packs must exclude the `pack_hash` field itself before canonicalizing the remaining object for hashing.
+- The canonical hash input is the full context-pack object containing exactly these top-level fields when present: `schema_version`, `canonicalization`, `pack_hash_alg`, `id`, `resolved_from`, `selected`, `excluded`, and `generated_at`.
+- `resolved_from`, `selected`, and `excluded` contribute their full nested content exactly as stored in the pack.
+- Run RFC 8785 JCS over that truncated object, then compute SHA256 over the UTF-8 bytes; the resulting 64-character hex string becomes the value stored in `pack_hash`.
+
 ## Unknown-Field Behavior
 
 ### Closed Schemas (Default)
@@ -109,18 +122,20 @@ By default, machine-readable artifacts use closed JSON schemas:
 Hand-authored files (`runecontext.yaml`, `bundles/*.yaml`, `changes/*/status.yaml`) may include an optional `extensions` object when explicitly enabled:
 
 1. **Opt-in requirement**: The project must set `allow_extensions: true` in `runecontext.yaml`.
-2. **When extensions present**: Validation passes with a warning.
-3. **Namespaced keys**: Extension keys must follow ownership-style namespacing:
-   - Format: `[a-z0-9]([a-z0-9.-]*[a-z0-9])?` (e.g., `dev.acme.foo`, `io.runecode.custom`)
-   - Prevents collisions and makes typos obvious.
-4. **Non-authoritative**: Extension values are data, not semantics. They cannot affect:
+2. **Validation scope**: Root-level `runecontext.yaml` can enforce this directly in its own schema. Bundle/status files require project-level validation because the opt-in flag lives in a different file.
+3. **When extensions present**: Validation passes with a warning once the project-level opt-in check succeeds.
+4. **Namespaced keys**: Extension keys must follow ownership-style namespacing:
+   - Format: `[a-z0-9]([a-z0-9._-]*[a-z0-9])?\.[a-z0-9]([a-z0-9._-]*[a-z0-9])?` (e.g., `dev.acme.foo`, `io.runecode.custom_metadata`).
+   - Each segment may include underscores or dashes so real-world identifiers stay valid while still keeping a clear namespace dot separator.
+   - Prevents collisions, surfaces typos early, and keeps extension keys auditable.
+5. **Non-authoritative**: Extension values are data, not semantics. They cannot affect:
    - Schema validation outcomes
    - Bundle resolution behavior
    - Change lifecycle states
    - Context pack generation
    - Assurance tier meaning
    - Policy or approvals
-5. **Included in hashes**: Extension data is part of the YAML content, so changes to `extensions` affect the file's hash.
+6. **Included in hashes**: Extension data is part of the YAML content, so changes to `extensions` affect the file's hash.
 
 **Extensions are NOT permitted in generated artifacts** (context packs, baselines, receipts).
 
@@ -131,6 +146,8 @@ Hand-authored files (`runecontext.yaml`, `bundles/*.yaml`, `changes/*/status.yam
 - Implementations must enforce all required fields per the schema.
 - Implementations must reject files that violate the restricted YAML profile (anchors, aliases, duplicate keys, custom tags, non-UTF-8).
 - Implementations must preserve the YAML structure when round-tripping if the input is valid.
+- Context packs may omit `source_commit` when the source is not `git`; implementations must enforce the requirement only for `source_mode: git` to avoid forcing synthetic hashes on embedded or local resolutions.
+- Implementations must enforce source-mode and verification consistency for context packs: `embedded` sources use `source_verification: embedded`, `path` sources use `source_verification: unverified_local_source`, and only `git` sources may record `source_commit`.
 
 ## Cross-Implementation Compatibility
 
@@ -138,5 +155,5 @@ To ensure local and remote resolution produce identical results:
 
 1. **Use this profile for all authoritative YAML/JSON files**.
 2. **Use RFC 8785 JCS for all canonical hashing**.
-3. **Test parity fixtures across implementations** (Go, TypeScript, etc.).
+3. **Test parity fixtures across implementations** (Go, TypeScript, etc.), including project-level validation that checks bundle/status extensions against the root opt-in flag.
 4. **Document any deviations** from this profile in implementation release notes.

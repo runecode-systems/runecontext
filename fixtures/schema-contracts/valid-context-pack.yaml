@@ -1,11 +1,11 @@
 schema_version: 1
 canonicalization: rfc8785-jcs
 pack_hash_alg: sha256
-pack_hash: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6
+pack_hash: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f60789
 id: go-control-plane
 resolved_from:
-  source_mode: embedded
-  source_ref: main
+  source_mode: git
+  source_ref: refs/tags/v0.1.0-alpha.1
   source_commit: 0123456789abcdef0123456789abcdef01234567
   source_verification: pinned_commit
   context_bundle_ids:
