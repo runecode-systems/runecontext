@@ -20,7 +20,7 @@
       let
         pkgs = import nixpkgs { inherit system; };
         goToolchain =
-          pkgs.go_1_25 or (throw "nixpkgs must provide go_1_25 for RuneContext development shells");
+          pkgs.go_1_25 or (throw "nixpkgs must provide go_1_25 for RuneContext release builds");
 
         releaseArtifacts = import ./nix/packages/release-artifacts.nix {
           inherit (pkgs) lib;
