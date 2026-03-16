@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+umask 022
+
 export SOURCE_DATE_EPOCH=315532800
 export TZ=UTC
 export LC_ALL=C
@@ -21,6 +23,7 @@ while IFS= read -r entry; do
   cp -R --parents "${entry}" "${bundle_root}"
 done < "@layoutEntriesFile@"
 
+chmod -R u=rwX,go=rX "${bundle_root}"
 find "${bundle_root}" -exec touch -h -d '1980-01-01T00:00:00Z' {} +
 
 mapfile -t bundle_formats < "@bundleFormatsFile@"

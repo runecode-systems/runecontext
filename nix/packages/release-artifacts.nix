@@ -21,17 +21,7 @@ let
         root = toString self;
         pathString = toString path;
         relativePath = if pathString == root then "." else lib.removePrefix "${root}/" pathString;
-        keepPrefixes = [
-          "cmd"
-          "internal"
-          "tools"
-          "core"
-          "adapters"
-          "docs"
-          "schemas"
-          "fixtures"
-          "nix"
-        ];
+        keepPrefixes = releaseMetadata.topLevelDirectories;
         matchesPrefix =
           prefix:
           relativePath == prefix
@@ -39,12 +29,7 @@ let
           || lib.hasPrefix "${relativePath}/" prefix;
       in
       relativePath == "."
-      || lib.elem relativePath [
-        "README.md"
-        "flake.nix"
-        "flake.lock"
-        "justfile"
-      ]
+      || lib.elem relativePath releaseMetadata.topLevelFiles
       || lib.any matchesPrefix keepPrefixes;
   };
 

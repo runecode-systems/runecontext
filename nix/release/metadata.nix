@@ -1,13 +1,22 @@
 let
-  base = {
+  base = rec {
     packageName = "runecontext";
     version = "0.0.0-dev";
 
-    layoutEntries = [
+    topLevelFiles = [
       "README.md"
+      "LICENSE"
+      "NOTICE"
+      "DCO"
+      "CONTRIBUTING.md"
+      "SECURITY.md"
+      "CODE_OF_CONDUCT.md"
       "flake.nix"
       "flake.lock"
       "justfile"
+    ];
+
+    topLevelDirectories = [
       "docs"
       "core"
       "adapters"
@@ -18,6 +27,8 @@ let
       "tools"
       "nix"
     ];
+
+    layoutEntries = topLevelFiles ++ topLevelDirectories;
 
     bundleFormats = [
       {
