@@ -1,0 +1,7 @@
+schema_version: 1
+runecontext_version: 0.1.0-alpha.1
+assurance_tier: plain
+source:
+  type: embedded
+  path: runecontext
+unknown_field: "should be rejected"

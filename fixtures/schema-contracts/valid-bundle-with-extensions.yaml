@@ -1,0 +1,10 @@
+schema_version: 1
+id: extended-base
+extends:
+  - base
+includes:
+  standards:
+    - standards/security/**
+extensions:
+  io.runecode.custom_metadata: "example value"
+  dev.acme.internal_ref: "CUSTOM-001"

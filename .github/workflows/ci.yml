@@ -27,8 +27,6 @@ jobs:
             system: x86_64-linux
           - runner: ubuntu-24.04-arm
             system: aarch64-linux
-          - runner: macos-13
-            system: x86_64-darwin
           - runner: macos-14
             system: aarch64-darwin
     steps:
@@ -44,14 +42,20 @@ jobs:
       - name: Cache Nix store
         uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39 # v13
 
+      - name: Verify flake.lock preflight
+        run: git diff --exit-code -- flake.lock
+
       - name: Validate flake.lock metadata
         run: nix flake lock --no-update-lock-file
 
       - name: Log Nix version
         run: nix --version
 
+      - name: Run flake checks
+        run: nix flake check --no-write-lock-file
+
       - name: Run CI command in dev shell
-        run: nix develop --no-write-lock-file -c just ci
+        run: nix develop --no-write-lock-file -c just nix-ci
 
       - name: Verify flake.lock unchanged
         run: git diff --exit-code -- flake.lock

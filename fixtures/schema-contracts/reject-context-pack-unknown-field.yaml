@@ -1,0 +1,23 @@
+schema_version: 1
+canonicalization: rfc8785-jcs
+pack_hash_alg: sha256
+pack_hash: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f60789
+id: go-control-plane
+resolved_from:
+  source_mode: embedded
+  source_ref: embedded
+  source_verification: embedded
+  context_bundle_ids:
+    - base
+selected:
+  project: []
+  standards: []
+  specs: []
+  decisions: []
+excluded:
+  project: []
+  standards: []
+  specs: []
+  decisions: []
+generated_at: "2026-03-16T10:30:00Z"
+metadata: "should be rejected in context pack"

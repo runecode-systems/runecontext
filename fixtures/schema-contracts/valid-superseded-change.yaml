@@ -1,0 +1,26 @@
+schema_version: 1
+id: CHG-2026-001-a3f2-old-auth-gateway
+title: Add auth gateway (superseded)
+status: superseded
+type: feature
+size: medium
+verification_status: passed
+context_bundles:
+  - go-control-plane
+related_specs:
+  - specs/auth-gateway.md
+related_decisions: []
+related_changes: []
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by:
+  - CHG-2026-006-f8a7-new-auth-gateway
+created_at: "2026-02-15"
+closed_at: "2026-03-10"
+promotion_assessment:
+  status: completed
+  suggested_targets:
+    - target_type: spec
+      target_path: specs/auth-gateway.md
+      summary: Promoted auth gateway API design and security model

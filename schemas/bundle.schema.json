@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Context Bundle Schema",
+  "description": "Reusable context selector for RuneContext. Supports inheritance plus aspect-aware include/exclude rules using RuneContext glob patterns (`*`, `**`, and exact paths). Schema version 1.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "includes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version. Unknown versions must fail closed."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "description": "Unique bundle identifier. Lowercase alphanumeric with optional hyphens (not leading/trailing)."
+    },
+    "extends": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+      },
+      "uniqueItems": true,
+      "maxItems": 8,
+      "description": "Parent bundle IDs. Depth-first, left-to-right linearization. Max depth 8."
+    },
+    "includes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "description": "Aspect-aware include rules. Each string uses RuneContext's bundle pattern grammar: exact relative path, `*` for single-segment wildcard, `**` for recursive wildcard.",
+      "properties": {
+        "project": {
+          "$ref": "#/$defs/patternList",
+          "description": "Include patterns under the `project/` aspect."
+        },
+        "standards": {
+          "$ref": "#/$defs/patternList",
+          "description": "Include patterns under the `standards/` aspect."
+        },
+        "specs": {
+          "$ref": "#/$defs/patternList",
+          "description": "Include patterns under the `specs/` aspect."
+        },
+        "decisions": {
+          "$ref": "#/$defs/patternList",
+          "description": "Include patterns under the `decisions/` aspect."
+        }
+      }
+    },
+    "excludes": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Aspect-aware exclude rules using the same bundle pattern grammar as `includes`. Applied after includes with last-matching-rule-wins semantics.",
+      "properties": {
+        "project": {
+          "$ref": "#/$defs/patternList",
+          "description": "Exclude patterns under the `project/` aspect."
+        },
+        "standards": {
+          "$ref": "#/$defs/patternList",
+          "description": "Exclude patterns under the `standards/` aspect."
+        },
+        "specs": {
+          "$ref": "#/$defs/patternList",
+          "description": "Exclude patterns under the `specs/` aspect."
+        },
+        "decisions": {
+          "$ref": "#/$defs/patternList",
+          "description": "Exclude patterns under the `decisions/` aspect."
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Optional extensions. Allowed only when project-level validation observes `allow_extensions: true` in `runecontext.yaml`. Non-authoritative; cannot affect bundle semantics.",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null",
+          "array",
+          "object"
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)+$",
+        "description": "Extension keys must be namespaced (e.g., `dev.acme.custom`, `io.runecode.metadata`)."
+      }
+    }
+  },
+  "$defs": {
+    "patternList": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

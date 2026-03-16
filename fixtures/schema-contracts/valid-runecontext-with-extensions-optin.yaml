@@ -1,0 +1,10 @@
+schema_version: 1
+runecontext_version: 0.1.0-alpha.1
+assurance_tier: verified
+source:
+  type: embedded
+  path: runecontext
+allow_extensions: true
+extensions:
+  io.runecode.metadata:
+    source: "fixture"

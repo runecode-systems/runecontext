@@ -61,14 +61,7 @@ in
         touch "$out"
       '';
 }
-//
-  lib.optionalAttrs
-    (lib.elem system [
-      "x86_64-linux"
-      "aarch64-linux"
-      "x86_64-darwin"
-      "aarch64-darwin"
-    ])
-    {
-      release-artifacts = releaseArtifacts;
-    }
+// lib.optionalAttrs (system == "x86_64-linux") {
+  # Release artifacts are checked on the canonical Linux release architecture.
+  release-artifacts = releaseArtifacts;
+}

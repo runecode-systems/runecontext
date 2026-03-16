@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Change Status Schema",
+  "description": "Machine-readable lifecycle and traceability state for a RuneContext change. Schema version 1.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "status",
+    "type",
+    "verification_status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version. Unknown versions must fail closed."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^CHG-\\d{4}-\\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Unique change identifier. Format: CHG-YYYY-NNN-RAND-slug"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable change summary."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "planned",
+        "implemented",
+        "verified",
+        "closed",
+        "superseded"
+      ],
+      "description": "Lifecycle status. Superseded changes must include `superseded_by`; cross-file bidirectional consistency is enforced by project-level validation, not by this single-file schema."
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^(project|feature|bug|standard|chore|x-.+)$",
+      "description": "Work type. Base enum: project, feature, bug, standard, chore. Custom types use x- prefix."
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "description": "Estimated work size."
+    },
+    "context_bundles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Selected or resolved context bundle IDs."
+    },
+    "related_specs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Paths to specs touched or informed by this change."
+    },
+    "related_decisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Paths to decisions touched or informed by this change."
+    },
+    "related_changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Non-hierarchical links to other relevant changes."
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Changes that must land first or whose outputs are assumed."
+    },
+    "informed_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Earlier changes whose reasoning or outputs influenced this one."
+    },
+    "supersedes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Changes replaced by this one."
+    },
+    "superseded_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Changes that replace this one. Required when `status` is `superseded`."
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "passed",
+        "failed",
+        "skipped"
+      ],
+      "description": "Verification outcome: pending (not verified), passed, failed, or skipped with justification."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO 8601 date when the change was created."
+    },
+    "closed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date",
+      "description": "ISO 8601 date when the change was closed, or null if still open."
+    },
+    "promotion_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Structured promotion assessment state and suggested targets.",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "none",
+            "suggested",
+            "accepted",
+            "completed"
+          ],
+          "description": "Promotion assessment status lifecycle."
+        },
+        "suggested_targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target_type",
+              "target_path",
+              "summary"
+            ],
+            "properties": {
+              "target_type": {
+                "type": "string",
+                "enum": [
+                  "spec",
+                  "standard",
+                  "decision"
+                ],
+                "description": "Type of target artifact."
+              },
+              "target_path": {
+                "type": "string",
+                "description": "Path to the target spec, standard, or decision."
+              },
+              "summary": {
+                "type": "string",
+                "description": "Summary of what durable knowledge should be promoted."
+              }
+            }
+          },
+          "description": "Suggested promotion targets with durable knowledge to promote."
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Optional extensions. Allowed only when project-level validation observes `allow_extensions: true` in `runecontext.yaml`. Non-authoritative; cannot affect lifecycle.",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null",
+          "array",
+          "object"
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)+$",
+        "description": "Extension keys must be namespaced (e.g., `dev.acme.custom`, `io.runecode.metadata`)."
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "superseded"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "superseded_by"
+        ]
+      }
+    }
+  ]
+}

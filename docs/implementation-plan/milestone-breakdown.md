@@ -19,52 +19,63 @@ that all later CLI, adapters, and RuneCode integration must share.
 
 ### Epic 1: Core terminology, boundaries, and ownership
 
-- [ ] Issue: publish the normative terminology and disambiguation set for
+- [x] Issue: publish the normative terminology and disambiguation set for
   `standard`, `project context`, `context bundle`, `context pack`, `change`,
   `spec`, and `decision`.
-- [ ] Issue: document the three-layer boundary between RuneContext Core,
+- [x] Issue: document the three-layer boundary between RuneContext Core,
   adapters, and RuneCode integration, including explicit non-responsibilities.
-- [ ] Issue: finalize the authoritative on-disk layout, including which files
+- [x] Issue: finalize the authoritative on-disk layout, including which files
   are hand-authored, generated, optional, or review-only.
-- [ ] Issue: codify the policy-neutrality rule so RuneContext text never
+- [x] Issue: codify the policy-neutrality rule so RuneContext text never
   becomes runtime authority.
-- [ ] Issue: codify the LLM input trust-boundary rule so RuneContext text is
+- [x] Issue: codify the LLM input trust-boundary rule so RuneContext text is
   treated as untrusted model input, not just untrusted policy input.
 
 ### Epic 2: Schema and file-contract baseline
 
-- [ ] Issue: author the schema and validation contract for root
+- [x] Issue: author the schema and validation contract for root
   `runecontext.yaml`, including `schema_version`, `runecontext_version`,
-  `assurance_tier`, and `source`.
-- [ ] Issue: author the schema and validation contract for `bundles/*.yaml`.
-- [ ] Issue: author the schema and validation contract for
-  `changes/*/status.yaml`.
-- [ ] Issue: codify the base `status.yaml` `type` enum plus the `x-` prefix rule
+  `assurance_tier`, `source`, and `allow_extensions` opt-in.
+- [x] Issue: author the schema and validation contract for `bundles/*.yaml`
+  with closed-schema defaults and optional `extensions` object.
+- [x] Issue: author the schema and validation contract for
+  `changes/*/status.yaml` with closed-schema defaults and optional `extensions`.
+- [x] Issue: codify the base `status.yaml` `type` enum plus the `x-` prefix rule
   for custom type values.
-- [ ] Issue: codify the `verification_status` enum values `pending`, `passed`,
+- [x] Issue: codify the `verification_status` enum values `pending`, `passed`,
   `failed`, and `skipped`.
-- [ ] Issue: define the normative `source_verification` enum values used by
-  linked commits, verified signed tags, mutable refs, and local path sources.
-- [ ] Issue: author the schema and validation contract for generated context
-  packs.
-- [ ] Issue: define the schema inventory for assurance baseline and receipt
-  artifacts so `alpha.5` can implement them without changing the contract
-  surface unexpectedly.
+- [x] Issue: define the normative `source_verification` enum values: `pinned_commit`,
+  `verified_signed_tag`, `unverified_mutable_ref`, `unverified_local_source`, `embedded`.
+- [x] Issue: author the schema and validation contract for generated context
+  packs (fully closed, no extensions in v1).
+- [x] Issue: define the schema inventory for assurance baseline and receipt
+  artifacts (closed schemas, deferred implementation to alpha.5).
+- [x] Issue: codify the restricted machine-readable YAML profile with no anchors,
+  aliases, duplicate keys, or custom tags; UTF-8 only; normalized formatting.
+- [x] Issue: define the canonical JSON data model for hashing derived from YAML.
+- [x] Issue: codify RFC 8785 JCS as the canonical hashing serialization; SHA256 for hash
+  algorithm.
+- [x] Issue: standardize on JSON Schema Draft 2020-12 so conditional variants can remain closed without reopening the core contracts.
+- [x] Issue: define unknown-field behavior: closed schemas by default; unknown
+  `schema_version` fails closed; optional `extensions` object (owner.name namespaces,
+  non-authoritative) allowed only when `runecontext.yaml` sets `allow_extensions: true`;
+  no extensions in generated artifacts.
 
 ### Epic 3: Markdown contract enforcement
 
-- [ ] Issue: define and validate the strict section ordering for `proposal.md`.
-- [ ] Issue: define the normalized structure and regeneration behavior for
-  `standards.md`.
+- [x] Issue: define and validate the strict section ordering for `proposal.md`:
+  Summary, Problem, Proposed Change, Why Now, Assumptions, Out of Scope, Impact
+  (in exact order, level-2 headings, each required or explicit N/A).
+- [x] Issue: define the normalized structure and regeneration behavior for
+  `standards.md`: Applicable Standards, Standards Added Since Last Refresh (optional),
+  Standards Considered But Excluded (optional), Resolution Notes (optional).
+  Auto-maintained by tooling; always present; reviewable diffs required.
 - [ ] Issue: define traceability metadata conventions for `specs/` and
   `decisions/`.
 
 ### Epic 4: Canonical data rules
 
-- [ ] Issue: codify the restricted machine-readable YAML profile.
-- [ ] Issue: define the normalized JSON data model used for hashing.
-- [ ] Issue: codify RFC 8785 JCS as the canonical hashing serialization.
-- [ ] Issue: define unknown-field and unknown-schema-version behavior.
+Completed as part of Epic 2 (consolidated with schema contracts for better audit coverage).
 
 ### Epic 5: Testing foundation
 
@@ -79,8 +90,21 @@ that all later CLI, adapters, and RuneCode integration must share.
 
 ### Exit Criteria
 
+- All v1 JSON schemas are authored and versioned: `runecontext.yaml`, `bundles/*.yaml`,
+  `changes/*/status.yaml`, `context-pack.yaml`.
+- The restricted YAML profile and canonical JSON/JCS hashing model are frozen.
+- The schema dialect is frozen at JSON Schema Draft 2020-12 for all v1 contracts.
+- Unknown-field behavior is explicit: closed schemas by default; optional `extensions`
+  object with namespaced keys; no extensions in generated artifacts.
+- Context-pack serialization shape is explicit enough to hash deterministically across implementations, including stable handling of empty aspect inventories.
+- Alpha-stage contract refinements must update generators, fixtures, and docs together before downstream consumers depend on the hash or schema shape.
+- Schema version 1 files must fail closed on unknown `schema_version` and unknown enum
+  values.
+- Markdown contracts for `proposal.md` and `standards.md` are frozen with section ordering
+  and regeneration rules.
+- The `allow_extensions: true` opt-in flag is defined in `runecontext.yaml` with visible
+  warning behavior.
 - The core file model is frozen enough for fixture generation.
-- The required v1 schemas and markdown contracts are identified and versioned.
 - The policy-neutrality rule is explicit and testable.
 - The LLM-input trust rule is explicit and testable.
 - The test strategy and fixture taxonomy are defined early enough to shape every

@@ -1,0 +1,22 @@
+schema_version: 1
+id: CHG-2026-003-c5d4-example
+title: Example with extensions without opt-in
+status: proposed
+type: feature
+size: small
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes: []
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-16"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []
+extensions:
+  io.runecode.custom: "should be rejected"

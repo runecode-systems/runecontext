@@ -1,0 +1,21 @@
+schema_version: 1
+id: &bundle_id CHG-2026-004-d6e5-anchor-example
+title: Example with YAML anchors and aliases
+status: proposed
+type: feature
+size: medium
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - *bundle_id
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-16"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

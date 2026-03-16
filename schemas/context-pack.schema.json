@@ -1,0 +1,347 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Context Pack Schema",
+  "description": "Deterministic resolved context artifact. Generated, fully closed (no extensions). Schema version 1.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "canonicalization",
+    "pack_hash_alg",
+    "pack_hash",
+    "id",
+    "resolved_from",
+    "selected",
+    "generated_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version. Unknown versions must fail closed."
+    },
+    "canonicalization": {
+      "type": "string",
+      "const": "rfc8785-jcs",
+      "description": "Canonical serialization method for hashing."
+    },
+    "pack_hash_alg": {
+      "type": "string",
+      "const": "sha256",
+      "description": "Hash algorithm used for `pack_hash`."
+    },
+    "pack_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Canonical SHA256 hash of the resolved pack after removing the `pack_hash` field and applying RFC 8785 JCS to the remaining object."
+    },
+    "id": {
+      "type": "string",
+      "description": "Primary context bundle ID resolved for this pack."
+    },
+    "resolved_from": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_mode",
+        "source_ref",
+        "source_verification",
+        "context_bundle_ids"
+      ],
+      "description": "Metadata about how this pack was resolved.",
+      "properties": {
+        "source_mode": {
+          "type": "string",
+          "enum": [
+            "embedded",
+            "git",
+            "path"
+          ],
+          "description": "How RuneContext was sourced: embedded, git, or path."
+        },
+        "source_ref": {
+          "type": "string",
+          "description": "Source reference: branch/tag/commit for git, path for local, 'embedded' for embedded mode."
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$",
+          "description": "Resolved commit SHA (40 hex chars). Required for `git` sources and omitted for source modes that do not resolve a commit."
+        },
+        "source_verification": {
+          "type": "string",
+          "enum": [
+            "pinned_commit",
+            "verified_signed_tag",
+            "unverified_mutable_ref",
+            "unverified_local_source",
+            "embedded"
+          ],
+          "description": "Verification posture of the source. Determines auditability."
+        },
+        "verified_signer_identity": {
+          "type": "string",
+          "description": "Signer fingerprint/identity when `source_verification` is `verified_signed_tag`. Omitted otherwise."
+        },
+        "context_bundle_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Ordered list of resolved context bundle IDs (including parents via linearization)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "source_mode"
+            ],
+            "properties": {
+              "source_mode": {
+                "const": "git"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "source_commit"
+            ],
+            "properties": {
+              "source_verification": {
+                "enum": [
+                  "pinned_commit",
+                  "verified_signed_tag",
+                  "unverified_mutable_ref"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "source_mode"
+            ],
+            "properties": {
+              "source_mode": {
+                "const": "embedded"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_verification": {
+                "const": "embedded"
+              }
+            },
+            "not": {
+              "required": [
+                "source_commit"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "source_mode"
+            ],
+            "properties": {
+              "source_mode": {
+                "const": "path"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_verification": {
+                "const": "unverified_local_source"
+              }
+            },
+            "not": {
+              "required": [
+                "source_commit"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "selected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project",
+        "standards",
+        "specs",
+        "decisions"
+      ],
+      "description": "Selected files by aspect family.",
+      "properties": {
+        "project": {
+          "$ref": "#/$defs/fileInventory"
+        },
+        "standards": {
+          "$ref": "#/$defs/fileInventory"
+        },
+        "specs": {
+          "$ref": "#/$defs/fileInventory"
+        },
+        "decisions": {
+          "$ref": "#/$defs/fileInventory"
+        }
+      }
+    },
+    "excluded": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project",
+        "standards",
+        "specs",
+        "decisions"
+      ],
+      "description": "Excluded files by aspect family. When present, all four aspect keys must appear, using empty arrays where nothing was excluded.",
+      "properties": {
+        "project": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/excludedFile"
+          }
+        },
+        "standards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/excludedFile"
+          }
+        },
+        "specs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/excludedFile"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/excludedFile"
+          }
+        }
+      }
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the pack was generated."
+    }
+  },
+  "$defs": {
+    "fileInventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "selected_by"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Relative path to the file within the aspect."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA256 hash of the file content."
+          },
+          "selected_by": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "bundle",
+                "aspect",
+                "rule"
+              ],
+              "properties": {
+                "bundle": {
+                  "type": "string",
+                  "description": "Bundle ID that selected this file."
+                },
+                "aspect": {
+                  "type": "string",
+                  "enum": [
+                    "project",
+                    "standards",
+                    "specs",
+                    "decisions"
+                  ],
+                  "description": "Aspect family."
+                },
+                "rule": {
+                  "type": "string",
+                  "enum": [
+                    "include",
+                    "exclude"
+                  ],
+                  "description": "Rule type: include or exclude."
+                }
+              }
+            },
+            "description": "Ordered list of rules that selected this file. Last matching rule wins."
+          }
+        }
+      }
+    },
+    "excludedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "last_rule"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Relative path to the excluded file within the aspect."
+        },
+        "last_rule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bundle",
+            "aspect",
+            "rule"
+          ],
+          "properties": {
+            "bundle": {
+              "type": "string",
+              "description": "Bundle ID that last matched this file."
+            },
+            "aspect": {
+              "type": "string",
+              "enum": [
+                "project",
+                "standards",
+                "specs",
+                "decisions"
+              ],
+              "description": "Aspect family."
+            },
+            "rule": {
+              "type": "string",
+              "const": "exclude",
+              "description": "Rule type (always exclude for excluded files)."
+            }
+          }
+        }
+      }
+    }
+  }
+}
