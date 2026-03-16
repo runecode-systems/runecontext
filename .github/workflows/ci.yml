@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches:
-      - '**'
+      - main
 
 permissions:
   contents: read
@@ -17,7 +17,6 @@ concurrency:
 jobs:
   nix:
     name: Nix (${{ matrix.runner }} - ${{ matrix.system }})
-    if: ${{ matrix.push_only != true || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
@@ -28,9 +27,6 @@ jobs:
             system: x86_64-linux
           - runner: ubuntu-24.04-arm
             system: aarch64-linux
-          - runner: macos-15-intel
-            system: x86_64-darwin
-            push_only: true
           - runner: macos-14
             system: aarch64-darwin
     steps:
@@ -44,7 +40,6 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v21
 
       - name: Cache Nix store
-        if: ${{ matrix.runner != 'macos-15-intel' }}
         uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39 # v13
 
       - name: Verify flake.lock preflight
