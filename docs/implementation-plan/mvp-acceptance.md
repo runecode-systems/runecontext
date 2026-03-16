@@ -86,7 +86,7 @@
 
 ## 7. Adapters
 
-- [ ] The canonical command reference exists under `commands/`.
+- [ ] The canonical operations reference exists under `operations/`.
 - [ ] The `generic` adapter exists.
 - [ ] The `claude-code`, `opencode`, and `codex` adapters exist.
 - [ ] Adapters differ in UX only, not in core semantics or source-of-truth

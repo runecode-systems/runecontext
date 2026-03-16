@@ -55,7 +55,7 @@ contracts RuneCode needs in order to integrate cleanly.
 | `v0.1.0-alpha.4` | Deterministic context packs, generated indexes, and promotion assessment |
 | `v0.1.0-alpha.5` | Plain/Verified assurance, baselines, receipts, and backfill |
 | `v0.1.0-alpha.6` | Minimal CLI, validation, doctoring, and machine-facing command contracts |
-| `v0.1.0-alpha.7` | Generic and tool-specific adapters plus command-pack UX |
+| `v0.1.0-alpha.7` | Generic and tool-specific adapters plus adapter-pack UX |
 | `v0.1.0-alpha.8` | Release/install/update hardening and end-to-end MVP readiness fixtures |
 | `v0.1.0` | Stabilization, compatibility freeze, and MVP acceptance sign-off |
 

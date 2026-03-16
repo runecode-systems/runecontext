@@ -111,6 +111,10 @@ plan so it is clear that the planning documents capture the full design.
 - Decision: adapters are the primary UX; CLI is the power-user and automation
   surface.
   - Planned capture: `alpha.6`, `alpha.7`
+- Decision: `adapter pack` is the packaged tool UX surface, and
+  `runecontext/operations/` is the canonical in-project reference/source area
+  for underlying RuneContext operations.
+  - Planned capture: `alpha.1`, `alpha.7`
 
 ## Deferred But Captured
 

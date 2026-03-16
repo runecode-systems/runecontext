@@ -479,18 +479,18 @@ automation, CI, debugging, and non-agent workflows.
   tests.
 - RuneCode can validate non-interactive behavior for remote/server workflows.
 
-## `v0.1.0-alpha.7` - Adapters And Command-Pack UX
+## `v0.1.0-alpha.7` - Adapters And Adapter-Pack UX
 
 Primary outcome: make RuneContext comfortable to use inside multiple coding
 tools while preserving one core model.
 
-### Epic 1: Canonical command reference
+### Epic 1: Canonical operations reference
 
-- [ ] Issue: author the canonical in-project command reference under
-  `commands/`.
+- [ ] Issue: author the canonical in-project operations reference under
+  `operations/`.
 - [ ] Issue: define adapter-to-core operation mapping rules.
-- [ ] Issue: define how adapters consume or derive from canonical command docs
-  without redefining semantics.
+- [ ] Issue: define how adapters consume or derive from the canonical
+  operations reference without redefining semantics.
 
 ### Epic 2: Generic adapter
 
