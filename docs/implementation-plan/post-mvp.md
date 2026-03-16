@@ -55,11 +55,18 @@ deferred by the idea document.
 Primary outcome: add non-canonical convenience distribution channels without
 changing the repo-first install model.
 
+Note: Windows CI portability testing is part of v0.1.0-alpha.8, but Windows
+binary packaging and distribution channels (Scoop, winget) remain deferred to
+this phase pending adoption demand.
+
 ### Epics
 
 - [ ] Issue: define npm packaging for schema bundle, adapters, or helper CLI.
-- [ ] Issue: define Homebrew distribution for `runectx` if adoption warrants it.
-- [ ] Issue: define Scoop and winget packaging if Windows support demand exists.
+- [ ] Issue: define Homebrew distribution for `runectx` binaries across supported
+  architectures (amd64 and arm64).
+- [ ] Issue: define Scoop and winget packaging and distribution strategy if
+  Windows adoption demand warrants it (Windows CI portability parity is v0.1.x;
+  distribution channels are post-MVP).
 - [ ] Issue: document how convenience channels stay subordinate to GitHub
   release artifacts.
 

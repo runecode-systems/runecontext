@@ -546,9 +546,13 @@ install/update paths and end-to-end reference fixtures.
 
 ### Epic 1: Release packaging
 
-- [ ] Issue: package the schema bundle for releases.
+- [ ] Issue: establish CI/CD platform parity with RuneCode:
+  - Primary: Linux (x86_64 and arm64) and macOS (x86_64 and arm64) via Nix.
+  - Portability: Windows via non-Nix smoke testing.
+- [ ] Issue: package the schema bundle for releases across supported platforms.
 - [ ] Issue: package adapter packs for releases.
-- [ ] Issue: package optional `runectx` binaries for supported platforms.
+- [ ] Issue: package optional `runectx` binaries for primary supported platforms:
+  `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/arm64`.
 - [ ] Issue: emit release checksums, release manifest, signatures, and release
   notes.
 - [ ] Issue: publish a RuneCode `<->` RuneContext compatibility matrix.
