@@ -17,6 +17,7 @@ concurrency:
 jobs:
   nix:
     name: Nix (${{ matrix.runner }} - ${{ matrix.system }})
+    if: ${{ github.event_name != 'pull_request' || matrix.push_only != true }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
@@ -29,6 +30,7 @@ jobs:
             system: aarch64-linux
           - runner: macos-15-intel
             system: x86_64-darwin
+            push_only: true
           - runner: macos-14
             system: aarch64-darwin
     steps:
@@ -42,6 +44,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v21
 
       - name: Cache Nix store
+        if: ${{ matrix.runner != 'macos-15-intel' }}
         uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39 # v13
 
       - name: Verify flake.lock preflight
