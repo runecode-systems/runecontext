@@ -600,8 +600,12 @@ func resolveGitSource(base *SourceResolution, configPath string, sourceMap map[s
 		if err := validateGitRef(ref); err != nil {
 			return nil, &ValidationError{Path: configPath, Message: strings.Replace(err.Error(), "git ref", "git signed_tag", 1)}
 		}
-		expectCommit := strings.TrimSpace(fmt.Sprint(sourceMap["expect_commit"]))
-		if err := validateGitCommit(expectCommit); err != nil {
+		expectCommit, ok := sourceMap["expect_commit"]
+		if !ok || strings.TrimSpace(fmt.Sprint(expectCommit)) == "" {
+			return nil, &ValidationError{Path: configPath, Message: "git expect_commit must not be empty"}
+		}
+		expectCommitValue := strings.TrimSpace(fmt.Sprint(expectCommit))
+		if err := validateGitCommit(expectCommitValue); err != nil {
 			return nil, &ValidationError{Path: configPath, Message: strings.Replace(err.Error(), "git commit", "git expect_commit", 1)}
 		}
 		if gitTrust.SignedTagVerifier == nil {
@@ -618,7 +622,7 @@ func resolveGitSource(base *SourceResolution, configPath string, sourceMap map[s
 			}
 		}
 		posture = VerificationPostureVerifiedSignedTag
-		tree, commit, signedTagVerification, err = resolver.materializeSignedTag(ref, expectCommit, subdir, gitTrust.SignedTagVerifier)
+		tree, commit, signedTagVerification, err = resolver.materializeSignedTag(ref, expectCommitValue, subdir, gitTrust.SignedTagVerifier)
 	} else {
 		return nil, &ValidationError{Path: configPath, Message: "git source must declare commit, signed_tag, or ref"}
 	}
@@ -1204,10 +1208,6 @@ func sanitizedGitEnv() []string {
 		}
 	}
 	return env
-}
-
-func SanitizedGitEnvForTests() []string {
-	return sanitizedGitEnv()
 }
 
 func runeContextRelativePath(root, path string) string {

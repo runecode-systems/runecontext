@@ -286,6 +286,9 @@ auditable, and safe for future local/remote parity.
   execution failures and avoid over-redacting normal git reflog syntax.
 - Signed-tag timeout failures retain structured verification diagnostics, and
   explicit trust-input parsing rejects blank values before filesystem access.
+- Signed-tag validation rejects empty `expect_commit` values with a clear
+  caller-facing error rather than a confusing placeholder-derived format
+  failure.
 - Monorepo discovery reports the selected config path and source metadata in a
   structured form that later CLI and audit flows can reuse.
 - Bundle inheritance behaves deterministically across override and diamond cases.

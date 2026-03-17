@@ -42,6 +42,8 @@
   diagnostics and avoids over-redacting normal git ref/reflog syntax.
 - [ ] Signed-tag verification timeouts and explicit trust-input parse failures
   also fail closed with structured, machine-readable diagnostics.
+- [ ] Signed-tag verification rejects empty `expect_commit` values with a clear
+  validation error before commit-format checks run.
 - [ ] Mutable git refs reject obviously invalid ref syntax before subprocess
   execution rather than relying on fetch failures alone.
 - [ ] RuneContext does not use environment variables as user-facing

@@ -234,6 +234,21 @@ func TestSourceResolutionGitSignedTagBadSignatureFailsClosed(t *testing.T) {
 	assertSignedTagFailure(t, err, SignedTagFailureInvalidSignature, "invalid signature")
 }
 
+func TestSourceResolutionGitSignedTagEmptyExpectCommitFailsClearly(t *testing.T) {
+	repoDir, details := createSignedGitSourceRepo(t)
+	_, err := resolveGitSource(&SourceResolution{}, "runecontext.yaml", map[string]any{
+		"url":           repoDir,
+		"signed_tag":    details.SignedTagName,
+		"expect_commit": "",
+		"subdir":        "runecontext",
+	}, GitTrustInputs{
+		SignedTagVerifier: newSSHAllowedSignersVerifierForTest(t, details.AllowedSigners),
+	})
+	if err == nil || !strings.Contains(err.Error(), "git expect_commit must not be empty") {
+		t.Fatalf("expected explicit empty expect_commit failure, got %v", err)
+	}
+}
+
 func TestSourceResolutionGitSignedTagExpectCommitMismatchFailsClosed(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, details := createSignedGitSourceRepo(t)

@@ -379,7 +379,7 @@ func createSignedGitSourceRepoForCLI(t *testing.T) (string, cliSignedTagDetails)
 	commit := strings.TrimSpace(gitOutputForCLI(t, repoDir, "rev-parse", "HEAD"))
 	keyDir := t.TempDir()
 	keyPath := filepath.Join(keyDir, "signer")
-	runCommandForCLI(t, repoDir, contracts.SanitizedGitEnvForTests(), "ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", keyPath)
+	runCommandForCLI(t, repoDir, sanitizedGitEnvForCLITests(), "ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", keyPath)
 	pubKey, err := os.ReadFile(keyPath + ".pub")
 	if err != nil {
 		t.Fatalf("read public key: %v", err)
@@ -443,12 +443,12 @@ func copyDirForCLI(t *testing.T, srcRoot, dstRoot string) {
 
 func runGitForCLI(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	runCommandForCLI(t, dir, contracts.SanitizedGitEnvForTests(), "git", args...)
+	runCommandForCLI(t, dir, sanitizedGitEnvForCLITests(), "git", args...)
 }
 
 func gitOutputForCLI(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	return runCommandOutputForCLI(t, dir, contracts.SanitizedGitEnvForTests(), nil, "git", args...)
+	return runCommandOutputForCLI(t, dir, sanitizedGitEnvForCLITests(), nil, "git", args...)
 }
 
 func runCommandForCLI(t *testing.T, dir string, env []string, name string, args ...string) {
@@ -469,4 +469,30 @@ func runCommandOutputForCLI(t *testing.T, dir string, env []string, stdin *bytes
 		t.Fatalf("%s %s failed: %v\n%s", name, strings.Join(args, " "), err, string(output))
 	}
 	return string(output)
+}
+
+func sanitizedGitEnvForCLITests() []string {
+	env := []string{
+		"HOME=" + os.TempDir(),
+		"XDG_CONFIG_HOME=" + os.TempDir(),
+		"GNUPGHOME=" + os.TempDir(),
+		"GIT_CONFIG_GLOBAL=" + os.DevNull,
+		"GIT_CONFIG_NOSYSTEM=1",
+		"GIT_ALLOW_PROTOCOL=file:git:http:https:ssh",
+		"GIT_TERMINAL_PROMPT=0",
+		"GIT_ASKPASS=",
+		"SSH_ASKPASS=",
+		"SSH_AUTH_SOCK=",
+		"GIT_SSH=",
+		"GIT_SSH_COMMAND=",
+		"GCM_INTERACTIVE=Never",
+		"LANG=C",
+		"LC_ALL=C",
+	}
+	for _, key := range []string{"PATH", "TMPDIR", "TMP", "TEMP", "SYSTEMROOT"} {
+		if value, ok := os.LookupEnv(key); ok && value != "" {
+			env = append(env, key+"="+value)
+		}
+	}
+	return env
 }
