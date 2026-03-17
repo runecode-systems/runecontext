@@ -176,8 +176,15 @@ auditable, and safe for future local/remote parity.
   invoking git, reject option-like values, run with an explicit minimal
   subprocess environment, and disable interactive prompting so correctness does
   not depend on hidden host credentials or config.
+- RuneContext should not expose environment-variable configuration or use
+  environment variables as semantic inputs. Correctness-critical behavior must
+  come from repository state, explicit config files, or caller-supplied options.
+  A minimal inherited process environment is allowed only for non-semantic OS
+  plumbing such as executable lookup and temp-directory access.
 - Git network/process steps must run with explicit timeouts and cancellation so
   validation and future CI flows cannot hang indefinitely on fetch operations.
+- Pinned-commit resolution must work against ordinary advertised refs rather than
+  relying on direct fetch-by-SHA support from the remote.
 - Signed-tag verification must rely on explicitly supplied trusted-signer
   inputs on the trusted side. Alpha.2 should not depend on hidden machine-
   global Git, GPG, or home-directory trust configuration for correctness.

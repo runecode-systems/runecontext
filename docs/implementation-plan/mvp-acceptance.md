@@ -33,8 +33,13 @@
 - [ ] Git source resolution validates URL/ref/commit inputs, rejects option-like
   values, disables interactive prompting, and does not depend on hidden host
   credentials or global Git config for correctness.
+- [ ] RuneContext does not use environment variables as user-facing
+  configuration or semantic inputs; correctness-critical behavior comes from
+  repo state, explicit config, or caller-supplied options only.
 - [ ] Git source resolution uses explicit process/network timeouts so local and
   CI validation cannot hang indefinitely during fetch/checkout steps.
+- [ ] Pinned-commit git resolution works without requiring the remote to support
+  direct fetch-by-SHA behavior.
 - [ ] Monorepo nearest-root discovery works and reports the selected config path
   as structured metadata.
 - [ ] Bundle resolution is deterministic, cycle-safe, depth-limited, and path-

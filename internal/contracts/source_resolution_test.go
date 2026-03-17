@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -197,8 +198,11 @@ func TestSourceResolutionRejectsPathSymlinkEscape(t *testing.T) {
 	if err := os.WriteFile(outside, []byte("outside"), 0o644); err != nil {
 		t.Fatalf("write outside file: %v", err)
 	}
-	if err := os.Symlink("../outside.txt", filepath.Join(localRoot, "escape-link")); err != nil {
-		t.Fatalf("create symlink: %v", err)
+	if err := tryCreateSymlink("../outside.txt", filepath.Join(localRoot, "escape-link")); err != nil {
+		if strings.Contains(err.Error(), "symlink tests skipped") {
+			t.Skip(err.Error())
+		}
+		t.Fatal(err)
 	}
 	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
@@ -218,8 +222,11 @@ func TestSourceResolutionRejectsPathSymlinkCycle(t *testing.T) {
 	if err := os.MkdirAll(localRoot, 0o755); err != nil {
 		t.Fatalf("mkdir local root: %v", err)
 	}
-	if err := os.Symlink(".", filepath.Join(localRoot, "loop")); err != nil {
-		t.Fatalf("create loop symlink: %v", err)
+	if err := tryCreateSymlink(".", filepath.Join(localRoot, "loop")); err != nil {
+		if strings.Contains(err.Error(), "symlink tests skipped") {
+			t.Skip(err.Error())
+		}
+		t.Fatal(err)
 	}
 	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
@@ -327,6 +334,21 @@ func createGitSourceRepo(t *testing.T) (string, string) {
 	return repoDir, commit
 }
 
+func TestSourceResolutionGitPinnedCommitWorksFromAdvertisedRefs(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, commit := createGitSourceRepo(t)
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  commit: %s\n  subdir: runecontext\n", repoDir, commit))
+
+	loaded, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("expected pinned commit to resolve from advertised refs: %v", err)
+	}
+	defer loaded.Close()
+	if loaded.Resolution == nil || loaded.Resolution.ResolvedCommit != commit {
+		t.Fatalf("expected resolved commit %q, got %#v", commit, loaded.Resolution)
+	}
+}
+
 func copyDirForTest(t *testing.T, srcRoot, dstRoot string) {
 	t.Helper()
 	if err := filepath.Walk(srcRoot, func(path string, info os.FileInfo, err error) error {
@@ -372,4 +394,14 @@ func gitOutputForTest(t *testing.T, dir string, args ...string) string {
 		t.Fatalf("git %s failed: %v\n%s", strings.Join(args, " "), err, string(output))
 	}
 	return string(output)
+}
+
+func tryCreateSymlink(target, path string) error {
+	if err := os.Symlink(target, path); err != nil {
+		if runtime.GOOS == "windows" || os.IsPermission(err) {
+			return fmt.Errorf("symlink tests skipped: %w", err)
+		}
+		return fmt.Errorf("create symlink: %w", err)
+	}
+	return nil
 }

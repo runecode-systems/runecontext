@@ -174,16 +174,15 @@ func (v *Validator) ValidateProject(root string) (*ProjectIndex, error) {
 	})
 }
 
-func resolveContentRoot(projectRoot string, rootData []byte) (string, error) {
+func resolveContentRoot(projectRoot string, rootData []byte) (*SourceResolution, error) {
 	resolution, err := resolveSourceFromConfig(filepath.Join(projectRoot, "runecontext.yaml"), projectRoot, rootData, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
 		ExecutionMode:   ExecutionModeLocal,
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	defer resolution.Close()
-	return resolution.MaterializedRoot(), nil
+	return resolution, nil
 }
 
 func (v *Validator) validateBundles(rootConfigPath string, rootData []byte, bundlesRoot string) error {

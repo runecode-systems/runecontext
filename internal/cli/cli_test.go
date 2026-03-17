@@ -65,6 +65,45 @@ func TestRunValidateNearestAncestorDiscoveryReportsSelectedConfig(t *testing.T) 
 	}
 }
 
+func TestRunValidateExternalProjectUsesRepoSchemas(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(wd)
+	})
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(repoRoot); err != nil {
+		t.Fatalf("chdir to repo root: %v", err)
+	}
+
+	projectRoot := t.TempDir()
+	config := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write root config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(projectRoot, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir source root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "selected_config_path=") {
+		t.Fatalf("expected selected config output, got %q", stdout.String())
+	}
+	if strings.Contains(stderr.String(), "schemas/runecontext.schema.json") {
+		t.Fatalf("expected CLI to use repo schemas, got %q", stderr.String())
+	}
+}
+
 func TestRunValidateFailure(t *testing.T) {
 	root := fixtureRoot(t, "reject-change-missing-related-spec")
 	var stdout bytes.Buffer

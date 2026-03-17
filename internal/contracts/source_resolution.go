@@ -457,7 +457,7 @@ func normalizeContainedRelativePath(value string) (string, error) {
 
 func validateGitURL(url string) error {
 	if strings.HasPrefix(url, "-") {
-		return fmt.Errorf("git source url must not start with '-' ")
+		return fmt.Errorf("git source url must not start with '-'")
 	}
 	if strings.ContainsAny(url, gitURLControlChars+" ") {
 		return fmt.Errorf("git source url contains unsupported whitespace or control characters")
@@ -467,7 +467,7 @@ func validateGitURL(url string) error {
 
 func validateGitCommit(commit string) error {
 	if strings.HasPrefix(commit, "-") {
-		return fmt.Errorf("git commit must not start with '-' ")
+		return fmt.Errorf("git commit must not start with '-'")
 	}
 	if !gitCommitPattern.MatchString(commit) {
 		return fmt.Errorf("git commit must be a 40-character lowercase hex SHA")
@@ -477,7 +477,7 @@ func validateGitCommit(commit string) error {
 
 func validateGitRef(ref string) error {
 	if strings.HasPrefix(ref, "-") {
-		return fmt.Errorf("git ref must not start with '-' ")
+		return fmt.Errorf("git ref must not start with '-'")
 	}
 	if !gitRefPattern.MatchString(ref) {
 		return fmt.Errorf("git ref contains unsupported characters")
@@ -581,7 +581,7 @@ type gitResolver struct {
 }
 
 func (r gitResolver) materialize(commit, subdir string) (*LocalSourceTree, error) {
-	tree, resolvedCommit, err := r.materializeRefToTree(commit, subdir)
+	tree, resolvedCommit, err := r.materializeCommitToTree(commit, subdir)
 	if err != nil {
 		return nil, err
 	}
@@ -593,31 +593,61 @@ func (r gitResolver) materialize(commit, subdir string) (*LocalSourceTree, error
 }
 
 func (r gitResolver) materializeRef(ref, subdir string) (*LocalSourceTree, string, error) {
-	return r.materializeRefToTree(ref, subdir)
+	tempRoot, repoRoot, err := r.initializeRepository()
+	if err != nil {
+		return nil, "", err
+	}
+	if err := runGit("-C", repoRoot, "fetch", "--quiet", "--no-tags", "--depth", "1", "origin", ref); err != nil {
+		_ = os.RemoveAll(tempRoot)
+		return nil, "", &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	if err := runGit("-C", repoRoot, "checkout", "--quiet", "--detach", "FETCH_HEAD"); err != nil {
+		_ = os.RemoveAll(tempRoot)
+		return nil, "", &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	return r.finalizeMaterializedTree(tempRoot, repoRoot, subdir)
 }
 
-func (r gitResolver) materializeRefToTree(ref, subdir string) (*LocalSourceTree, string, error) {
+func (r gitResolver) materializeCommitToTree(commit, subdir string) (*LocalSourceTree, string, error) {
+	tempRoot, repoRoot, err := r.initializeRepository()
+	if err != nil {
+		return nil, "", err
+	}
+	if err := runGit("-C", repoRoot, "fetch", "--quiet", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*"); err != nil {
+		_ = os.RemoveAll(tempRoot)
+		return nil, "", &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	if err := runGit("-C", repoRoot, "cat-file", "-e", commit+"^{commit}"); err != nil {
+		_ = os.RemoveAll(tempRoot)
+		return nil, "", &ValidationError{Path: r.configPath, Message: fmt.Sprintf("pinned git commit %q was not found after fetching advertised refs: %v", commit, err)}
+	}
+	if err := runGit("-C", repoRoot, "checkout", "--quiet", "--detach", commit); err != nil {
+		_ = os.RemoveAll(tempRoot)
+		return nil, "", &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	return r.finalizeMaterializedTree(tempRoot, repoRoot, subdir)
+}
+
+func (r gitResolver) initializeRepository() (string, string, error) {
 	tempRoot, err := os.MkdirTemp("", "runectx-git-source-")
 	if err != nil {
-		return nil, "", &ValidationError{Path: r.configPath, Message: err.Error()}
+		return "", "", &ValidationError{Path: r.configPath, Message: err.Error()}
 	}
 	repoRoot := filepath.Join(tempRoot, "repo")
 	if err := os.MkdirAll(repoRoot, 0o755); err != nil {
 		_ = os.RemoveAll(tempRoot)
-		return nil, "", &ValidationError{Path: r.configPath, Message: err.Error()}
+		return "", "", &ValidationError{Path: r.configPath, Message: err.Error()}
 	}
-	steps := [][]string{
-		{"init", "--quiet", repoRoot},
-		{"-C", repoRoot, "remote", "add", "origin", r.url},
-		{"-C", repoRoot, "fetch", "--quiet", "--no-tags", "--depth", "1", "origin", ref},
-		{"-C", repoRoot, "checkout", "--quiet", "FETCH_HEAD"},
-	}
-	for _, args := range steps {
+	for _, args := range [][]string{{"init", "--quiet", repoRoot}, {"-C", repoRoot, "remote", "add", "origin", r.url}} {
 		if err := runGit(args...); err != nil {
 			_ = os.RemoveAll(tempRoot)
-			return nil, "", &ValidationError{Path: r.configPath, Message: err.Error()}
+			return "", "", &ValidationError{Path: r.configPath, Message: err.Error()}
 		}
 	}
+	return tempRoot, repoRoot, nil
+}
+
+func (r gitResolver) finalizeMaterializedTree(tempRoot, repoRoot, subdir string) (*LocalSourceTree, string, error) {
 	commitOutput, err := gitOutput("-C", repoRoot, "rev-parse", "HEAD")
 	if err != nil {
 		_ = os.RemoveAll(tempRoot)
@@ -681,7 +711,7 @@ func gitOutput(args ...string) (string, error) {
 
 func sanitizedGitEnv() []string {
 	env := []string{
-		"GIT_CONFIG_GLOBAL=/dev/null",
+		"GIT_CONFIG_GLOBAL=" + os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
 		"GIT_TERMINAL_PROMPT=0",
 		"GIT_ASKPASS=",
