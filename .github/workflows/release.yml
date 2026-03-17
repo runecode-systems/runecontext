@@ -205,12 +205,12 @@ jobs:
           {
             printf '%s\n' '## Download and verify'
             printf '\n'
-            printf '%s\n' "- Latest-release verification and repo-bundle install commands: https://github.com/runecode-ai/runecontext/blob/${RELEASE_TAG}/docs/install-verify.md"
-            printf '%s\n' "- Maintainer release procedure and required repository settings: https://github.com/runecode-ai/runecontext/blob/${RELEASE_TAG}/docs/release-process.md"
+            printf '%s\n' "- Latest-release verification and repo-bundle install commands: https://github.com/runecode-systems/runecontext/blob/${RELEASE_TAG}/docs/install-verify.md"
+            printf '%s\n' "- Maintainer release procedure and required repository settings: https://github.com/runecode-systems/runecontext/blob/${RELEASE_TAG}/docs/release-process.md"
             printf '\n'
             printf '%s\n' '## Included assets'
             printf '\n'
-            printf '%s\n' '- Unsigned archives built from the canonical flake package `nix build .#release-artifacts`'
+            printf '%s\n' '- Unsigned archives built from the canonical flake package `nix build --no-link .#release-artifacts`'
             printf '%s\n' "- Canonical unsigned release manifest: \`runecontext_${RELEASE_TAG}_release-manifest.json\`"
             printf '%s\n' "- Repo-first source bundles for manual install and auditing under the pattern \`runecontext_${RELEASE_TAG}.tar.gz\` and \`runecontext_${RELEASE_TAG}.zip\`"
             printf '%s\n' "- Linux/macOS \`runectx\` binary archives under the pattern \`runecontext_${RELEASE_TAG}_{os}_{arch}.tar.gz\`"

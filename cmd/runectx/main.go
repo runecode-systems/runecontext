@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/runecode-ai/runecontext/internal/cli"
+	"github.com/runecode-systems/runecontext/internal/cli"
 )
 
 func main() {

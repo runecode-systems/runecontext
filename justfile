@@ -35,7 +35,7 @@ ci: lint test
 nix-ci: lint test release-check check
 
 release:
-  nix build .#release-artifacts
+  nix build --no-link .#release-artifacts
 
 dev:
   @just --list

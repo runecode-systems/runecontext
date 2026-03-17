@@ -1,6 +1,6 @@
 # RuneContext - Portable, markdown-first project knowledge, standards, and context bundles
 
-[![CI](https://github.com/runecode-ai/runecontext/actions/workflows/ci.yml/badge.svg)](https://github.com/runecode-ai/runecontext/actions/workflows/ci.yml) [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange)](docs/implementation-plan/README.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![CI](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml/badge.svg)](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml) [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange)](docs/implementation-plan/README.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 RuneContext is a portable, markdown-first, git-native system for project knowledge, standards, changes, and reusable context bundles. It is AI-tooling-agnostic by design, so teams can use the same source artifacts with different tools or manual workflows without turning the format into a product-specific silo.
 

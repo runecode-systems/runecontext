@@ -59,7 +59,7 @@ release exists.
 ```bash
 set -euo pipefail
 
-REPO="runecode-ai/runecontext"
+REPO="runecode-systems/runecontext"
 # Newest published release, including prereleases during pre-alpha.
 # Ordered by creation date; assumes no out-of-order backport releases.
 VERSION="$(gh release list --repo "$REPO" --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')"
@@ -119,7 +119,7 @@ printf 'Review the contents, then vendor or copy the released files into your pr
 ```bash
 set -euo pipefail
 
-REPO="runecode-ai/runecontext"
+REPO="runecode-systems/runecontext"
 VERSION="$(gh release list --repo "$REPO" --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')"
 
 if [ -z "$VERSION" ]; then
@@ -206,7 +206,7 @@ want.
 ```powershell
 $ErrorActionPreference = "Stop"
 
-$Repo = "runecode-ai/runecontext"
+$Repo = "runecode-systems/runecontext"
 # Newest published release, including prereleases during pre-alpha.
 # Ordered by creation date; assumes no out-of-order backport releases.
 $Version = gh release list --repo $Repo --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName'

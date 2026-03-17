@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/runecode-ai/runecontext/internal/contracts"
+	"github.com/runecode-systems/runecontext/internal/contracts"
 )
 
 const (

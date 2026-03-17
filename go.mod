@@ -1,4 +1,4 @@
-module github.com/runecode-ai/runecontext
+module github.com/runecode-systems/runecontext
 
 go 1.25
 
