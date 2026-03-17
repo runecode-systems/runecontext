@@ -22,6 +22,7 @@
         goToolchain = pkgs.go_1_25 or (throw "nixpkgs must provide go_1_25 for RuneContext release builds");
 
         releaseArtifacts = import ./nix/packages/release-artifacts.nix {
+          inherit goToolchain;
           inherit (pkgs) lib;
           inherit pkgs releaseMetadata self;
         };

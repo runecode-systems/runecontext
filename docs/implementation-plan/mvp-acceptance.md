@@ -90,6 +90,9 @@
 - [ ] Alpha-stage release metadata, module metadata, and parser behavior stay
   consistent with the documented release series and fail-closed contracts.
 - [ ] The adapter-management command exists: `runectx adapter sync <tool>`.
+- [ ] `runectx adapter sync <tool>` uses the installed or pinned RuneContext
+  release contents rather than implicitly fetching adapter packs from the
+  network.
 - [ ] Machine-facing flags exist and behave consistently: `--json`,
   `--non-interactive`, `--dry-run`, and `--explain`.
 - [ ] CLI behavior stays aligned with the canonical file model.
@@ -106,16 +109,27 @@
 ## 8. Release, Install, And Update
 
 - [ ] GitHub release artifacts exist for the repo-first distribution model.
+- [ ] The GitHub release workflow mirrors RuneCode's tag-driven build/publish
+  structure, including a protected publish step after unsigned assets are built.
+- [ ] `nix build .#release-artifacts` is the canonical unsigned release builder;
+  release publication uses those outputs rather than reassembling assets ad hoc
+  in workflow YAML.
 - [ ] Releases include schema bundle, adapter packs, checksums, release notes,
-  and compatibility information.
+  compatibility information, signatures, attestations, and an SBOM.
 - [ ] Optional `runectx` binaries are packaged.
+- [ ] Linux and macOS `runectx` binary archives are published as signed and
+  attested convenience assets without replacing the canonical repo bundles.
 - [ ] Manual repo install is documented and tested.
 - [ ] `runectx update` is diff-first and reviewable.
 - [ ] Adapter sync/update is namespaced and merge-aware.
+- [ ] Adapter sync materializes local tool files and config updates from the
+  installed release content rather than acting as a remote installer.
+- [ ] `runectx` makes no network calls outside explicit `init` and `update`
+  flows.
 - [ ] The following anti-patterns are absent: required global installs,
   bash-only installers, overwriting existing `.claude`/`.github` files,
-  hidden runtime-manager dependencies, template-only primary distribution, and
-  silent auto-updates.
+  hidden runtime-manager dependencies, template-only primary distribution,
+  implicit adapter-pack fetches during sync, and silent auto-updates.
 
 ## 9. RuneCode Readiness (Companion Track)
 

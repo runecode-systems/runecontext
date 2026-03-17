@@ -1,7 +1,7 @@
 let
   base = rec {
     packageName = "runecontext";
-    version = "0.1.0-alpha.1";
+    version = "0.0.1-alpha.1";
 
     topLevelFiles = [
       "README.md"
@@ -11,6 +11,8 @@ let
       "CONTRIBUTING.md"
       "SECURITY.md"
       "CODE_OF_CONDUCT.md"
+      "go.mod"
+      "go.sum"
       "flake.nix"
       "flake.lock"
       "justfile"
@@ -36,6 +38,33 @@ let
       }
       {
         archive = "zip";
+      }
+    ];
+
+    binaries = [
+      "runectx"
+    ];
+
+    targets = [
+      {
+        goos = "linux";
+        goarch = "amd64";
+        archive = "tar.gz";
+      }
+      {
+        goos = "linux";
+        goarch = "arm64";
+        archive = "tar.gz";
+      }
+      {
+        goos = "darwin";
+        goarch = "amd64";
+        archive = "tar.gz";
+      }
+      {
+        goos = "darwin";
+        goarch = "arm64";
+        archive = "tar.gz";
       }
     ];
   };

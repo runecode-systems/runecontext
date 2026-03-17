@@ -16,8 +16,8 @@ plan so it is clear that the planning documents capture the full design.
 | Non-Goals | Scope guardrails and post-MVP separation | `README.md`, `post-mvp.md` | Yes |
 | Product Decomposition | Core/adapters/RuneCode repository boundary | `alpha.1` | Yes |
 | Why The Three Layers Need To Exist | Boundary enforcement and ownership rules | `alpha.1`, `alpha.7` | Yes |
-| Packaging, Repositories, And Releases | Repo structure and release model | `alpha.1`, `alpha.8` | Yes |
-| Releases and Installation | Install lanes, update flow, compatibility matrix | `alpha.8` | Yes |
+| Packaging, Repositories, And Releases | Repo structure, release model, and Nix-built release workflow shape | `alpha.1`, `alpha.8` | Yes |
+| Releases and Installation | Install lanes, update flow, compatibility matrix, and local-only adapter sync | `alpha.8` | Yes |
 | Optional Assurance And Verifiable Tracing | Plain/Verified model, baseline, receipts, backfill | `alpha.5` | Yes |
 | RuneCode Context And Integration Constraints | Companion-track test and contract checklist | `alpha.1`-`alpha.8`, `mvp-acceptance.md` | Yes |
 | Usage Scenarios | Validation of local, remote, and non-RuneCode flows | `alpha.2`, `alpha.6`, `alpha.8` | Yes |
@@ -115,6 +115,20 @@ plan so it is clear that the planning documents capture the full design.
   `runecontext/operations/` is the canonical in-project reference/source area
   for underlying RuneContext operations.
   - Planned capture: `alpha.1`, `alpha.7`
+- Decision: the release workflow should mirror RuneCode's tag-driven
+  build/publish structure, with Nix defining the canonical unsigned release
+  asset set.
+  - Planned capture: `alpha.8`
+- Decision: Linux/macOS `runectx` binary archives should be shipped as signed and
+  attested convenience assets without replacing the canonical repo bundles.
+  - Planned capture: `alpha.8`
+- Decision: adapter packs ship with the selected RuneContext release, and
+  `runectx adapter sync <tool>` materializes them locally rather than fetching
+  them implicitly from GitHub.
+  - Planned capture: `alpha.7`, `alpha.8`
+- Decision: `runectx` must not make network calls outside explicit `init` and
+  `update` flows.
+  - Planned capture: `alpha.7`, `alpha.8`
 
 ## Deferred But Captured
 

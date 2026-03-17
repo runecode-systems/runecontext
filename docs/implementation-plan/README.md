@@ -40,6 +40,8 @@ The MVP includes every v1 RuneContext feature described in
 - minimal CLI surface
 - thin adapters as the primary day-to-day UX
 - repo-first releases, reviewable updates, and compatibility documentation
+- signed and attested Linux/macOS `runectx` binaries as convenience release
+  assets alongside the canonical repo bundles
 
 The MVP does not include RuneCode-specific runtime implementation in this
 repository, but it does include the artifacts, semantics, fixtures, and
@@ -79,8 +81,18 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - Keep the on-disk model, schemas, and resolution semantics canonical.
 - Treat adapters as UX layers, not alternate sources of truth.
 - Keep generated artifacts derived and reviewable.
+- Keep the release workflow as close as practical to RuneCode's tag-driven
+  build/publish split so users can audit one familiar release shape across both
+  repositories.
+- Keep Nix as the canonical source of unsigned release contents; GitHub Actions
+  verifies, signs, attests, and publishes those artifacts rather than
+  reassembling them ad hoc in workflow YAML.
 - Keep history at stable paths.
 - Keep policy, approvals, and runtime capability decisions outside RuneContext.
+- Keep normal adapter management local and reviewable; `runectx adapter sync
+  <tool>` materializes files from the already-installed RuneContext release and
+  must not fetch adapter packs implicitly.
+- Keep `runectx` network access limited to explicit `init` and `update` flows.
 - Treat RuneContext content as untrusted LLM input as well as untrusted policy
   input; rely on typed boundaries, review, and isolation rather than trusting
   the text itself.

@@ -3,11 +3,40 @@ set -euo pipefail
 
 umask 022
 
+export CGO_ENABLED=0
+export GOFLAGS="-trimpath -mod=vendor"
 export SOURCE_DATE_EPOCH=315532800
 export TZ=UTC
 export LC_ALL=C
 
 mkdir -p release/payload release/dist
+
+archive_records="release/archive-records.ndjson"
+: > "${archive_records}"
+
+record_archive() {
+  local kind="$1"
+  local format="$2"
+  local file="$3"
+  local sha="$4"
+  local os="${5:-}"
+  local arch="${6:-}"
+
+  @jq@/bin/jq -n \
+    --arg kind "${kind}" \
+    --arg format "${format}" \
+    --arg file "${file}" \
+    --arg sha256 "${sha}" \
+    --arg os "${os}" \
+    --arg arch "${arch}" \
+    '{
+      kind: $kind,
+      format: $format,
+      file: $file,
+      sha256: $sha256
+    } + (if $os == "" then {} else { os: $os } end) + (if $arch == "" then {} else { arch: $arch } end)' \
+    >> "${archive_records}"
+}
 
 bundle_name="@packageName@_@tag@"
 bundle_root="release/payload/${bundle_name}"
@@ -31,18 +60,20 @@ mapfile -t bundle_formats < "@bundleFormatsFile@"
 for archive_ext in "${bundle_formats[@]}"; do
   [ -n "${archive_ext}" ] || continue
 
+  archive_file="${bundle_name}.${archive_ext}"
+
   case "${archive_ext}" in
     zip)
       (
         cd release/payload
-        find "${bundle_name}" -print | sort | @zip@/bin/zip -X -q "../dist/${bundle_name}.zip" -@
+        find "${bundle_name}" -print | sort | @zip@/bin/zip -X -q "../dist/${archive_file}" -@
       )
       ;;
     tar.gz)
       (
         cd release/payload
         @gnutar@/bin/tar --format=gnu --sort=name --mtime='UTC 1980-01-01' --owner=0 --group=0 --numeric-owner -cf - "${bundle_name}" \
-          | @gzip@/bin/gzip -n > "../dist/${bundle_name}.tar.gz"
+          | @gzip@/bin/gzip -n > "../dist/${archive_file}"
       )
       ;;
     *)
@@ -50,36 +81,70 @@ for archive_ext in "${bundle_formats[@]}"; do
       exit 1
       ;;
   esac
+
+  archive_sha="$(@coreutils@/bin/sha256sum "release/dist/${archive_file}" | cut -d ' ' -f 1)"
+  record_archive "repo_bundle" "${archive_ext}" "${archive_file}" "${archive_sha}"
+done
+
+mapfile -t binaries < "@binariesFile@"
+mapfile -t targets < "@targetsFile@"
+
+for target in "${targets[@]}"; do
+  [ -n "${target}" ] || continue
+  read -r goos goarch archive_ext <<<"${target}"
+
+  archive_base="@packageName@_@tag@_${goos}_${goarch}"
+  package_dir="release/payload/${archive_base}"
+  bin_dir="${package_dir}/bin"
+  mkdir -p "${bin_dir}"
+
+  for binary in "${binaries[@]}"; do
+    [ -n "${binary}" ] || continue
+    GOOS="${goos}" GOARCH="${goarch}" go build -ldflags="-s -w" -o "${bin_dir}/${binary}" "./cmd/${binary}"
+  done
+
+  cp LICENSE NOTICE README.md "${package_dir}/"
+  chmod -R u=rwX,go=rX "${package_dir}"
+  find "${package_dir}" -exec touch -h -d '1980-01-01T00:00:00Z' {} +
+
+  archive_file="${archive_base}.${archive_ext}"
+
+  case "${archive_ext}" in
+    tar.gz)
+      (
+        cd release/payload
+        @gnutar@/bin/tar --format=gnu --sort=name --mtime='UTC 1980-01-01' --owner=0 --group=0 --numeric-owner -cf - "${archive_base}" \
+          | @gzip@/bin/gzip -n > "../dist/${archive_file}"
+      )
+      ;;
+    zip)
+      (
+        cd release/payload
+        find "${archive_base}" -print | sort | @zip@/bin/zip -X -q "../dist/${archive_file}" -@
+      )
+      ;;
+    *)
+      printf 'unsupported archive format: %s\n' "${archive_ext}" >&2
+      exit 1
+      ;;
+  esac
+
+  archive_sha="$(@coreutils@/bin/sha256sum "release/dist/${archive_file}" | cut -d ' ' -f 1)"
+  record_archive "binary" "${archive_ext}" "${archive_file}" "${archive_sha}" "${goos}" "${goarch}"
 done
 
 manifest_path="release/dist/@packageName@_@tag@_release-manifest.json"
 
-tar_sha=""
-zip_sha=""
-if [ -f "release/dist/${bundle_name}.tar.gz" ]; then
-  tar_sha="$(@coreutils@/bin/sha256sum "release/dist/${bundle_name}.tar.gz" | cut -d ' ' -f 1)"
-fi
-if [ -f "release/dist/${bundle_name}.zip" ]; then
-  zip_sha="$(@coreutils@/bin/sha256sum "release/dist/${bundle_name}.zip" | cut -d ' ' -f 1)"
-fi
-
-@jq@/bin/jq -n \
+@jq@/bin/jq -s \
   --arg package_name "@packageName@" \
   --arg version "@version@" \
   --arg tag "@tag@" \
-  --arg tar_file "${bundle_name}.tar.gz" \
-  --arg tar_sha "${tar_sha}" \
-  --arg zip_file "${bundle_name}.zip" \
-  --arg zip_sha "${zip_sha}" \
   '{
     package_name: $package_name,
     version: $version,
     tag: $tag,
-    archives: [
-      { format: "tar.gz", file: $tar_file, sha256: $tar_sha },
-      { format: "zip", file: $zip_file, sha256: $zip_sha }
-    ] | map(select(.sha256 != ""))
-  }' > "${manifest_path}"
+    archives: .
+  }' "${archive_records}" > "${manifest_path}"
 
 (
   shopt -s nullglob

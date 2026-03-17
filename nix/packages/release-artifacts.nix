@@ -1,4 +1,5 @@
 {
+  goToolchain,
   lib,
   pkgs,
   releaseMetadata,
@@ -41,6 +42,17 @@ let
     lib.concatMapStringsSep "\n" (bundle: bundle.archive) releaseMetadata.bundleFormats + "\n"
   );
 
+  binariesFile = pkgs.writeText "runecontext-release-binaries.txt" (
+    lib.concatStringsSep "\n" releaseMetadata.binaries + "\n"
+  );
+
+  targetsFile = pkgs.writeText "runecontext-release-targets.txt" (
+    lib.concatMapStringsSep "\n" (
+      target: "${target.goos} ${target.goarch} ${target.archive}"
+    ) releaseMetadata.targets
+    + "\n"
+  );
+
   buildScript = pkgs.writeText "build-release-artifacts.sh" (
     renderTemplate ../scripts/build-release-artifacts.sh {
       packageName = releaseMetadata.packageName;
@@ -48,6 +60,8 @@ let
       version = releaseMetadata.version;
       layoutEntriesFile = layoutEntriesFile;
       bundleFormatsFile = bundleFormatsFile;
+      binariesFile = binariesFile;
+      targetsFile = targetsFile;
       coreutils = pkgs.coreutils;
       jq = pkgs.jq;
       gnutar = pkgs.gnutar;
@@ -56,10 +70,13 @@ let
     }
   );
 in
-pkgs.stdenvNoCC.mkDerivation {
+pkgs.buildGoModule {
   pname = "${releaseMetadata.packageName}-release-artifacts";
   version = releaseMetadata.version;
   src = releaseSource;
+  go = goToolchain;
+  vendorHash = "sha256-MYHY7N+LqNnfNuIdUqtb4Cr24UQqi+4tbc1ysdzJ2BY=";
+  doCheck = false;
   strictDeps = true;
 
   nativeBuildInputs = [

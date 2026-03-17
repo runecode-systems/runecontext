@@ -1,0 +1,295 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  # Prefer Node 24-compatible action execution ahead of the Node 20 deprecation window.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build:
+    name: Build release assets
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      NIX_CONFIG: |
+        substituters = https://cache.nixos.org
+        trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+    outputs:
+      release_tag: ${{ steps.meta.outputs.release_tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v21
+        with:
+          # Keep release builds on upstream Nix + cache.nixos.org without FlakeHub integration.
+          determinate: false
+
+      - name: Verify flake.lock preflight
+        run: git diff --exit-code -- flake.lock
+
+      - name: Validate flake.lock metadata
+        run: nix flake lock --no-update-lock-file
+
+      - name: Capture release metadata
+        id: meta
+        run: |
+          set -euo pipefail
+
+          release_tag="${GITHUB_REF_NAME}"
+          case "${release_tag}" in
+            v*) ;;
+            *)
+              printf 'release tags must start with v, got %s\n' "${release_tag}" >&2
+              exit 1
+              ;;
+          esac
+
+          prerelease=false
+          if [[ "${release_tag}" == *-* ]]; then
+            prerelease=true
+          fi
+
+          printf 'release_tag=%s\n' "${release_tag}" >> "${GITHUB_OUTPUT}"
+          printf 'prerelease=%s\n' "${prerelease}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify release tag matches flake metadata
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if [ "${RELEASE_TAG}" = "v0.0.0-dev" ]; then
+            printf 'refusing to release sentinel development tag %s\n' "${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
+          expected_tag="$(nix eval --raw .#lib.release.tag)"
+
+          if [ "${expected_tag}" != "${RELEASE_TAG}" ]; then
+            printf 'release tag mismatch: workflow saw %s but flake metadata requires %s\n' "${RELEASE_TAG}" "${expected_tag}" >&2
+            exit 1
+          fi
+
+      - name: Run flake checks
+        run: nix flake check --no-write-lock-file
+
+      - name: Run verification gate
+        run: nix develop --no-write-lock-file -c just ci
+
+      - name: Verify flake.lock unchanged
+        run: git diff --exit-code -- flake.lock
+
+      - name: Verify repository unchanged before packaging
+        run: |
+          git diff --exit-code
+          untracked="$(git ls-files --others --exclude-standard)"
+          if [ -n "${untracked}" ]; then
+            printf 'Untracked files found before packaging:\n%s\n' "${untracked}"
+            exit 1
+          fi
+
+      - name: Build canonical release artifacts
+        run: |
+          set -euo pipefail
+
+          rm -rf release
+          mkdir -p release/payload release/dist
+
+          release_root="$(nix build --no-link --print-out-paths --no-write-lock-file .#release-artifacts)"
+
+          cp -R "${release_root}/dist/." release/dist/
+          cp -R "${release_root}/payload/." release/payload/
+
+      - name: Generate release SBOM
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          nix shell --inputs-from . --no-write-lock-file nixpkgs#syft -c \
+            syft scan dir:release/payload --quiet \
+            -o "spdx-json=release/dist/runecontext_${RELEASE_TAG}_sbom.spdx.json"
+
+      - name: Verify canonical checksums
+        run: |
+          set -euo pipefail
+
+          (
+            cd release/dist
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload unsigned release assets
+        # v7 is the current official upload action line and supports Node 24.
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: release-assets-${{ steps.meta.outputs.release_tag }}
+          path: release/dist/
+          if-no-files-found: error
+
+  publish:
+    name: Sign, attest, and publish release
+    runs-on: ubuntu-24.04
+    needs: build
+    environment:
+      name: release
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Download unsigned release assets
+        # v8 is the current official download action line and supports Node 24.
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets-${{ needs.build.outputs.release_tag }}
+          path: release/dist
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+        with:
+          cosign-release: v2.4.1
+
+      - name: Verify checksums before signing
+        run: |
+          set -euo pipefail
+
+          (
+            cd release/dist
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Sign release assets
+        run: |
+          set -euo pipefail
+
+          shopt -s nullglob
+          for asset in release/dist/*; do
+            case "${asset}" in
+              *.tar.gz|*.zip|*.json|*/SHA256SUMS|*SHA256SUMS)
+                cosign sign-blob --yes \
+                  --output-signature "${asset}.sig" \
+                  --output-certificate "${asset}.pem" \
+                  "${asset}"
+                ;;
+              *)
+                continue
+                ;;
+            esac
+          done
+
+      - name: Attest release assets
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-path: |
+            release/dist/*.tar.gz
+            release/dist/*.zip
+            release/dist/*.json
+            release/dist/SHA256SUMS
+
+      - name: Write release notes preamble
+        env:
+          RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+        run: |
+          {
+            printf '%s\n' '## Download and verify'
+            printf '\n'
+            printf '%s\n' "- Latest-release verification and repo-bundle install commands: https://github.com/runecode-ai/runecontext/blob/${RELEASE_TAG}/docs/install-verify.md"
+            printf '%s\n' "- Maintainer release procedure and required repository settings: https://github.com/runecode-ai/runecontext/blob/${RELEASE_TAG}/docs/release-process.md"
+            printf '\n'
+            printf '%s\n' '## Included assets'
+            printf '\n'
+            printf '%s\n' '- Unsigned archives built from the canonical flake package `nix build .#release-artifacts`'
+            printf '%s\n' "- Canonical unsigned release manifest: \`runecontext_${RELEASE_TAG}_release-manifest.json\`"
+            printf '%s\n' "- Repo-first source bundles for manual install and auditing under the pattern \`runecontext_${RELEASE_TAG}.tar.gz\` and \`runecontext_${RELEASE_TAG}.zip\`"
+            printf '%s\n' "- Linux/macOS \`runectx\` binary archives under the pattern \`runecontext_${RELEASE_TAG}_{os}_{arch}.tar.gz\`"
+            printf '%s\n' "- Release-level SBOM: \`runecontext_${RELEASE_TAG}_sbom.spdx.json\`"
+            printf '%s\n' '- Checksums: `SHA256SUMS`'
+            printf '%s\n' '- Keyless cosign signatures and certificates for every primary asset (`.sig` and `.pem`)'
+            printf '%s\n' '- GitHub build provenance attestations for each archive, the release manifest, the SBOM, and `SHA256SUMS`'
+          } > release-notes.md
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          manifest="release/dist/runecontext_${RELEASE_TAG}_release-manifest.json"
+          if [ ! -f "${manifest}" ]; then
+            printf 'missing release manifest: %s\n' "${manifest}" >&2
+            exit 1
+          fi
+
+          required_assets=(
+            "SHA256SUMS"
+            "runecontext_${RELEASE_TAG}_release-manifest.json"
+            "runecontext_${RELEASE_TAG}_sbom.spdx.json"
+          )
+
+          mapfile -t archive_assets < <(jq -er '.archives[].file' "${manifest}")
+
+          if [ "${#archive_assets[@]}" -eq 0 ]; then
+            printf 'release manifest did not declare any archives\n' >&2
+            exit 1
+          fi
+
+          required_assets+=("${archive_assets[@]}")
+
+          for asset in "${required_assets[@]}"; do
+            for suffix in "" ".sig" ".pem"; do
+              path="release/dist/${asset}${suffix}"
+              if [ ! -f "${path}" ]; then
+                printf 'missing release asset: %s\n' "${path}" >&2
+                exit 1
+              fi
+            done
+          done
+
+          expected_files=()
+          for asset in "${required_assets[@]}"; do
+            expected_files+=("${asset}" "${asset}.sig" "${asset}.pem")
+          done
+
+          assets=()
+          for path in release/dist/*; do
+            if [ -f "${path}" ]; then
+              assets+=("${path}")
+            fi
+          done
+
+          if [ "${#assets[@]}" -eq 0 ]; then
+            printf 'no release assets found in release/dist\n' >&2
+            exit 1
+          fi
+
+          if ! diff -u \
+            <(printf '%s\n' "${expected_files[@]}" | sort) \
+            <(for path in "${assets[@]}"; do basename "${path}"; done | sort); then
+            printf 'release asset set mismatch\n' >&2
+            exit 1
+          fi
+
+          args=(release create "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --verify-tag --title "RuneContext ${RELEASE_TAG}" --generate-notes --notes-file release-notes.md)
+
+          if [ "${PRERELEASE}" = "true" ]; then
+            args+=(--prerelease)
+          fi
+
+          args+=("${assets[@]}")
+
+          gh "${args[@]}"

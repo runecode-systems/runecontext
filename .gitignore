@@ -10,3 +10,4 @@ Thumbs.db
 
 # Build outputs
 runectx
+vendor/

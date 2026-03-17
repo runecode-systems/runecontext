@@ -563,10 +563,17 @@ tools while preserving one core model.
 
 ### Epic 4: Adapter packaging and sync
 
-- [ ] Issue: implement adapter packaging for release artifacts.
+- [ ] Issue: implement adapter packaging for release artifacts as packs bundled
+  with the selected RuneContext release.
 - [ ] Issue: implement the `runectx adapter sync <tool>` command as the
-  adapter-management CLI surface.
-- [ ] Issue: define merge-aware adapter sync/update behavior.
+  adapter-management CLI surface for local adapter materialization from the
+  installed or pinned RuneContext release.
+- [ ] Issue: define merge-aware adapter sync/update behavior, including managed
+  file boundaries, reviewable diffs, and explicit local config updates where
+  required.
+- [ ] Issue: ensure adapter sync never fetches from GitHub or any other network
+  source; network access is reserved for explicit `runectx init` and
+  `runectx update` flows.
 - [ ] Issue: ensure adapters never introduce tool-specific source-of-truth
   files.
 
@@ -584,6 +591,8 @@ tools while preserving one core model.
 - At least one tool-specific adapter is usable end to end.
 - All adapters map back to the same underlying operations.
 - Users can still work directly with repo files and CLI without any adapter.
+- Adapter sync materializes the selected tool pack from the installed release
+  without requiring network access.
 - Adapter behavior is covered by parity and smoke tests rather than manual
   walkthroughs only.
 
@@ -601,23 +610,37 @@ install/update paths and end-to-end reference fixtures.
 
 ### Epic 1: Release packaging
 
-- [ ] Issue: establish CI/CD platform parity with RuneCode:
+- [ ] Issue: establish CI/CD platform parity with RuneCode and mirror its
+  tag-driven release workflow shape:
   - Primary: Linux (x86_64 and arm64) and macOS (x86_64 and arm64) via Nix.
   - Portability: Windows via non-Nix smoke testing.
+- [ ] Issue: keep `nix build .#release-artifacts` as the canonical unsigned
+  release builder; workflow steps may verify, sign, attest, and publish assets
+  but must not redefine release contents outside the Nix build graph.
 - [ ] Issue: package the schema bundle for releases across supported platforms.
 - [ ] Issue: package adapter packs for releases.
 - [ ] Issue: package optional `runectx` binaries for primary supported platforms:
   `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/arm64`.
-- [ ] Issue: emit release checksums, release manifest, signatures, and release
-  notes.
+- [ ] Issue: keep repo bundles as the canonical install and audit path even after
+  `runectx` binary archives are added as convenience assets.
+- [ ] Issue: verify pushed release tags against release metadata and fail closed
+  on mismatches before packaging or publication.
+- [ ] Issue: emit release checksums, release manifest, signatures,
+  attestations, SBOM, and release notes.
 - [ ] Issue: publish a RuneCode `<->` RuneContext compatibility matrix.
+- [ ] Issue: publish through a protected `release` environment after unsigned
+  assets are built and uploaded by the initial build job.
 
 ### Epic 2: Install and update flows
 
-- [ ] Issue: document and test the canonical manual repo-install flow.
+- [ ] Issue: document and test the canonical manual repo-install flow around
+  pinned GitHub release assets emitted by the Nix release builder.
+- [ ] Issue: implement `runectx init` and `runectx update` as the only CLI flows
+  allowed to make network calls.
 - [ ] Issue: implement `runectx update` as a diff-first, reviewable update
   flow.
-- [ ] Issue: harden adapter sync/update to be namespaced and merge-aware.
+- [ ] Issue: harden adapter sync/update to be namespaced and merge-aware, with
+  normal adapter sync remaining local-only against installed release content.
 - [ ] Issue: ensure `doctor` reports unsupported version combinations and
   integrity posture issues.
 
@@ -641,21 +664,27 @@ install/update paths and end-to-end reference fixtures.
 ### Epic 5: Release and workflow test hardening
 
 - [ ] Issue: add tests covering release artifact contents, checksums, manifests,
-  adapter packs, and optional binaries.
+  adapter packs, optional binaries, attestations, and SBOM outputs.
 - [ ] Issue: add end-to-end tests for manual repo install, CLI-managed install,
   and diff-first update flows.
 - [ ] Issue: add regression tests asserting forbidden install/update patterns do
   not appear: required global installs, bash-only installers, overwriting
   existing tool config files, hidden runtime-manager dependencies, and silent
   auto-updates.
+- [ ] Issue: add regression tests asserting adapter sync remains local-only and
+  never performs implicit network fetches.
 - [ ] Issue: add end-to-end tests over reference projects for embedded,
   linked-by-commit, linked-by-signed-tag, Verified-mode, and monorepo cases.
 
 ### Exit Criteria
 
 - RuneContext can be installed manually, managed by CLI, and updated reviewably.
+- The release workflow mirrors RuneCode's tag-driven build/publish split while
+  keeping RuneContext's unsigned asset set canonical in Nix.
 - Release artifacts are canonical, inspectable, and compatible with the repo-
   first distribution model.
+- Normal adapter sync is local-only; any network access is confined to explicit
+  `init` and `update` operations.
 - Signed-tag verification is included in MVP validation, not deferred.
 - Install, update, and release guarantees are backed by automated end-to-end
   tests.

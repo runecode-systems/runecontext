@@ -59,6 +59,10 @@ Note: Windows CI portability testing is part of v0.1.0-alpha.8, but Windows
 binary packaging and distribution channels (Scoop, winget) remain deferred to
 this phase pending adoption demand.
 
+Even if convenience channels are added later, they remain subordinate to the
+canonical GitHub release artifacts and must not reintroduce implicit network
+fetches into normal adapter sync flows.
+
 ### Epics
 
 - [ ] Issue: define npm packaging for schema bundle, adapters, or helper CLI.
