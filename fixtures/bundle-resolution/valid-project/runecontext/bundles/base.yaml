@@ -1,0 +1,14 @@
+schema_version: 1
+id: base
+includes:
+  project:
+    - project/mission.md
+  standards:
+    - standards/global/**
+  specs:
+    - specs/auth-gateway.md
+  decisions:
+    - decisions/DEC-0001-trust-boundary-model.md
+excludes:
+  standards:
+    - standards/global/legacy.md

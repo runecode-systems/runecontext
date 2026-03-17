@@ -1,0 +1,7 @@
+schema_version: 1
+id: level-6
+extends:
+  - level-5
+includes:
+  project:
+    - project/mission.md

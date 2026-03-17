@@ -1,0 +1,8 @@
+schema_version: 1
+id: diagnostics
+includes:
+  project:
+    - project/missing.md
+    - missing/**
+  standards:
+    - standards/missing/**

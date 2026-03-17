@@ -1,0 +1,23 @@
+schema_version: 1
+id: CHG-2026-001-a3f2-bundle-tests
+title: Bundle engine tests
+status: proposed
+type: feature
+size: small
+context_bundles:
+  - diamond
+related_specs:
+  - specs/auth-gateway.md
+related_decisions:
+  - decisions/DEC-0001-trust-boundary-model.md
+related_changes: []
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-17"
+closed_at: null
+verification_status: pending
+promotion_assessment:
+  status: pending
+  suggested_targets: []

@@ -1,0 +1,72 @@
+id: exact-rules
+linearization:
+  - exact-rules
+aspects:
+  project:
+    rules:
+      - bundle: exact-rules
+        aspect: project
+        rule: include
+        pattern: project/mission.md
+        pattern_kind: exact
+        matches:
+          - project/mission.md
+      - bundle: exact-rules
+        aspect: project
+        rule: include
+        pattern: project/plan.md
+        pattern_kind: exact
+        matches:
+          - project/plan.md
+      - bundle: exact-rules
+        aspect: project
+        rule: exclude
+        pattern: project/plan.md
+        pattern_kind: exact
+        matches:
+          - project/plan.md
+    selected:
+      - path: project/mission.md
+        matched_by:
+          - bundle: exact-rules
+            aspect: project
+            rule: include
+            pattern: project/mission.md
+            kind: exact
+        final_rule:
+          bundle: exact-rules
+          aspect: project
+          rule: include
+          pattern: project/mission.md
+          kind: exact
+    excluded:
+      - path: project/plan.md
+        matched_by:
+          - bundle: exact-rules
+            aspect: project
+            rule: include
+            pattern: project/plan.md
+            kind: exact
+          - bundle: exact-rules
+            aspect: project
+            rule: exclude
+            pattern: project/plan.md
+            kind: exact
+        final_rule:
+          bundle: exact-rules
+          aspect: project
+          rule: exclude
+          pattern: project/plan.md
+          kind: exact
+  standards:
+    rules: []
+    selected: []
+    excluded: []
+  specs:
+    rules: []
+    selected: []
+    excluded: []
+  decisions:
+    rules: []
+    selected: []
+    excluded: []

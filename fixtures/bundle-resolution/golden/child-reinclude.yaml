@@ -1,0 +1,173 @@
+id: child-reinclude
+linearization:
+  - base
+  - child-reinclude
+aspects:
+  project:
+    rules:
+      - bundle: base
+        aspect: project
+        rule: include
+        pattern: project/mission.md
+        pattern_kind: exact
+        matches:
+          - project/mission.md
+      - bundle: child-reinclude
+        aspect: project
+        rule: include
+        pattern: project/plan.md
+        pattern_kind: exact
+        matches:
+          - project/plan.md
+    selected:
+      - path: project/mission.md
+        matched_by:
+          - bundle: base
+            aspect: project
+            rule: include
+            pattern: project/mission.md
+            kind: exact
+        final_rule:
+          bundle: base
+          aspect: project
+          rule: include
+          pattern: project/mission.md
+          kind: exact
+      - path: project/plan.md
+        matched_by:
+          - bundle: child-reinclude
+            aspect: project
+            rule: include
+            pattern: project/plan.md
+            kind: exact
+        final_rule:
+          bundle: child-reinclude
+          aspect: project
+          rule: include
+          pattern: project/plan.md
+          kind: exact
+    excluded: []
+  standards:
+    rules:
+      - bundle: base
+        aspect: standards
+        rule: include
+        pattern: standards/global/**
+        pattern_kind: glob
+        matches:
+          - standards/global/base.md
+          - standards/global/guide.md
+          - standards/global/legacy.md
+      - bundle: base
+        aspect: standards
+        rule: exclude
+        pattern: standards/global/legacy.md
+        pattern_kind: exact
+        matches:
+          - standards/global/legacy.md
+      - bundle: child-reinclude
+        aspect: standards
+        rule: include
+        pattern: standards/global/legacy.md
+        pattern_kind: exact
+        matches:
+          - standards/global/legacy.md
+    selected:
+      - path: standards/global/base.md
+        matched_by:
+          - bundle: base
+            aspect: standards
+            rule: include
+            pattern: standards/global/**
+            kind: glob
+        final_rule:
+          bundle: base
+          aspect: standards
+          rule: include
+          pattern: standards/global/**
+          kind: glob
+      - path: standards/global/guide.md
+        matched_by:
+          - bundle: base
+            aspect: standards
+            rule: include
+            pattern: standards/global/**
+            kind: glob
+        final_rule:
+          bundle: base
+          aspect: standards
+          rule: include
+          pattern: standards/global/**
+          kind: glob
+      - path: standards/global/legacy.md
+        matched_by:
+          - bundle: base
+            aspect: standards
+            rule: include
+            pattern: standards/global/**
+            kind: glob
+          - bundle: base
+            aspect: standards
+            rule: exclude
+            pattern: standards/global/legacy.md
+            kind: exact
+          - bundle: child-reinclude
+            aspect: standards
+            rule: include
+            pattern: standards/global/legacy.md
+            kind: exact
+        final_rule:
+          bundle: child-reinclude
+          aspect: standards
+          rule: include
+          pattern: standards/global/legacy.md
+          kind: exact
+    excluded: []
+  specs:
+    rules:
+      - bundle: base
+        aspect: specs
+        rule: include
+        pattern: specs/auth-gateway.md
+        pattern_kind: exact
+        matches:
+          - specs/auth-gateway.md
+    selected:
+      - path: specs/auth-gateway.md
+        matched_by:
+          - bundle: base
+            aspect: specs
+            rule: include
+            pattern: specs/auth-gateway.md
+            kind: exact
+        final_rule:
+          bundle: base
+          aspect: specs
+          rule: include
+          pattern: specs/auth-gateway.md
+          kind: exact
+    excluded: []
+  decisions:
+    rules:
+      - bundle: base
+        aspect: decisions
+        rule: include
+        pattern: decisions/DEC-0001-trust-boundary-model.md
+        pattern_kind: exact
+        matches:
+          - decisions/DEC-0001-trust-boundary-model.md
+    selected:
+      - path: decisions/DEC-0001-trust-boundary-model.md
+        matched_by:
+          - bundle: base
+            aspect: decisions
+            rule: include
+            pattern: decisions/DEC-0001-trust-boundary-model.md
+            kind: exact
+        final_rule:
+          bundle: base
+          aspect: decisions
+          rule: include
+          pattern: decisions/DEC-0001-trust-boundary-model.md
+          kind: exact
+    excluded: []

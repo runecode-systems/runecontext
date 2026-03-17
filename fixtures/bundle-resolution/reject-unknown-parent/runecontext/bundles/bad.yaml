@@ -1,0 +1,7 @@
+schema_version: 1
+id: bad
+extends:
+  - missing-parent
+includes:
+  project:
+    - project/mission.md

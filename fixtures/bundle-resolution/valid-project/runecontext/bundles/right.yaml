@@ -1,0 +1,10 @@
+schema_version: 1
+id: right
+extends:
+  - base
+includes:
+  project:
+    - project/plan.md
+excludes:
+  standards:
+    - standards/security/heavy-audit.md

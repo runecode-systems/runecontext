@@ -1,0 +1,86 @@
+id: relative-glob
+linearization:
+  - relative-glob
+aspects:
+  project:
+    rules:
+      - bundle: relative-glob
+        aspect: project
+        rule: include
+        pattern: project/mission.md
+        pattern_kind: exact
+        matches:
+          - project/mission.md
+    selected:
+      - path: project/mission.md
+        matched_by:
+          - bundle: relative-glob
+            aspect: project
+            rule: include
+            pattern: project/mission.md
+            kind: exact
+        final_rule:
+          bundle: relative-glob
+          aspect: project
+          rule: include
+          pattern: project/mission.md
+          kind: exact
+    excluded: []
+  standards:
+    rules:
+      - bundle: relative-glob
+        aspect: standards
+        rule: include
+        pattern: standards/security/**
+        pattern_kind: glob
+        matches:
+          - standards/security/heavy-audit.md
+          - standards/security/light-audit.md
+      - bundle: relative-glob
+        aspect: standards
+        rule: exclude
+        pattern: standards/security/heavy-audit.md
+        pattern_kind: exact
+        matches:
+          - standards/security/heavy-audit.md
+    selected:
+      - path: standards/security/light-audit.md
+        matched_by:
+          - bundle: relative-glob
+            aspect: standards
+            rule: include
+            pattern: standards/security/**
+            kind: glob
+        final_rule:
+          bundle: relative-glob
+          aspect: standards
+          rule: include
+          pattern: standards/security/**
+          kind: glob
+    excluded:
+      - path: standards/security/heavy-audit.md
+        matched_by:
+          - bundle: relative-glob
+            aspect: standards
+            rule: include
+            pattern: standards/security/**
+            kind: glob
+          - bundle: relative-glob
+            aspect: standards
+            rule: exclude
+            pattern: standards/security/heavy-audit.md
+            kind: exact
+        final_rule:
+          bundle: relative-glob
+          aspect: standards
+          rule: exclude
+          pattern: standards/security/heavy-audit.md
+          kind: exact
+  specs:
+    rules: []
+    selected: []
+    excluded: []
+  decisions:
+    rules: []
+    selected: []
+    excluded: []

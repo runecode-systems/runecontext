@@ -30,9 +30,14 @@
   trusted wrapper explicitly downgrades the run.
 - [ ] Embedded source paths and git subdirectories fail closed if they are
   absolute or escape the selected project/repository root.
+- [ ] Embedded source roots are checked after symlink resolution against the
+  selected project root so symlinked escapes fail closed.
 - [ ] Git source resolution validates URL/ref/commit inputs, rejects option-like
   values, disables interactive prompting, and does not depend on hidden host
   credentials or global Git config for correctness.
+- [ ] Git source resolution rejects remote-helper URL forms, constrains allowed
+  transport protocols explicitly, and redacts transport secrets from surfaced
+  subprocess errors.
 - [ ] Mutable git refs reject obviously invalid ref syntax before subprocess
   execution rather than relying on fetch failures alone.
 - [ ] RuneContext does not use environment variables as user-facing
@@ -46,12 +51,20 @@
   as structured metadata.
 - [ ] Local path snapshots exclude `.git/` and fail closed when practical
   snapshot depth, file-count, or byte-size limits are exceeded.
+- [ ] Bundle traversal fails closed when practical depth or file-count limits are
+  exceeded.
 - [ ] Validation entrypoints clean up any temporary source materializations after
   successful validation as well as on error.
 - [ ] Bundle resolution is deterministic, cycle-safe, depth-limited, and path-
   boundary-safe.
 - [ ] Bundle rules, diagnostics, and generated inventories use one consistent
   RuneContext-root-relative path model with aspect-boundary enforcement.
+- [ ] Whole-project validation fails closed when specs, decisions, bundle files,
+  or other validated artifacts escape their selected subtree through symlinks.
+- [ ] Whole-project validation and bundle traversal still accept symlinked root
+  directories when the fully resolved target remains in-bounds.
+- [ ] Bundle aspect-root containment checks canonicalize the aspect root before
+  comparing against resolved bundle matches.
 
 ## 3. Change Workflow And Standards
 
@@ -184,6 +197,9 @@ RuneContext makes them possible and testable.
 - [ ] Unit tests cover schema validation, markdown contracts, source
   resolution, bundle semantics, lifecycle invariants, promotion-state handling,
   and assurance behavior.
+- [ ] Unit tests cover git transport hardening, bundle-resolution defensive-copy
+  behavior, and symlink escape rejection for both bundle rules and whole-project
+  artifact validation.
 - [ ] Golden fixtures cover deterministic outputs such as context packs,
   manifests, baselines, receipts, and machine-readable CLI output.
 - [ ] CLI integration tests cover all primary and secondary commands plus

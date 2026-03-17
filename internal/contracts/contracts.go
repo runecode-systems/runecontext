@@ -3,12 +3,12 @@ package contracts
 import (
 	"bytes"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 	"gopkg.in/yaml.v3"
@@ -18,6 +18,7 @@ var changeIDPattern = regexp.MustCompile(`^CHG-\d{4}-\d{3}-[a-z0-9]{4,6}-[a-z0-9
 
 type Validator struct {
 	schemaRoot string
+	cacheMu    sync.RWMutex
 	cache      map[string]*jsonschema.Schema
 }
 
@@ -46,6 +47,7 @@ type ProjectIndex struct {
 	RootConfigPath string
 	ContentRoot    string
 	Resolution     *SourceResolution
+	Bundles        *BundleCatalog
 	ChangeIDs      map[string]struct{}
 	SpecPaths      map[string]struct{}
 	DecisionPaths  map[string]struct{}
@@ -74,6 +76,13 @@ func (p *ProjectIndex) Close() error {
 		return nil
 	}
 	return p.Resolution.Close()
+}
+
+func (p *ProjectIndex) ResolveBundle(id string) (*BundleResolution, error) {
+	if p == nil || p.Bundles == nil {
+		return nil, fmt.Errorf("bundle catalog is unavailable")
+	}
+	return p.Bundles.Resolve(id)
 }
 
 func (v *Validator) ValidateYAMLFile(schemaName, path string, data []byte) error {
@@ -187,25 +196,6 @@ func resolveContentRoot(projectRoot string, rootData []byte) (*SourceResolution,
 		return nil, err
 	}
 	return resolution, nil
-}
-
-func (v *Validator) validateBundles(rootConfigPath string, rootData []byte, bundlesRoot string) error {
-	return walkProjectFiles(bundlesRoot, func(path string) error {
-		if filepath.Ext(path) != ".yaml" {
-			return nil
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if err := v.ValidateYAMLFile("bundle.schema.json", path, data); err != nil {
-			return err
-		}
-		if err := v.ValidateExtensionOptIn(rootConfigPath, rootData, path, data); err != nil {
-			return err
-		}
-		return nil
-	})
 }
 
 func parseProposalMarkdown(path string, data []byte) (*MarkdownDocument, error) {
@@ -480,9 +470,12 @@ func normalizeYAMLValue(value any) any {
 }
 
 func (v *Validator) loadSchema(name string) (*jsonschema.Schema, error) {
+	v.cacheMu.RLock()
 	if schema, ok := v.cache[name]; ok {
+		v.cacheMu.RUnlock()
 		return schema, nil
 	}
+	v.cacheMu.RUnlock()
 	fullPath := filepath.Join(v.schemaRoot, name)
 	compiler := jsonschema.NewCompiler()
 	compiler.DefaultDraft(jsonschema.Draft2020)
@@ -503,6 +496,11 @@ func (v *Validator) loadSchema(name string) (*jsonschema.Schema, error) {
 	schema, err := compiler.Compile(fullPath)
 	if err != nil {
 		return nil, err
+	}
+	v.cacheMu.Lock()
+	defer v.cacheMu.Unlock()
+	if cached, ok := v.cache[name]; ok {
+		return cached, nil
 	}
 	v.cache[name] = schema
 	return schema, nil
@@ -548,7 +546,7 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 	}
 	if err := walkChangeDirectories(filepath.Join(contentRoot, "changes"), func(changeDir string) error {
 		statusPath := filepath.Join(changeDir, "status.yaml")
-		statusData, err := os.ReadFile(statusPath)
+		statusData, err := readProjectFile(changeDir, statusPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return &ValidationError{Path: statusPath, Message: "missing required file"}
@@ -569,7 +567,7 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		index.ChangeIDs[fmt.Sprint(obj["id"])] = struct{}{}
 		index.StatusFiles[statusPath] = StatusFileRecord{Data: obj, Raw: append([]byte(nil), statusData...)}
 		proposalPath := filepath.Join(changeDir, "proposal.md")
-		proposalData, err := os.ReadFile(proposalPath)
+		proposalData, err := readProjectFile(changeDir, proposalPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return &ValidationError{Path: proposalPath, Message: "missing required file"}
@@ -580,7 +578,7 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 			return err
 		}
 		standardsPath := filepath.Join(changeDir, "standards.md")
-		standardsData, err := os.ReadFile(standardsPath)
+		standardsData, err := readProjectFile(changeDir, standardsPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return &ValidationError{Path: standardsPath, Message: "missing required file"}
@@ -598,7 +596,7 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if filepath.Ext(path) != ".md" {
 			return nil
 		}
-		data, err := os.ReadFile(path)
+		data, err := readProjectFile(filepath.Join(contentRoot, "specs"), path)
 		if err != nil {
 			return err
 		}
@@ -624,7 +622,7 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if filepath.Ext(path) != ".md" {
 			return nil
 		}
-		data, err := os.ReadFile(path)
+		data, err := readProjectFile(filepath.Join(contentRoot, "decisions"), path)
 		if err != nil {
 			return err
 		}
@@ -669,21 +667,95 @@ func walkChangeDirectories(root string, visit func(changeDir string) error) erro
 }
 
 func walkProjectFiles(root string, visit func(path string) error) error {
-	if _, err := os.Stat(root); err != nil {
+	info, err := os.Stat(root)
+	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 		return err
 	}
-	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	if !info.IsDir() {
+		return &ValidationError{Path: root, Message: "expected a directory root"}
+	}
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return &ValidationError{Path: root, Message: err.Error()}
+	}
+	return walkContainedFiles(resolvedRoot, root, map[string]struct{}{}, visit)
+}
+
+func walkContainedFiles(boundaryResolved, currentPath string, active map[string]struct{}, visit func(path string) error) error {
+	resolvedPath, err := filepath.EvalSymlinks(currentPath)
+	if err != nil {
+		return &ValidationError{Path: currentPath, Message: err.Error()}
+	}
+	if !isWithinRoot(boundaryResolved, resolvedPath) {
+		return &ValidationError{Path: currentPath, Message: fmt.Sprintf("resolved path %q escapes the selected project subtree", resolvedPath)}
+	}
+	info, err := os.Stat(currentPath)
+	if err != nil {
+		return &ValidationError{Path: currentPath, Message: err.Error()}
+	}
+	if info.IsDir() {
+		resolvedKey := filepath.Clean(resolvedPath)
+		if _, ok := active[resolvedKey]; ok {
+			return &ValidationError{Path: currentPath, Message: fmt.Sprintf("symlink cycle detected at %q", currentPath)}
+		}
+		active[resolvedKey] = struct{}{}
+		defer delete(active, resolvedKey)
+		entries, err := os.ReadDir(currentPath)
 		if err != nil {
-			return err
+			return &ValidationError{Path: currentPath, Message: err.Error()}
 		}
-		if d.IsDir() {
-			return nil
+		for _, entry := range entries {
+			if err := walkContainedFiles(boundaryResolved, filepath.Join(currentPath, entry.Name()), active, visit); err != nil {
+				return err
+			}
 		}
-		return visit(path)
-	})
+		return nil
+	}
+	if !info.Mode().IsRegular() {
+		return &ValidationError{Path: currentPath, Message: fmt.Sprintf("resolved path %q is not a regular file", resolvedPath)}
+	}
+	return visit(currentPath)
+}
+
+func readProjectFile(boundaryPath, path string) ([]byte, error) {
+	resolvedBoundary, err := filepath.EvalSymlinks(boundaryPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, os.ErrNotExist
+		}
+		return nil, &ValidationError{Path: boundaryPath, Message: err.Error()}
+	}
+	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, os.ErrNotExist
+		}
+		return nil, &ValidationError{Path: path, Message: err.Error()}
+	}
+	if !isWithinRoot(resolvedBoundary, resolvedPath) {
+		return nil, &ValidationError{Path: path, Message: fmt.Sprintf("resolved path %q escapes the selected project subtree", resolvedPath)}
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, os.ErrNotExist
+		}
+		return nil, &ValidationError{Path: path, Message: err.Error()}
+	}
+	if info.IsDir() {
+		return nil, &ValidationError{Path: path, Message: "expected a file, found a directory"}
+	}
+	if !info.Mode().IsRegular() {
+		return nil, &ValidationError{Path: path, Message: fmt.Sprintf("resolved path %q is not a regular file", resolvedPath)}
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, &ValidationError{Path: path, Message: err.Error()}
+	}
+	return data, nil
 }
 
 func expectObject(path string, value any, context string) (map[string]any, error) {

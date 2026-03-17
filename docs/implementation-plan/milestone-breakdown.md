@@ -176,6 +176,9 @@ auditable, and safe for future local/remote parity.
   invoking git, reject option-like values, run with an explicit minimal
   subprocess environment, and disable interactive prompting so correctness does
   not depend on hidden host credentials or config.
+- Git URL validation should reject remote-helper forms and constrain subprocess
+  protocol use to an explicit allowlist. Any user-visible git errors should
+  redact embedded URLs or credentials rather than echoing raw transport details.
 - Mutable git refs should be validated more strictly than a broad character
   whitelist so obviously invalid refs fail before any subprocess execution.
 - RuneContext should not expose environment-variable configuration or use
@@ -195,10 +198,22 @@ auditable, and safe for future local/remote parity.
 - Symlinks may be followed only when their fully resolved targets remain inside
   both the RuneContext root and the selected aspect root; otherwise resolution
   must fail closed.
+- Whole-project artifact discovery and reads should apply the same resolved-path
+  containment model so specs, decisions, and other validated project files
+  cannot escape their selected subtree through symlinked files.
+- Symlinked artifact-root directories that still resolve in-bounds (for example,
+  a symlinked `specs/` or `standards/` directory) should remain valid; the
+  guardrail is on the fully resolved target, not on whether the root directory
+  entry itself is a symlink.
 - Local path snapshots should exclude obvious repository-control directories like
   `.git/` and fail closed when practical depth, file-count, or byte-size bounds
   are exceeded, so alpha.2 snapshotting remains usable without silently copying
   arbitrarily large trees.
+- Bundle traversal should also enforce practical depth and file-count bounds so
+  pathological trees fail closed rather than consuming unbounded work.
+- Bundle exact and glob evaluation should canonicalize aspect roots before
+  containment checks so in-bounds symlinked aspect directories are accepted
+  consistently.
 - Validation entrypoints that materialize temporary source trees must close and
   clean up those trees on success as well as failure.
 - Alpha.2 should capture concrete per-glob match sets and structured
@@ -223,38 +238,38 @@ auditable, and safe for future local/remote parity.
 
 ### Epic 2: Context bundle semantics
 
-- [ ] Issue: implement bundle loading, `id` uniqueness checks, and unknown
+- [x] Issue: implement bundle loading, `id` uniqueness checks, and unknown
   parent rejection.
-- [ ] Issue: implement depth-first, left-to-right parent linearization with
+- [x] Issue: implement depth-first, left-to-right parent linearization with
   duplicate ancestor collapse.
-- [ ] Issue: implement inheritance cycle rejection and maximum depth `8`
+- [x] Issue: implement inheritance cycle rejection and maximum depth `8`
   enforcement.
-- [ ] Issue: implement ordered include/exclude rule evaluation with
+- [x] Issue: implement ordered include/exclude rule evaluation with
   last-matching-rule-wins semantics per aspect family over RuneContext-root-
   relative bundle paths.
-- [ ] Issue: implement exact-path, glob, and authoring-time diagnostics for
+- [x] Issue: implement exact-path, glob, and authoring-time diagnostics for
   missing paths and changed match sets, including concrete per-rule matched file
   inventories for later comparison.
 
 ### Epic 3: Path and integrity guardrails
 
-- [ ] Issue: reject path traversal segments, absolute paths, and drive-qualified
+- [x] Issue: reject path traversal segments, absolute paths, and drive-qualified
   paths in bundle rules.
-- [ ] Issue: reject files that escape the RuneContext root or selected aspect
+- [x] Issue: reject files that escape the RuneContext root or selected aspect
   roots through traversal or symlink resolution.
-- [ ] Issue: record resolved source metadata, including source mode, resolved
+- [x] Issue: record resolved source metadata, including source mode, resolved
   commit, verification posture, selected config path, source root, warning set,
   and signed-tag signer details when present.
-- [ ] Issue: define remote/CI invalidity rules for `type: path` sources through
+- [x] Issue: define remote/CI invalidity rules for `type: path` sources through
   explicit caller-supplied execution mode rather than environment inference.
 
 ### Epic 4: Resolution tests and fixtures
 
 - [ ] Issue: add unit tests for embedded, linked-by-commit, linked-by-signed-
   tag, mutable-ref, and path-based source resolution.
-- [ ] Issue: add unit and golden tests for bundle precedence, cycle rejection,
+- [x] Issue: add unit and golden tests for bundle precedence, cycle rejection,
   depth rejection, glob changes, and path-escape failures.
-- [ ] Issue: add golden fixtures for embedded, linked, path, and monorepo
+- [x] Issue: add golden fixtures for embedded, linked, path, and monorepo
   resolution outputs so later CLI and RuneCode parity tests share one baseline.
 
 ### Exit Criteria

@@ -16,8 +16,10 @@ import (
 var (
 	gitCommitPattern    = regexp.MustCompile(`^[a-f0-9]{40}$`)
 	gitRefPattern       = regexp.MustCompile(`^[A-Za-z0-9._/-]+$`)
+	gitURLSchemePattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9+.-]*://`)
 	gitCommandTimeout   = 30 * time.Second
 	gitURLControlChars  = "\x00\r\n\t"
+	gitAllowedProtocols = []string{"file", "git", "http", "https", "ssh"}
 	localSnapshotLimits = snapshotLimits{
 		MaxFiles: 10000,
 		MaxBytes: 128 << 20,
@@ -194,9 +196,11 @@ func (v *Validator) ValidateLoadedProject(loaded *LoadedProject) (*ProjectIndex,
 	index.RootConfigPath = rootConfigPath
 	index.ContentRoot = contentRoot
 	index.Resolution = loaded.Resolution
-	if err := v.validateBundles(rootConfigPath, rootData, filepath.Join(contentRoot, "bundles")); err != nil {
+	bundles, err := loadBundleCatalog(v, rootConfigPath, rootData, contentRoot)
+	if err != nil {
 		return nil, err
 	}
+	index.Bundles = bundles
 	for path, record := range index.StatusFiles {
 		if err := v.ValidateExtensionOptIn(rootConfigPath, rootData, path, record.Raw); err != nil {
 			return nil, err
@@ -427,7 +431,11 @@ func resolveEmbeddedSourceRoot(configPath, projectRoot string, sourceMap map[str
 		return "", "", &ValidationError{Path: configPath, Message: fmt.Sprintf("embedded source path %v", err)}
 	}
 	absRoot := filepath.Clean(filepath.Join(projectRoot, filepath.FromSlash(declared)))
-	if !isWithinRoot(projectRoot, absRoot) {
+	resolvedProjectRoot, resolvedRoot, err := canonicalizePaths(projectRoot, absRoot)
+	if err != nil {
+		return "", "", &ValidationError{Path: configPath, Message: err.Error()}
+	}
+	if !isWithinRoot(resolvedProjectRoot, resolvedRoot) {
 		return "", "", &ValidationError{Path: configPath, Message: fmt.Sprintf("embedded source path %q escapes the selected project root", rawPath)}
 	}
 	info, err := os.Stat(absRoot)
@@ -481,6 +489,22 @@ func validateGitURL(url string) error {
 	}
 	if strings.ContainsAny(url, gitURLControlChars+" ") {
 		return fmt.Errorf("git source url contains unsupported whitespace or control characters")
+	}
+	lower := strings.ToLower(url)
+	if strings.HasPrefix(lower, "ext::") {
+		return fmt.Errorf("git source url must not use remote-helper forms")
+	}
+	if gitURLSchemePattern.MatchString(url) {
+		scheme := strings.ToLower(url[:strings.Index(url, "://")])
+		for _, allowed := range gitAllowedProtocols {
+			if scheme == allowed {
+				return nil
+			}
+		}
+		return fmt.Errorf("git source url scheme %q is not allowed", scheme)
+	}
+	if strings.Contains(url, "::") {
+		return fmt.Errorf("git source url must not use remote-helper forms")
 	}
 	return nil
 }
@@ -594,6 +618,9 @@ func copyResolvedTree(sourcePath, destPath, root string, active map[string]struc
 	}
 	if !info.Mode().IsRegular() {
 		return fmt.Errorf("unsupported non-regular file %q in local source tree", resolved)
+	}
+	if err := validateOpenPathWithinRoot(resolved, root); err != nil {
+		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 		return err
@@ -734,14 +761,14 @@ func runGit(args ...string) error {
 	cmd.Env = sanitizedGitEnv()
 	output, err := cmd.CombinedOutput()
 	if ctx.Err() == context.DeadlineExceeded {
-		return fmt.Errorf("git %s: command timed out after %s", strings.Join(args, " "), gitCommandTimeout)
+		return fmt.Errorf("git %s: command timed out after %s", sanitizeGitArgs(args), gitCommandTimeout)
 	}
 	if err != nil {
-		message := strings.TrimSpace(string(output))
+		message := sanitizeGitMessage(strings.TrimSpace(string(output)))
 		if message == "" {
-			message = err.Error()
+			message = sanitizeGitMessage(err.Error())
 		}
-		return fmt.Errorf("git %s: %s", strings.Join(args, " "), message)
+		return fmt.Errorf("git %s: %s", sanitizeGitArgs(args), message)
 	}
 	return nil
 }
@@ -753,22 +780,25 @@ func gitOutput(args ...string) (string, error) {
 	cmd.Env = sanitizedGitEnv()
 	output, err := cmd.CombinedOutput()
 	if ctx.Err() == context.DeadlineExceeded {
-		return "", fmt.Errorf("git %s: command timed out after %s", strings.Join(args, " "), gitCommandTimeout)
+		return "", fmt.Errorf("git %s: command timed out after %s", sanitizeGitArgs(args), gitCommandTimeout)
 	}
 	if err != nil {
-		message := strings.TrimSpace(string(output))
+		message := sanitizeGitMessage(strings.TrimSpace(string(output)))
 		if message == "" {
-			message = err.Error()
+			message = sanitizeGitMessage(err.Error())
 		}
-		return "", fmt.Errorf("git %s: %s", strings.Join(args, " "), message)
+		return "", fmt.Errorf("git %s: %s", sanitizeGitArgs(args), message)
 	}
 	return string(output), nil
 }
 
 func sanitizedGitEnv() []string {
 	env := []string{
+		"HOME=" + os.TempDir(),
+		"XDG_CONFIG_HOME=" + os.TempDir(),
 		"GIT_CONFIG_GLOBAL=" + os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
+		"GIT_ALLOW_PROTOCOL=" + strings.Join(gitAllowedProtocols, ":"),
 		"GIT_TERMINAL_PROMPT=0",
 		"GIT_ASKPASS=",
 		"SSH_ASKPASS=",
@@ -793,6 +823,67 @@ func runeContextRelativePath(root, path string) string {
 		return filepath.ToSlash(path)
 	}
 	return filepath.ToSlash(rel)
+}
+
+func canonicalizePaths(root, target string) (string, string, error) {
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", "", fmt.Errorf("resolve root %q: %w", root, err)
+	}
+	resolvedTarget, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		return "", "", fmt.Errorf("resolve path %q: %w", target, err)
+	}
+	return resolvedRoot, resolvedTarget, nil
+}
+
+func validateOpenPathWithinRoot(resolvedPath, root string) error {
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return err
+	}
+	if !isWithinRoot(resolvedRoot, resolvedPath) {
+		return fmt.Errorf("resolved path %q escapes declared local source tree", resolvedPath)
+	}
+	return nil
+}
+
+func sanitizeGitArgs(args []string) string {
+	sanitized := make([]string, len(args))
+	for i, arg := range args {
+		sanitized[i] = sanitizeGitMessage(arg)
+	}
+	return strings.Join(sanitized, " ")
+}
+
+func sanitizeGitMessage(message string) string {
+	trimmed := strings.TrimSpace(message)
+	if trimmed == "" {
+		return trimmed
+	}
+	for _, prefix := range []string{"https://", "http://", "ssh://", "file://"} {
+		for {
+			idx := strings.Index(strings.ToLower(trimmed), prefix)
+			if idx < 0 {
+				break
+			}
+			end := idx + len(prefix)
+			for end < len(trimmed) && !strings.ContainsRune(" \n\r\t'\"", rune(trimmed[end])) {
+				end++
+			}
+			trimmed = trimmed[:idx] + "<redacted-url>" + trimmed[end:]
+		}
+	}
+	if at := strings.Index(trimmed, "@"); at > 0 {
+		start := strings.LastIndexAny(trimmed[:at], " /\n\r\t\"")
+		if start < 0 {
+			start = 0
+		} else {
+			start++
+		}
+		trimmed = trimmed[:start] + "<redacted>@" + trimmed[at+1:]
+	}
+	return trimmed
 }
 
 func walkRuneContextFiles(root string, visit func(path string, d fs.DirEntry) error) error {

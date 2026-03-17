@@ -163,6 +163,76 @@ func TestTraceabilityProjectFixtures(t *testing.T) {
 	}
 }
 
+func TestValidateProjectRejectsSpecSymlinkEscape(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	projectRoot := t.TempDir()
+	contentRoot := filepath.Join(projectRoot, "runecontext")
+	if err := os.MkdirAll(filepath.Join(contentRoot, "changes", "CHG-2026-001-a3f2-auth-gateway"), 0o755); err != nil {
+		t.Fatalf("mkdir change dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(contentRoot, "specs"), 0o755); err != nil {
+		t.Fatalf("mkdir specs dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"), 0o644); err != nil {
+		t.Fatalf("write root config: %v", err)
+	}
+	changeDir := filepath.Join(contentRoot, "changes", "CHG-2026-001-a3f2-auth-gateway")
+	if err := os.WriteFile(filepath.Join(changeDir, "status.yaml"), []byte("schema_version: 1\nid: CHG-2026-001-a3f2-auth-gateway\ntitle: Test\nstatus: proposed\ntype: feature\nsize: small\ncontext_bundles: []\nrelated_specs: []\nrelated_decisions: []\nrelated_changes: []\ndepends_on: []\ninformed_by: []\nsupersedes: []\nsuperseded_by: []\ncreated_at: \"2026-03-17\"\nclosed_at: null\nverification_status: pending\npromotion_assessment:\n  status: pending\n  suggested_targets: []\n"), 0o644); err != nil {
+		t.Fatalf("write status: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(changeDir, "proposal.md"), []byte("## Summary\n\nN/A\n\n## Problem\n\nN/A\n\n## Proposed Change\n\nAdd a test.\n\n## Why Now\n\nN/A\n\n## Assumptions\n\nN/A\n\n## Out of Scope\n\nN/A\n\n## Impact\n\nN/A\n"), 0o644); err != nil {
+		t.Fatalf("write proposal: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(changeDir, "standards.md"), []byte("## Applicable Standards\n\n- `standards/global/base.md`\n"), 0o644); err != nil {
+		t.Fatalf("write standards: %v", err)
+	}
+	outside := filepath.Join(projectRoot, "outside-spec.md")
+	if err := os.WriteFile(outside, []byte("---\nschema_version: 1\nid: auth-gateway\ntitle: Bad\noriginating_changes: []\nrevised_by_changes: []\n---\n\n# Bad\n"), 0o644); err != nil {
+		t.Fatalf("write outside spec: %v", err)
+	}
+	if err := tryCreateSymlink(filepath.Join("..", "..", "outside-spec.md"), filepath.Join(contentRoot, "specs", "auth-gateway.md")); err != nil {
+		if strings.Contains(err.Error(), "symlink tests skipped") {
+			t.Skip(err.Error())
+		}
+		t.Fatal(err)
+	}
+
+	_, err := v.ValidateProject(projectRoot)
+	if err == nil || !strings.Contains(err.Error(), "escapes the selected project subtree") {
+		t.Fatalf("expected spec symlink escape to fail, got %v", err)
+	}
+}
+
+func TestWalkProjectFilesAllowsSymlinkedRootDirectory(t *testing.T) {
+	root := t.TempDir()
+	target := filepath.Join(root, "real-specs")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatalf("mkdir real root: %v", err)
+	}
+	file := filepath.Join(target, "example.md")
+	if err := os.WriteFile(file, []byte("# Example\n"), 0o644); err != nil {
+		t.Fatalf("write test file: %v", err)
+	}
+	linked := filepath.Join(root, "specs")
+	if err := tryCreateSymlink("real-specs", linked); err != nil {
+		if strings.Contains(err.Error(), "symlink tests skipped") {
+			t.Skip(err.Error())
+		}
+		t.Fatal(err)
+	}
+
+	paths := make([]string, 0)
+	if err := walkProjectFiles(linked, func(path string) error {
+		paths = append(paths, filepath.Base(path))
+		return nil
+	}); err != nil {
+		t.Fatalf("expected symlinked root directory to be walkable: %v", err)
+	}
+	if len(paths) != 1 || paths[0] != "example.md" {
+		t.Fatalf("expected to visit example.md through symlinked root, got %v", paths)
+	}
+}
+
 func TestParseSpecAllowsClosingFrontmatterDelimiterAtEOF(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	data := []byte("---\nschema_version: 1\nid: auth-gateway\ntitle: Auth Gateway\noriginating_changes:\n  - CHG-2026-001-a3f2-auth-gateway\nrevised_by_changes: []\n---\n# Auth Gateway")

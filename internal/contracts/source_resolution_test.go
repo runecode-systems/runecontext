@@ -170,6 +170,14 @@ func TestSourceResolutionRejectsUnsafeGitInputs(t *testing.T) {
 		}
 	})
 
+	t.Run("url uses remote helper", func(t *testing.T) {
+		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: ext::helper\n  commit: "+commit+"\n  subdir: runecontext\n")
+		_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+		if err == nil || !strings.Contains(err.Error(), "remote-helper") {
+			t.Fatalf("expected remote-helper git url to fail, got %v", err)
+		}
+	})
+
 	t.Run("ref starts with dash", func(t *testing.T) {
 		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  ref: -main\n  allow_mutable_ref: true\n  subdir: runecontext\n")
 		_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
@@ -252,6 +260,55 @@ func TestSourceResolutionRejectsPathSymlinkCycle(t *testing.T) {
 	_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 	if err == nil || !strings.Contains(err.Error(), "symlink cycle detected") {
 		t.Fatalf("expected path symlink cycle to fail, got %v", err)
+	}
+}
+
+func TestSourceResolutionRejectsEmbeddedPathSymlinkEscape(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	projectRoot := t.TempDir()
+	outsideRoot := filepath.Join(filepath.Dir(projectRoot), "outside-runecontext")
+	if err := os.MkdirAll(outsideRoot, 0o755); err != nil {
+		t.Fatalf("mkdir outside root: %v", err)
+	}
+	if err := tryCreateSymlink(filepath.Join("..", filepath.Base(outsideRoot)), filepath.Join(projectRoot, "linked-runecontext")); err != nil {
+		if strings.Contains(err.Error(), "symlink tests skipped") {
+			t.Skip(err.Error())
+		}
+		t.Fatal(err)
+	}
+	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: embedded\n  path: linked-runecontext\n"
+	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
+		t.Fatalf("write root config: %v", err)
+	}
+
+	_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err == nil || !strings.Contains(err.Error(), "escapes the selected project root") {
+		t.Fatalf("expected embedded symlink escape to fail, got %v", err)
+	}
+}
+
+func TestSanitizedGitEnvSetsProtocolAndConfigGuards(t *testing.T) {
+	env := sanitizedGitEnv()
+	joined := strings.Join(env, "\n")
+	for _, expected := range []string{
+		"GIT_ALLOW_PROTOCOL=file:git:http:https:ssh",
+		"GIT_CONFIG_NOSYSTEM=1",
+		"XDG_CONFIG_HOME=" + os.TempDir(),
+	} {
+		if !strings.Contains(joined, expected) {
+			t.Fatalf("expected sanitized git env to contain %q, got %s", expected, joined)
+		}
+	}
+}
+
+func TestSanitizeGitMessageRedactsURLsAndCredentials(t *testing.T) {
+	message := "fatal: could not fetch https://user:token@example.com/private/repo"
+	sanitized := sanitizeGitMessage(message)
+	if strings.Contains(sanitized, "token") || strings.Contains(sanitized, "example.com/private/repo") {
+		t.Fatalf("expected sanitized git message to redact secrets, got %q", sanitized)
+	}
+	if !strings.Contains(sanitized, "<redacted-url>") {
+		t.Fatalf("expected sanitized git message to contain redacted marker, got %q", sanitized)
 	}
 }
 
@@ -355,6 +412,12 @@ func normalizeResolutionValue(t *testing.T, value any) any {
 		}
 		return result
 	case []any:
+		result := make([]any, len(typed))
+		for i, item := range typed {
+			result[i] = normalizeResolutionValue(t, item)
+		}
+		return result
+	case []string:
 		result := make([]any, len(typed))
 		for i, item := range typed {
 			result[i] = normalizeResolutionValue(t, item)

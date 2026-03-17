@@ -10,12 +10,15 @@ This directory holds the repository-wide fixture taxonomy for RuneContext contra
   - human-readable markdown fixtures for `proposal.md` and `standards.md` structure validation
 - `traceability/`
   - multi-file project fixtures for spec/decision frontmatter, path-matched IDs, and cross-artifact traceability checks
+- `bundle-resolution/`
+  - multi-file project fixtures and goldens for bundle inheritance, precedence, diagnostics, and path-boundary guardrails
+- `source-resolution/`
+  - source-mode, discovery, and structured resolution metadata fixtures for alpha.2
 
 ## Reserved Future Fixture Families
 
 These directories are reserved by convention for later alphas so tests and tooling can grow without reshuffling the tree:
 
-- `source-resolution/`
 - `context-packs/`
 - `assurance/`
 - `cli-json/`

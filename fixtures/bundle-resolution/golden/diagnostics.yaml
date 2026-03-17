@@ -1,0 +1,84 @@
+id: diagnostics
+linearization:
+  - diagnostics
+aspects:
+  project:
+    rules:
+      - bundle: diagnostics
+        aspect: project
+        rule: include
+        pattern: project/missing.md
+        pattern_kind: exact
+        matches: []
+        diagnostics:
+          - severity: warning
+            code: missing_exact_path
+            message: exact include rule did not match an existing file
+            bundle: diagnostics
+            aspect: project
+            rule: include
+            pattern: project/missing.md
+      - bundle: diagnostics
+        aspect: project
+        rule: include
+        pattern: project/missing/**
+        pattern_kind: glob
+        matches: []
+        diagnostics:
+          - severity: info
+            code: empty_glob_match
+            message: glob include rule matched no files
+            bundle: diagnostics
+            aspect: project
+            rule: include
+            pattern: project/missing/**
+    selected: []
+    excluded: []
+  standards:
+    rules:
+      - bundle: diagnostics
+        aspect: standards
+        rule: include
+        pattern: standards/missing/**
+        pattern_kind: glob
+        matches: []
+        diagnostics:
+          - severity: info
+            code: empty_glob_match
+            message: glob include rule matched no files
+            bundle: diagnostics
+            aspect: standards
+            rule: include
+            pattern: standards/missing/**
+    selected: []
+    excluded: []
+  specs:
+    rules: []
+    selected: []
+    excluded: []
+  decisions:
+    rules: []
+    selected: []
+    excluded: []
+diagnostics:
+  - severity: warning
+    code: missing_exact_path
+    message: exact include rule did not match an existing file
+    bundle: diagnostics
+    aspect: project
+    rule: include
+    pattern: project/missing.md
+  - severity: info
+    code: empty_glob_match
+    message: glob include rule matched no files
+    bundle: diagnostics
+    aspect: project
+    rule: include
+    pattern: project/missing/**
+  - severity: info
+    code: empty_glob_match
+    message: glob include rule matched no files
+    bundle: diagnostics
+    aspect: standards
+    rule: include
+    pattern: standards/missing/**

@@ -1,0 +1,7 @@
+schema_version: 1
+id: a
+extends:
+  - b
+includes:
+  project:
+    - project/mission.md
