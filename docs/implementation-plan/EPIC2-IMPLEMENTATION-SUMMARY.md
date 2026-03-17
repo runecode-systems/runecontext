@@ -200,6 +200,19 @@ Additional regression tests now cover:
 - bundle resolution with a symlinked in-bounds aspect root
 - removal of stale unused setup in the embedded symlink-escape test
 
+### 8. Final PR Cleanup Pass
+
+The final cleanup pass for the re-run PR review made two small source-resolution
+refinements:
+
+- **Clearer path helper naming**: the helper that resolves a root and target pair
+  is now named to reflect canonicalization only, rather than implying it also
+  enforces containment.
+- **Less redundant open-path validation**: local snapshot copying now validates
+  the exact resolved path being opened against the declared local source root,
+  preserving the hardening intent without re-resolving the same path under a
+  misleading helper name.
+
 ---
 
 ## Security and Audit Implications
