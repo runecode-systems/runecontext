@@ -210,7 +210,7 @@ jobs:
             printf '\n'
             printf '%s\n' '## Included assets'
             printf '\n'
-            printf '%s\n' '- Unsigned archives built from the canonical flake package `nix build .#release-artifacts`'
+            printf '%s\n' '- Unsigned archives built from the canonical flake package `nix build --no-link .#release-artifacts`'
             printf '%s\n' "- Canonical unsigned release manifest: \`runecontext_${RELEASE_TAG}_release-manifest.json\`"
             printf '%s\n' "- Repo-first source bundles for manual install and auditing under the pattern \`runecontext_${RELEASE_TAG}.tar.gz\` and \`runecontext_${RELEASE_TAG}.zip\`"
             printf '%s\n' "- Linux/macOS \`runectx\` binary archives under the pattern \`runecontext_${RELEASE_TAG}_{os}_{arch}.tar.gz\`"
