@@ -1,0 +1,10 @@
+selected_config_path: ${PROJECT_ROOT}/runecontext.yaml
+project_root: ${PROJECT_ROOT}
+source_root: runecontext
+source_mode: git
+source_ref: ${TAG}
+resolved_commit: ${COMMIT}
+verification_posture: verified_signed_tag
+verified_signer_identity: ${SIGNER}
+verified_signer_fingerprint: ${FINGERPRINT}
+diagnostics: []

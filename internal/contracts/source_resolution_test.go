@@ -1,7 +1,9 @@
 package contracts
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -138,6 +140,166 @@ func TestSourceResolutionGitMutableRefRequiresOptInAndWarns(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "allow_mutable_ref") {
 		t.Fatalf("expected missing mutable-ref opt-in to fail, got %v", err)
 	}
+}
+
+func TestSourceResolutionGitSignedTagTrustedSignerSuccess(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, details := createSignedGitSourceRepo(t)
+	verifier := newSSHAllowedSignersVerifierForTest(t, details.AllowedSigners)
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+
+	index, err := v.ValidateProjectWithOptions(projectRoot, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+		GitTrust: GitTrustInputs{
+			SignedTagVerifier: verifier,
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected signed-tag fixture to validate: %v", err)
+	}
+	defer index.Close()
+
+	assertResolutionMatchesGolden(t, index.Resolution, fixturePath(t, "source-resolution", "golden", "git-signed-tag.yaml"), map[string]string{
+		"${PROJECT_ROOT}": filepath.ToSlash(projectRoot),
+		"${TAG}":          details.SignedTagName,
+		"${COMMIT}":       details.Commit,
+		"${SIGNER}":       details.SignerIdentity,
+		"${FINGERPRINT}":  details.SignerFingerprint,
+	})
+	if index.Resolution.Tree == nil || index.Resolution.Tree.SnapshotKind != "git_checkout" {
+		t.Fatalf("expected signed git source to materialize via checkout")
+	}
+}
+
+func TestSourceResolutionGitSignedTagFailsWithoutExplicitTrustInputs(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, details := createSignedGitSourceRepo(t)
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+
+	_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	var verificationErr *SignedTagVerificationError
+	if !errors.As(err, &verificationErr) {
+		t.Fatalf("expected signed-tag verification error, got %v", err)
+	}
+	if verificationErr.Reason != SignedTagFailureMissingTrust {
+		t.Fatalf("expected missing trust failure, got %q", verificationErr.Reason)
+	}
+	if !strings.Contains(verificationErr.Message, "explicit trusted signer inputs") {
+		t.Fatalf("expected missing trust message, got %q", verificationErr.Message)
+	}
+}
+
+func TestSourceResolutionGitSignedTagUntrustedSignerFailsClosed(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, details := createSignedGitSourceRepo(t)
+	verifier := newSSHAllowedSignersVerifierForTest(t, details.UntrustedAllowedSigners)
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+
+	_, err := v.LoadProject(projectRoot, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+		GitTrust:        GitTrustInputs{SignedTagVerifier: verifier},
+	})
+	assertSignedTagFailure(t, err, SignedTagFailureUntrustedSigner, "untrusted signer")
+}
+
+func TestSourceResolutionGitSignedTagUnsignedFailsClosed(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, details := createSignedGitSourceRepo(t)
+	verifier := newSSHAllowedSignersVerifierForTest(t, details.AllowedSigners)
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.UnsignedTagName, details.Commit))
+
+	_, err := v.LoadProject(projectRoot, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+		GitTrust:        GitTrustInputs{SignedTagVerifier: verifier},
+	})
+	assertSignedTagFailure(t, err, SignedTagFailureUnsignedTag, "unsigned")
+}
+
+func TestSourceResolutionGitSignedTagBadSignatureFailsClosed(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, details := createSignedGitSourceRepo(t)
+	verifier := newSSHAllowedSignersVerifierForTest(t, details.AllowedSigners)
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.BadSignatureTagName, details.Commit))
+
+	_, err := v.LoadProject(projectRoot, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+		GitTrust:        GitTrustInputs{SignedTagVerifier: verifier},
+	})
+	assertSignedTagFailure(t, err, SignedTagFailureInvalidSignature, "invalid signature")
+}
+
+func TestSourceResolutionGitSignedTagExpectCommitMismatchFailsClosed(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, details := createSignedGitSourceRepo(t)
+	verifier := newSSHAllowedSignersVerifierForTest(t, details.AllowedSigners)
+	mismatchedCommit := strings.Repeat("a", 40)
+	if mismatchedCommit == details.Commit {
+		mismatchedCommit = strings.Repeat("b", 40)
+	}
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, mismatchedCommit))
+
+	_, err := v.LoadProject(projectRoot, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+		GitTrust:        GitTrustInputs{SignedTagVerifier: verifier},
+	})
+	var verificationErr *SignedTagVerificationError
+	if !errors.As(err, &verificationErr) {
+		t.Fatalf("expected signed-tag verification error, got %v", err)
+	}
+	if verificationErr.Reason != SignedTagFailureExpectCommitMismatch {
+		t.Fatalf("expected expect_commit mismatch failure, got %q", verificationErr.Reason)
+	}
+	if verificationErr.ResolvedCommit != details.Commit {
+		t.Fatalf("expected resolved commit capture %q, got %q", details.Commit, verificationErr.ResolvedCommit)
+	}
+	if verificationErr.SignerIdentity != details.SignerIdentity {
+		t.Fatalf("expected signer identity capture %q, got %q", details.SignerIdentity, verificationErr.SignerIdentity)
+	}
+	if verificationErr.SignerFingerprint != details.SignerFingerprint {
+		t.Fatalf("expected signer fingerprint capture %q, got %q", details.SignerFingerprint, verificationErr.SignerFingerprint)
+	}
+	if !strings.Contains(verificationErr.Message, "expect_commit") {
+		t.Fatalf("expected expect_commit mismatch message, got %q", verificationErr.Message)
+	}
+}
+
+func TestSSHAllowedSignersVerifierRejectsEmptyTrustMaterial(t *testing.T) {
+	if _, err := NewSSHAllowedSignersVerifier(nil); err == nil {
+		t.Fatal("expected empty trust material to fail")
+	}
+}
+
+func TestSourceResolutionGitSignedTagVerifierReturningNilFailsClosed(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, details := createSignedGitSourceRepo(t)
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+
+	_, err := v.LoadProject(projectRoot, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+		GitTrust:        GitTrustInputs{SignedTagVerifier: signedTagVerifierFunc(func(string, string) (*SignedTagVerification, error) { return nil, nil })},
+	})
+	assertSignedTagFailure(t, err, SignedTagFailureVerificationFailed, "no verification details")
+}
+
+func TestSourceResolutionGitSignedTagVerifierReturningIncompleteSignerFailsClosed(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	repoDir, details := createSignedGitSourceRepo(t)
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+
+	_, err := v.LoadProject(projectRoot, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+		GitTrust: GitTrustInputs{SignedTagVerifier: signedTagVerifierFunc(func(string, string) (*SignedTagVerification, error) {
+			return &SignedTagVerification{SignerIdentity: "alice@example.com"}, nil
+		})},
+	})
+	assertSignedTagFailure(t, err, SignedTagFailureVerificationFailed, "incomplete signer details")
 }
 
 func TestSourceResolutionRejectsEmbeddedPathEscape(t *testing.T) {
@@ -293,6 +455,7 @@ func TestSanitizedGitEnvSetsProtocolAndConfigGuards(t *testing.T) {
 	for _, expected := range []string{
 		"GIT_ALLOW_PROTOCOL=file:git:http:https:ssh",
 		"GIT_CONFIG_NOSYSTEM=1",
+		"GNUPGHOME=" + os.TempDir(),
 		"XDG_CONFIG_HOME=" + os.TempDir(),
 	} {
 		if !strings.Contains(joined, expected) {
@@ -302,13 +465,32 @@ func TestSanitizedGitEnvSetsProtocolAndConfigGuards(t *testing.T) {
 }
 
 func TestSanitizeGitMessageRedactsURLsAndCredentials(t *testing.T) {
-	message := "fatal: could not fetch https://user:token@example.com/private/repo"
+	message := "fatal: could not fetch https://user:token@example.com/private/repo and contact admin@example.org about SHA256:abcdef"
 	sanitized := sanitizeGitMessage(message)
-	if strings.Contains(sanitized, "token") || strings.Contains(sanitized, "example.com/private/repo") {
+	if strings.Contains(sanitized, "token") || strings.Contains(sanitized, "example.com/private/repo") || strings.Contains(sanitized, "admin@example.org") || strings.Contains(sanitized, "SHA256:abcdef") {
 		t.Fatalf("expected sanitized git message to redact secrets, got %q", sanitized)
 	}
 	if !strings.Contains(sanitized, "<redacted-url>") {
 		t.Fatalf("expected sanitized git message to contain redacted marker, got %q", sanitized)
+	}
+	if !strings.Contains(sanitized, "<redacted-fingerprint>") {
+		t.Fatalf("expected sanitized git message to redact fingerprint, got %q", sanitized)
+	}
+	if !strings.Contains(sanitized, "<redacted-identity>") {
+		t.Fatalf("expected sanitized git message to redact identity, got %q", sanitized)
+	}
+}
+
+func TestParseTrustedSSHVerifyTagOutputAcceptsIdentityContainingWith(t *testing.T) {
+	identity, fingerprint, err := parseTrustedSSHVerifyTagOutput(`Good "git" signature for Team with Ops <ops@example.com> with ED25519 key SHA256:abc123`)
+	if err != nil {
+		t.Fatalf("expected parser success, got %v", err)
+	}
+	if identity != "Team with Ops <ops@example.com>" {
+		t.Fatalf("expected identity capture, got %q", identity)
+	}
+	if fingerprint != "SHA256:abc123" {
+		t.Fatalf("expected fingerprint capture, got %q", fingerprint)
 	}
 }
 
@@ -390,6 +572,12 @@ func comparableResolution(resolution *SourceResolution) map[string]any {
 	if resolution.ResolvedCommit != "" {
 		result["resolved_commit"] = resolution.ResolvedCommit
 	}
+	if resolution.VerifiedSignerIdentity != "" {
+		result["verified_signer_identity"] = resolution.VerifiedSignerIdentity
+	}
+	if resolution.VerifiedSignerFingerprint != "" {
+		result["verified_signer_fingerprint"] = resolution.VerifiedSignerFingerprint
+	}
 	diagnostics := make([]any, 0, len(resolution.Diagnostics))
 	for _, diagnostic := range resolution.Diagnostics {
 		diagnostics = append(diagnostics, map[string]any{
@@ -455,6 +643,23 @@ func writeRootConfigProject(t *testing.T, config string) string {
 	return root
 }
 
+type signedGitSourceDetails struct {
+	Commit                  string
+	SignedTagName           string
+	UnsignedTagName         string
+	BadSignatureTagName     string
+	SignerIdentity          string
+	SignerFingerprint       string
+	AllowedSigners          []byte
+	UntrustedAllowedSigners []byte
+}
+
+type signedTagVerifierFunc func(repoRoot, tagName string) (*SignedTagVerification, error)
+
+func (f signedTagVerifierFunc) VerifySignedTag(repoRoot, tagName string) (*SignedTagVerification, error) {
+	return f(repoRoot, tagName)
+}
+
 func createGitSourceRepo(t *testing.T) (string, string) {
 	t.Helper()
 	repoDir := t.TempDir()
@@ -465,6 +670,99 @@ func createGitSourceRepo(t *testing.T) (string, string) {
 	runGitTest(t, repoDir, "-c", "user.name=RuneContext Tests", "-c", "user.email=tests@example.com", "commit", "-m", "initial runecontext")
 	commit := strings.TrimSpace(gitOutputForTest(t, repoDir, "rev-parse", "HEAD"))
 	return repoDir, commit
+}
+
+func createSignedGitSourceRepo(t *testing.T) (string, signedGitSourceDetails) {
+	t.Helper()
+	requireToolForContractsTests(t, "git")
+	requireToolForContractsTests(t, "ssh-keygen")
+	repoDir, commit := createGitSourceRepo(t)
+	keyDir := t.TempDir()
+	keyPath := filepath.Join(keyDir, "signer")
+	runCommandForTest(t, repoDir, sanitizedGitEnv(), "ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", keyPath)
+	publicKey := strings.TrimSpace(string(readFixture(t, keyPath+".pub")))
+	allowedSigners := []byte(fmt.Sprintf("alice@example.com %s\n", publicKey))
+	untrustedKeyPath := filepath.Join(keyDir, "untrusted-signer")
+	runCommandForTest(t, repoDir, sanitizedGitEnv(), "ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", untrustedKeyPath)
+	untrustedPublicKey := strings.TrimSpace(string(readFixture(t, untrustedKeyPath+".pub")))
+	untrustedAllowedSigners := []byte(fmt.Sprintf("bob@example.com %s\n", untrustedPublicKey))
+	signedTagName := "v1.0.0-signed"
+	unsignedTagName := "v1.0.0-unsigned"
+	badSignatureTagName := "v1.0.0-bad-signature"
+	runGitTest(t, repoDir, "-c", "gpg.format=ssh", "-c", "user.signingkey="+keyPath, "-c", "user.name=RuneContext Tests", "-c", "user.email=tests@example.com", "tag", "-s", "-m", "signed tag", signedTagName)
+	runGitTest(t, repoDir, "-c", "user.name=RuneContext Tests", "-c", "user.email=tests@example.com", "tag", "-a", "-m", "unsigned tag", unsignedTagName)
+	corruptSignedTagForTest(t, repoDir, signedTagName, badSignatureTagName)
+	verifier := newSSHAllowedSignersVerifierForTest(t, allowedSigners)
+	verification, err := verifier.VerifySignedTag(repoDir, signedTagName)
+	if err != nil {
+		t.Fatalf("verify signed test tag: %v", err)
+	}
+	return repoDir, signedGitSourceDetails{
+		Commit:                  commit,
+		SignedTagName:           signedTagName,
+		UnsignedTagName:         unsignedTagName,
+		BadSignatureTagName:     badSignatureTagName,
+		SignerIdentity:          verification.SignerIdentity,
+		SignerFingerprint:       verification.SignerFingerprint,
+		AllowedSigners:          allowedSigners,
+		UntrustedAllowedSigners: untrustedAllowedSigners,
+	}
+}
+
+func requireToolForContractsTests(t *testing.T, name string) {
+	t.Helper()
+	if _, err := exec.LookPath(name); err != nil {
+		t.Skipf("%s not available: %v", name, err)
+	}
+}
+
+func newSSHAllowedSignersVerifierForTest(t *testing.T, allowedSigners []byte) *SSHAllowedSignersVerifier {
+	t.Helper()
+	verifier, err := NewSSHAllowedSignersVerifier(allowedSigners)
+	if err != nil {
+		t.Fatalf("create allowed-signers verifier: %v", err)
+	}
+	return verifier
+}
+
+func corruptSignedTagForTest(t *testing.T, repoDir, sourceTag, targetTag string) {
+	t.Helper()
+	tagText := gitOutputForTest(t, repoDir, "cat-file", "tag", sourceTag)
+	lines := strings.Split(strings.TrimSuffix(tagText, "\n"), "\n")
+	corrupted := false
+	for i := 1; i < len(lines); i++ {
+		if strings.HasPrefix(lines[i-1], "-----BEGIN SSH SIGNATURE-----") && lines[i] != "" && !strings.HasPrefix(lines[i], "-----") {
+			if lines[i][0] == 'A' {
+				lines[i] = "B" + lines[i][1:]
+			} else {
+				lines[i] = "A" + lines[i][1:]
+			}
+			corrupted = true
+			break
+		}
+	}
+	if !corrupted {
+		t.Fatal("failed to locate SSH signature payload to corrupt")
+	}
+	obj := runCommandOutputForTest(t, repoDir, sanitizedGitEnv(), strings.NewReader(strings.Join(lines, "\n")+"\n"), "git", "-C", repoDir, "hash-object", "-t", "tag", "-w", "--stdin")
+	runGitTest(t, repoDir, "update-ref", "refs/tags/"+targetTag, strings.TrimSpace(obj))
+}
+
+func assertSignedTagFailure(t *testing.T, err error, reason SignedTagFailureReason, contains string) {
+	t.Helper()
+	var verificationErr *SignedTagVerificationError
+	if !errors.As(err, &verificationErr) {
+		t.Fatalf("expected signed-tag verification error, got %v", err)
+	}
+	if verificationErr.Reason != reason {
+		t.Fatalf("expected signed-tag failure reason %q, got %q", reason, verificationErr.Reason)
+	}
+	if contains != "" && !strings.Contains(strings.ToLower(verificationErr.Message), strings.ToLower(contains)) {
+		t.Fatalf("expected signed-tag failure message to contain %q, got %q", contains, verificationErr.Message)
+	}
+	if len(verificationErr.Diagnostics) == 0 {
+		t.Fatal("expected signed-tag failure diagnostics")
+	}
 }
 
 func TestSourceResolutionGitPinnedCommitWorksFromAdvertisedRefs(t *testing.T) {
@@ -508,23 +806,28 @@ func copyDirForTest(t *testing.T, srcRoot, dstRoot string) {
 
 func runGitTest(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	cmd.Env = sanitizedGitEnv()
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("git %s failed: %v\n%s", strings.Join(args, " "), err, string(output))
-	}
+	runCommandForTest(t, dir, sanitizedGitEnv(), "git", args...)
 }
 
 func gitOutputForTest(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command("git", args...)
+	return runCommandOutputForTest(t, dir, sanitizedGitEnv(), nil, "git", args...)
+}
+
+func runCommandForTest(t *testing.T, dir string, env []string, name string, args ...string) {
+	t.Helper()
+	_ = runCommandOutputForTest(t, dir, env, nil, name, args...)
+}
+
+func runCommandOutputForTest(t *testing.T, dir string, env []string, stdin io.Reader, name string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
-	cmd.Env = sanitizedGitEnv()
+	cmd.Env = env
+	cmd.Stdin = stdin
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("git %s failed: %v\n%s", strings.Join(args, " "), err, string(output))
+		t.Fatalf("%s %s failed: %v\n%s", name, strings.Join(args, " "), err, string(output))
 	}
 	return string(output)
 }

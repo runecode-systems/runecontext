@@ -34,6 +34,8 @@ The MVP includes every v1 RuneContext feature described in
 - portable markdown/yaml/json-first source artifacts
 - embedded and linked source modes
 - signed-tag verification support for linked sources
+- explicit caller-supplied signed-tag trust inputs for narrow alpha-stage
+  validation entrypoints
 - deterministic bundle resolution and context-pack hashing
 - minimum and full change shapes
 - Plain and Verified assurance tiers

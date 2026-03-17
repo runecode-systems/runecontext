@@ -81,7 +81,11 @@
         },
         "verified_signer_identity": {
           "type": "string",
-          "description": "Signer fingerprint/identity when `source_verification` is `verified_signed_tag`. Omitted otherwise."
+          "description": "Signer identity when `source_verification` is `verified_signed_tag`. Omitted otherwise."
+        },
+        "verified_signer_fingerprint": {
+          "type": "string",
+          "description": "Signer fingerprint when `source_verification` is `verified_signed_tag`. Omitted otherwise."
         },
         "context_bundle_ids": {
           "type": "array",
@@ -93,6 +97,40 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "required": [
+              "source_verification"
+            ],
+            "properties": {
+              "source_verification": {
+                "const": "verified_signed_tag"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "verified_signer_identity",
+              "verified_signer_fingerprint"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "verified_signer_identity"
+                  ]
+                },
+                {
+                  "required": [
+                    "verified_signer_fingerprint"
+                  ]
+                }
+              ]
+            }
+          }
+        },
         {
           "if": {
             "required": [

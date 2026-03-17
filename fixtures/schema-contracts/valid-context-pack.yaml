@@ -7,7 +7,9 @@ resolved_from:
   source_mode: git
   source_ref: refs/tags/v0.1.0-alpha.1
   source_commit: 0123456789abcdef0123456789abcdef01234567
-  source_verification: pinned_commit
+  source_verification: verified_signed_tag
+  verified_signer_identity: alice@example.com
+  verified_signer_fingerprint: SHA256:0123456789abcdef0123456789abcdef0123456789ab
   context_bundle_ids:
     - base
     - go-control-plane

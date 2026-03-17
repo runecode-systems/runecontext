@@ -1,7 +1,9 @@
 package contracts
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -85,6 +87,71 @@ const (
 type ResolveOptions struct {
 	ConfigDiscovery ConfigDiscoveryMode
 	ExecutionMode   ExecutionMode
+	GitTrust        GitTrustInputs
+}
+
+type GitTrustInputs struct {
+	SignedTagVerifier SignedTagVerifier
+}
+
+type SignedTagVerifier interface {
+	VerifySignedTag(repoRoot, tagName string) (*SignedTagVerification, error)
+}
+
+type SignedTagVerification struct {
+	SignerIdentity    string                 `json:"signer_identity,omitempty" yaml:"signer_identity,omitempty"`
+	SignerFingerprint string                 `json:"signer_fingerprint,omitempty" yaml:"signer_fingerprint,omitempty"`
+	Diagnostics       []ResolutionDiagnostic `json:"diagnostics,omitempty" yaml:"diagnostics,omitempty"`
+}
+
+type SignedTagFailureReason string
+
+const (
+	SignedTagFailureMissingTrust         SignedTagFailureReason = "missing_trust"
+	SignedTagFailureUnsignedTag          SignedTagFailureReason = "unsigned_tag"
+	SignedTagFailureInvalidSignature     SignedTagFailureReason = "invalid_signature"
+	SignedTagFailureUntrustedSigner      SignedTagFailureReason = "untrusted_signer"
+	SignedTagFailureExpectCommitMismatch SignedTagFailureReason = "expect_commit_mismatch"
+	SignedTagFailureVerificationFailed   SignedTagFailureReason = "verification_failed"
+)
+
+type SignedTagVerificationError struct {
+	Path              string
+	Tag               string
+	Reason            SignedTagFailureReason
+	Message           string
+	ResolvedCommit    string
+	SignerIdentity    string
+	SignerFingerprint string
+	Diagnostics       []ResolutionDiagnostic
+}
+
+func (e *SignedTagVerificationError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.Path == "" {
+		return e.Message
+	}
+	return fmt.Sprintf("%s: %s", e.Path, e.Message)
+}
+
+func (e *SignedTagVerificationError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return &ValidationError{Path: e.Path, Message: e.Message}
+}
+
+type SSHAllowedSignersVerifier struct {
+	allowedSigners []byte
+}
+
+func NewSSHAllowedSignersVerifier(allowedSigners []byte) (*SSHAllowedSignersVerifier, error) {
+	if len(bytes.TrimSpace(allowedSigners)) == 0 {
+		return nil, fmt.Errorf("ssh allowed signers data must not be empty")
+	}
+	return &SSHAllowedSignersVerifier{allowedSigners: append([]byte(nil), allowedSigners...)}, nil
 }
 
 type ResolutionDiagnostic struct {
@@ -109,15 +176,89 @@ func (t *LocalSourceTree) Close() error {
 }
 
 type SourceResolution struct {
-	SelectedConfigPath  string                 `json:"selected_config_path" yaml:"selected_config_path"`
-	ProjectRoot         string                 `json:"project_root" yaml:"project_root"`
-	SourceRoot          string                 `json:"source_root" yaml:"source_root"`
-	SourceMode          SourceMode             `json:"source_mode" yaml:"source_mode"`
-	SourceRef           string                 `json:"source_ref" yaml:"source_ref"`
-	ResolvedCommit      string                 `json:"resolved_commit,omitempty" yaml:"resolved_commit,omitempty"`
-	VerificationPosture VerificationPosture    `json:"verification_posture" yaml:"verification_posture"`
-	Diagnostics         []ResolutionDiagnostic `json:"diagnostics,omitempty" yaml:"diagnostics,omitempty"`
-	Tree                *LocalSourceTree       `json:"-" yaml:"-"`
+	SelectedConfigPath        string                 `json:"selected_config_path" yaml:"selected_config_path"`
+	ProjectRoot               string                 `json:"project_root" yaml:"project_root"`
+	SourceRoot                string                 `json:"source_root" yaml:"source_root"`
+	SourceMode                SourceMode             `json:"source_mode" yaml:"source_mode"`
+	SourceRef                 string                 `json:"source_ref" yaml:"source_ref"`
+	ResolvedCommit            string                 `json:"resolved_commit,omitempty" yaml:"resolved_commit,omitempty"`
+	VerificationPosture       VerificationPosture    `json:"verification_posture" yaml:"verification_posture"`
+	VerifiedSignerIdentity    string                 `json:"verified_signer_identity,omitempty" yaml:"verified_signer_identity,omitempty"`
+	VerifiedSignerFingerprint string                 `json:"verified_signer_fingerprint,omitempty" yaml:"verified_signer_fingerprint,omitempty"`
+	Diagnostics               []ResolutionDiagnostic `json:"diagnostics,omitempty" yaml:"diagnostics,omitempty"`
+	Tree                      *LocalSourceTree       `json:"-" yaml:"-"`
+}
+
+func (v *SSHAllowedSignersVerifier) VerifySignedTag(repoRoot, tagName string) (*SignedTagVerification, error) {
+	if v == nil {
+		return nil, fmt.Errorf("signed tag verifier is required")
+	}
+	tempRoot, err := os.MkdirTemp("", "runectx-allowed-signers-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tempRoot)
+	allowedSignersPath := filepath.Join(tempRoot, "allowed_signers")
+	if err := os.WriteFile(allowedSignersPath, v.allowedSigners, 0o600); err != nil {
+		return nil, err
+	}
+	result := runGitCaptured(
+		append([]string{}, "-C", repoRoot, "-c", "gpg.format=ssh", "-c", "gpg.ssh.allowedSignersFile="+allowedSignersPath, "verify-tag", "--raw", tagName),
+	)
+	output := strings.TrimSpace(result.Output)
+	if result.TimedOut {
+		return nil, fmt.Errorf("git %s: command timed out after %s", sanitizeGitArgs(result.Args), gitCommandTimeout)
+	}
+	if result.ExitCode == 0 {
+		identity, fingerprint, err := parseTrustedSSHVerifyTagOutput(output)
+		if err != nil {
+			return nil, fmt.Errorf("parse trusted signed-tag verification output: %w", err)
+		}
+		return &SignedTagVerification{
+			SignerIdentity:    identity,
+			SignerFingerprint: fingerprint,
+		}, nil
+	}
+	reason := classifySignedTagFailure(output)
+	message := signedTagFailureMessage(tagName, reason, output)
+	return nil, &SignedTagVerificationError{
+		Tag:     tagName,
+		Reason:  reason,
+		Message: message,
+		Diagnostics: []ResolutionDiagnostic{{
+			Severity: DiagnosticSeverityError,
+			Code:     string(reason),
+			Message:  message,
+		}},
+	}
+}
+
+func validateSignedTagVerification(verification *SignedTagVerification, tagName string) error {
+	if verification == nil {
+		return &SignedTagVerificationError{
+			Tag:     tagName,
+			Reason:  SignedTagFailureVerificationFailed,
+			Message: fmt.Sprintf("signed tag %q verification failed: verifier returned no verification details", tagName),
+			Diagnostics: []ResolutionDiagnostic{{
+				Severity: DiagnosticSeverityError,
+				Code:     string(SignedTagFailureVerificationFailed),
+				Message:  fmt.Sprintf("signed tag %q verification failed: verifier returned no verification details", tagName),
+			}},
+		}
+	}
+	if strings.TrimSpace(verification.SignerIdentity) == "" || strings.TrimSpace(verification.SignerFingerprint) == "" {
+		return &SignedTagVerificationError{
+			Tag:     tagName,
+			Reason:  SignedTagFailureVerificationFailed,
+			Message: fmt.Sprintf("signed tag %q verification failed: verifier returned incomplete signer details", tagName),
+			Diagnostics: []ResolutionDiagnostic{{
+				Severity: DiagnosticSeverityError,
+				Code:     string(SignedTagFailureVerificationFailed),
+				Message:  fmt.Sprintf("signed tag %q verification failed: verifier returned incomplete signer details", tagName),
+			}},
+		}
+	}
+	return nil
 }
 
 func (r *SourceResolution) Close() error {
@@ -307,7 +448,7 @@ func resolveSourceFromConfig(configPath, projectRoot string, rootData []byte, op
 	case string(SourceModeEmbedded):
 		return resolveEmbeddedSource(base, configPath, projectRoot, sourceMap)
 	case string(SourceModeGit):
-		return resolveGitSource(base, configPath, sourceMap)
+		return resolveGitSource(base, configPath, sourceMap, options.GitTrust)
 	case string(SourceModePath):
 		return resolvePathSource(base, configPath, projectRoot, sourceMap, options.ExecutionMode)
 	default:
@@ -355,7 +496,7 @@ func resolvePathSource(base *SourceResolution, configPath, projectRoot string, s
 	return base, nil
 }
 
-func resolveGitSource(base *SourceResolution, configPath string, sourceMap map[string]any) (*SourceResolution, error) {
+func resolveGitSource(base *SourceResolution, configPath string, sourceMap map[string]any, gitTrust GitTrustInputs) (*SourceResolution, error) {
 	url := strings.TrimSpace(fmt.Sprint(sourceMap["url"]))
 	if url == "" {
 		return nil, &ValidationError{Path: configPath, Message: "git source url must not be empty"}
@@ -373,12 +514,13 @@ func resolveGitSource(base *SourceResolution, configPath string, sourceMap map[s
 	}
 	resolver := gitResolver{configPath: configPath, url: url}
 	var (
-		tree        *LocalSourceTree
-		commit      string
-		ref         string
-		posture     VerificationPosture
-		diagnostics []ResolutionDiagnostic
-		err         error
+		tree                  *LocalSourceTree
+		commit                string
+		ref                   string
+		posture               VerificationPosture
+		signedTagVerification *SignedTagVerification
+		diagnostics           []ResolutionDiagnostic
+		err                   error
 	)
 	if rawCommit, ok := sourceMap["commit"]; ok && strings.TrimSpace(fmt.Sprint(rawCommit)) != "" {
 		ref = strings.TrimSpace(fmt.Sprint(rawCommit))
@@ -404,7 +546,32 @@ func resolveGitSource(base *SourceResolution, configPath string, sourceMap map[s
 		})
 		tree, commit, err = resolver.materializeRef(ref, subdir)
 	} else if _, ok := sourceMap["signed_tag"]; ok {
-		return nil, &ValidationError{Path: configPath, Message: "signed tag resolution is not implemented in alpha.2"}
+		ref = strings.TrimSpace(fmt.Sprint(sourceMap["signed_tag"]))
+		if ref == "" {
+			return nil, &ValidationError{Path: configPath, Message: "git signed_tag must not be empty"}
+		}
+		if err := validateGitRef(ref); err != nil {
+			return nil, &ValidationError{Path: configPath, Message: strings.Replace(err.Error(), "git ref", "git signed_tag", 1)}
+		}
+		expectCommit := strings.TrimSpace(fmt.Sprint(sourceMap["expect_commit"]))
+		if err := validateGitCommit(expectCommit); err != nil {
+			return nil, &ValidationError{Path: configPath, Message: strings.Replace(err.Error(), "git commit", "git expect_commit", 1)}
+		}
+		if gitTrust.SignedTagVerifier == nil {
+			return nil, &SignedTagVerificationError{
+				Path:    configPath,
+				Tag:     ref,
+				Reason:  SignedTagFailureMissingTrust,
+				Message: "signed tag resolution requires explicit trusted signer inputs",
+				Diagnostics: []ResolutionDiagnostic{{
+					Severity: DiagnosticSeverityError,
+					Code:     string(SignedTagFailureMissingTrust),
+					Message:  "signed tag resolution requires explicit trusted signer inputs",
+				}},
+			}
+		}
+		posture = VerificationPostureVerifiedSignedTag
+		tree, commit, signedTagVerification, err = resolver.materializeSignedTag(ref, expectCommit, subdir, gitTrust.SignedTagVerifier)
 	} else {
 		return nil, &ValidationError{Path: configPath, Message: "git source must declare commit, signed_tag, or ref"}
 	}
@@ -416,6 +583,11 @@ func resolveGitSource(base *SourceResolution, configPath string, sourceMap map[s
 	base.SourceRef = ref
 	base.ResolvedCommit = commit
 	base.VerificationPosture = posture
+	if signedTagVerification != nil {
+		base.VerifiedSignerIdentity = signedTagVerification.SignerIdentity
+		base.VerifiedSignerFingerprint = signedTagVerification.SignerFingerprint
+		diagnostics = append(diagnostics, signedTagVerification.Diagnostics...)
+	}
 	base.Diagnostics = diagnostics
 	base.Tree = tree
 	return base, nil
@@ -663,6 +835,14 @@ type gitResolver struct {
 	url        string
 }
 
+type gitCommandResult struct {
+	Args     []string
+	Output   string
+	ExitCode int
+	Err      error
+	TimedOut bool
+}
+
 func (r gitResolver) materialize(commit, subdir string) (*LocalSourceTree, error) {
 	tree, resolvedCommit, err := r.materializeCommitToTree(commit, subdir)
 	if err != nil {
@@ -689,6 +869,81 @@ func (r gitResolver) materializeRef(ref, subdir string) (*LocalSourceTree, strin
 		return nil, "", &ValidationError{Path: r.configPath, Message: err.Error()}
 	}
 	return r.finalizeMaterializedTree(tempRoot, repoRoot, subdir)
+}
+
+func (r gitResolver) materializeSignedTag(tagName, expectCommit, subdir string, verifier SignedTagVerifier) (*LocalSourceTree, string, *SignedTagVerification, error) {
+	tempRoot, repoRoot, err := r.initializeRepository()
+	if err != nil {
+		return nil, "", nil, err
+	}
+	if err := runGit("-C", repoRoot, "fetch", "--quiet", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*"); err != nil {
+		_ = os.RemoveAll(tempRoot)
+		return nil, "", nil, &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	verification, err := verifier.VerifySignedTag(repoRoot, tagName)
+	if err != nil {
+		_ = os.RemoveAll(tempRoot)
+		var verificationErr *SignedTagVerificationError
+		if errors.As(err, &verificationErr) {
+			if verificationErr.Path == "" {
+				verificationErr.Path = r.configPath
+			}
+			if verificationErr.Tag == "" {
+				verificationErr.Tag = tagName
+			}
+			return nil, "", nil, verificationErr
+		}
+		return nil, "", nil, &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	if err := validateSignedTagVerification(verification, tagName); err != nil {
+		_ = os.RemoveAll(tempRoot)
+		var verificationErr *SignedTagVerificationError
+		if errors.As(err, &verificationErr) {
+			verificationErr.Path = r.configPath
+			if verificationErr.Tag == "" {
+				verificationErr.Tag = tagName
+			}
+			return nil, "", nil, verificationErr
+		}
+		return nil, "", nil, &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	commitOutput, err := gitOutput("-C", repoRoot, "rev-parse", tagName+"^{commit}")
+	if err != nil {
+		_ = os.RemoveAll(tempRoot)
+		return nil, "", nil, &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	resolvedCommit := strings.TrimSpace(commitOutput)
+	if resolvedCommit != expectCommit {
+		_ = os.RemoveAll(tempRoot)
+		message := fmt.Sprintf("signed tag %q resolved commit %q did not match expect_commit %q", tagName, resolvedCommit, expectCommit)
+		return nil, "", nil, &SignedTagVerificationError{
+			Path:              r.configPath,
+			Tag:               tagName,
+			Reason:            SignedTagFailureExpectCommitMismatch,
+			Message:           message,
+			ResolvedCommit:    resolvedCommit,
+			SignerIdentity:    verification.SignerIdentity,
+			SignerFingerprint: verification.SignerFingerprint,
+			Diagnostics: []ResolutionDiagnostic{{
+				Severity: DiagnosticSeverityError,
+				Code:     string(SignedTagFailureExpectCommitMismatch),
+				Message:  message,
+			}},
+		}
+	}
+	if err := runGit("-C", repoRoot, "checkout", "--quiet", "--detach", resolvedCommit); err != nil {
+		_ = os.RemoveAll(tempRoot)
+		return nil, "", nil, &ValidationError{Path: r.configPath, Message: err.Error()}
+	}
+	tree, finalizedCommit, err := r.finalizeMaterializedTree(tempRoot, repoRoot, subdir)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	if finalizedCommit != resolvedCommit {
+		_ = tree.Close()
+		return nil, "", nil, &ValidationError{Path: r.configPath, Message: fmt.Sprintf("resolved git commit %q did not match verified signed-tag commit %q", finalizedCommit, resolvedCommit)}
+	}
+	return tree, resolvedCommit, verification, nil
 }
 
 func (r gitResolver) materializeCommitToTree(commit, subdir string) (*LocalSourceTree, string, error) {
@@ -755,47 +1010,130 @@ func (r gitResolver) finalizeMaterializedTree(tempRoot, repoRoot, subdir string)
 }
 
 func runGit(args ...string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Env = sanitizedGitEnv()
-	output, err := cmd.CombinedOutput()
-	if ctx.Err() == context.DeadlineExceeded {
-		return fmt.Errorf("git %s: command timed out after %s", sanitizeGitArgs(args), gitCommandTimeout)
+	result := runGitCaptured(args)
+	if result.TimedOut {
+		return fmt.Errorf("git %s: command timed out after %s", sanitizeGitArgs(result.Args), gitCommandTimeout)
 	}
-	if err != nil {
-		message := sanitizeGitMessage(strings.TrimSpace(string(output)))
+	if result.Err != nil {
+		message := sanitizeGitMessage(strings.TrimSpace(result.Output))
 		if message == "" {
-			message = sanitizeGitMessage(err.Error())
+			message = sanitizeGitMessage(result.Err.Error())
 		}
-		return fmt.Errorf("git %s: %s", sanitizeGitArgs(args), message)
+		return fmt.Errorf("git %s: %s", sanitizeGitArgs(result.Args), message)
 	}
 	return nil
 }
 
 func gitOutput(args ...string) (string, error) {
+	result := runGitCaptured(args)
+	if result.TimedOut {
+		return "", fmt.Errorf("git %s: command timed out after %s", sanitizeGitArgs(result.Args), gitCommandTimeout)
+	}
+	if result.Err != nil {
+		message := sanitizeGitMessage(strings.TrimSpace(result.Output))
+		if message == "" {
+			message = sanitizeGitMessage(result.Err.Error())
+		}
+		return "", fmt.Errorf("git %s: %s", sanitizeGitArgs(result.Args), message)
+	}
+	return result.Output, nil
+}
+
+func runGitCaptured(args []string) gitCommandResult {
 	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Env = sanitizedGitEnv()
 	output, err := cmd.CombinedOutput()
+	result := gitCommandResult{
+		Args:   append([]string(nil), args...),
+		Output: string(output),
+		Err:    err,
+	}
 	if ctx.Err() == context.DeadlineExceeded {
-		return "", fmt.Errorf("git %s: command timed out after %s", sanitizeGitArgs(args), gitCommandTimeout)
+		result.TimedOut = true
+		return result
 	}
 	if err != nil {
-		message := sanitizeGitMessage(strings.TrimSpace(string(output)))
-		if message == "" {
-			message = sanitizeGitMessage(err.Error())
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			result.ExitCode = exitErr.ExitCode()
+		} else {
+			result.ExitCode = -1
 		}
-		return "", fmt.Errorf("git %s: %s", sanitizeGitArgs(args), message)
+		return result
 	}
-	return string(output), nil
+	return result
+}
+
+func parseTrustedSSHVerifyTagOutput(output string) (string, string, error) {
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		const prefix = `Good "git" signature for `
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		remainder := strings.TrimPrefix(line, prefix)
+		fingerprintIndex := strings.LastIndex(remainder, " SHA256:")
+		if fingerprintIndex <= 0 {
+			continue
+		}
+		identitySection := strings.TrimSpace(remainder[:fingerprintIndex])
+		withIndex := strings.LastIndex(identitySection, " with ")
+		if withIndex <= 0 {
+			continue
+		}
+		identity := strings.TrimSpace(identitySection[:withIndex])
+		fingerprint := strings.TrimSpace(remainder[fingerprintIndex+1:])
+		if identity == "" || fingerprint == "" {
+			continue
+		}
+		return identity, fingerprint, nil
+	}
+	return "", "", fmt.Errorf("missing trusted signer identity/fingerprint in verification output")
+}
+
+func classifySignedTagFailure(output string) SignedTagFailureReason {
+	lower := strings.ToLower(output)
+	switch {
+	case strings.Contains(lower, "no signature found"):
+		return SignedTagFailureUnsignedTag
+	case strings.Contains(lower, "could not verify signature") || strings.Contains(lower, "couldn't verify signature") || strings.Contains(lower, "bad signature") || strings.Contains(lower, "invalid format"):
+		return SignedTagFailureInvalidSignature
+	case strings.Contains(lower, "no principal matched"):
+		return SignedTagFailureUntrustedSigner
+	default:
+		return SignedTagFailureVerificationFailed
+	}
+}
+
+func signedTagFailureMessage(tagName string, reason SignedTagFailureReason, output string) string {
+	sanitizedOutput := sanitizeGitMessage(strings.TrimSpace(output))
+	switch reason {
+	case SignedTagFailureUnsignedTag:
+		return fmt.Sprintf("signed tag %q is unsigned", tagName)
+	case SignedTagFailureInvalidSignature:
+		if sanitizedOutput != "" {
+			return fmt.Sprintf("signed tag %q has an invalid signature: %s", tagName, sanitizedOutput)
+		}
+		return fmt.Sprintf("signed tag %q has an invalid signature", tagName)
+	case SignedTagFailureUntrustedSigner:
+		if sanitizedOutput != "" {
+			return fmt.Sprintf("signed tag %q was signed by an untrusted signer: %s", tagName, sanitizedOutput)
+		}
+		return fmt.Sprintf("signed tag %q was signed by an untrusted signer", tagName)
+	default:
+		if sanitizedOutput != "" {
+			return fmt.Sprintf("signed tag %q verification failed: %s", tagName, sanitizedOutput)
+		}
+		return fmt.Sprintf("signed tag %q verification failed", tagName)
+	}
 }
 
 func sanitizedGitEnv() []string {
 	env := []string{
 		"HOME=" + os.TempDir(),
 		"XDG_CONFIG_HOME=" + os.TempDir(),
+		"GNUPGHOME=" + os.TempDir(),
 		"GIT_CONFIG_GLOBAL=" + os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
 		"GIT_ALLOW_PROTOCOL=" + strings.Join(gitAllowedProtocols, ":"),
@@ -815,6 +1153,10 @@ func sanitizedGitEnv() []string {
 		}
 	}
 	return env
+}
+
+func SanitizedGitEnvForTests() []string {
+	return sanitizedGitEnv()
 }
 
 func runeContextRelativePath(root, path string) string {
@@ -861,6 +1203,19 @@ func sanitizeGitMessage(message string) string {
 	if trimmed == "" {
 		return trimmed
 	}
+	for _, prefix := range []string{"sha256:", "SHA256:"} {
+		for {
+			idx := strings.Index(trimmed, prefix)
+			if idx < 0 {
+				break
+			}
+			end := idx + len(prefix)
+			for end < len(trimmed) && !strings.ContainsRune(" \n\r\t'\"", rune(trimmed[end])) {
+				end++
+			}
+			trimmed = trimmed[:idx] + "<redacted-fingerprint>" + trimmed[end:]
+		}
+	}
 	for _, prefix := range []string{"https://", "http://", "ssh://", "file://"} {
 		for {
 			idx := strings.Index(strings.ToLower(trimmed), prefix)
@@ -874,14 +1229,22 @@ func sanitizeGitMessage(message string) string {
 			trimmed = trimmed[:idx] + "<redacted-url>" + trimmed[end:]
 		}
 	}
-	if at := strings.Index(trimmed, "@"); at > 0 {
+	for {
+		at := strings.Index(trimmed, "@")
+		if at <= 0 {
+			break
+		}
 		start := strings.LastIndexAny(trimmed[:at], " /\n\r\t\"")
 		if start < 0 {
 			start = 0
 		} else {
 			start++
 		}
-		trimmed = trimmed[:start] + "<redacted>@" + trimmed[at+1:]
+		end := at + 1
+		for end < len(trimmed) && !strings.ContainsRune(" /\n\r\t\"'", rune(trimmed[end])) {
+			end++
+		}
+		trimmed = trimmed[:start] + "<redacted-identity>" + trimmed[end:]
 	}
 	return trimmed
 }

@@ -17,6 +17,8 @@ const (
 	exitUsage   = 2
 )
 
+const validateUsage = "runectx validate [--ssh-allowed-signers PATH] [path]"
+
 func Run(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		printUsage(stdout)
@@ -34,30 +36,31 @@ func Run(args []string, stdout, stderr io.Writer) int {
 			line{"result", "usage_error"},
 			line{"command", args[0]},
 			line{"error_message", fmt.Sprintf("unknown command %q", args[0])},
-			line{"usage", "runectx validate [path]"},
+			line{"usage", validateUsage},
 		)
 		return exitUsage
 	}
 }
 
 func runValidate(args []string, stdout, stderr io.Writer) int {
-	if len(args) > 1 {
+	request, err := parseValidateArgs(args)
+	if err != nil {
 		writeLines(stderr,
 			line{"result", "usage_error"},
 			line{"command", "validate"},
-			line{"error_message", "expected at most one path argument"},
-			line{"usage", "runectx validate [path]"},
+			line{"error_message", err.Error()},
+			line{"usage", validateUsage},
 		)
 		return exitUsage
 	}
 
-	root := "."
+	root := request.root
 	resolveOptions := contracts.ResolveOptions{
 		ConfigDiscovery: contracts.ConfigDiscoveryNearestAncestor,
 		ExecutionMode:   contracts.ExecutionModeLocal,
+		GitTrust:        request.gitTrust,
 	}
-	if len(args) == 1 {
-		root = args[0]
+	if root != "." {
 		resolveOptions.ConfigDiscovery = contracts.ConfigDiscoveryExplicitRoot
 	}
 	absRoot, err := filepath.Abs(root)
@@ -66,7 +69,7 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 			line{"result", "usage_error"},
 			line{"command", "validate"},
 			line{"error_message", fmt.Sprintf("failed to resolve path %q: %v", root, err)},
-			line{"usage", "runectx validate [path]"},
+			line{"usage", validateUsage},
 		)
 		return exitUsage
 	}
@@ -89,6 +92,39 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 			{"result", "invalid"},
 			{"command", "validate"},
 			{"root", absRoot},
+		}
+		var signedTagErr *contracts.SignedTagVerificationError
+		if errors.As(err, &signedTagErr) {
+			if signedTagErr.Path != "" {
+				lines = append(lines, line{"error_path", signedTagErr.Path})
+			}
+			if signedTagErr.Tag != "" {
+				lines = append(lines, line{"error_tag", signedTagErr.Tag})
+			}
+			lines = append(lines,
+				line{"error_reason", string(signedTagErr.Reason)},
+				line{"error_message", signedTagErr.Message},
+				line{"diagnostic_count", fmt.Sprintf("%d", len(signedTagErr.Diagnostics))},
+			)
+			if signedTagErr.ResolvedCommit != "" {
+				lines = append(lines, line{"resolved_commit", signedTagErr.ResolvedCommit})
+			}
+			if signedTagErr.SignerIdentity != "" {
+				lines = append(lines, line{"verified_signer_identity", signedTagErr.SignerIdentity})
+			}
+			if signedTagErr.SignerFingerprint != "" {
+				lines = append(lines, line{"verified_signer_fingerprint", signedTagErr.SignerFingerprint})
+			}
+			for i, diagnostic := range signedTagErr.Diagnostics {
+				prefix := fmt.Sprintf("diagnostic_%d", i+1)
+				lines = append(lines,
+					line{prefix + "_severity", string(diagnostic.Severity)},
+					line{prefix + "_code", diagnostic.Code},
+					line{prefix + "_message", diagnostic.Message},
+				)
+			}
+			writeLines(stderr, lines...)
+			return exitInvalid
 		}
 		var validationErr *contracts.ValidationError
 		if errors.As(err, &validationErr) {
@@ -122,6 +158,12 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 		if index.Resolution.ResolvedCommit != "" {
 			output = append(output, line{"resolved_commit", index.Resolution.ResolvedCommit})
 		}
+		if index.Resolution.VerifiedSignerIdentity != "" {
+			output = append(output, line{"verified_signer_identity", index.Resolution.VerifiedSignerIdentity})
+		}
+		if index.Resolution.VerifiedSignerFingerprint != "" {
+			output = append(output, line{"verified_signer_fingerprint", index.Resolution.VerifiedSignerFingerprint})
+		}
 		for i, diagnostic := range index.Resolution.Diagnostics {
 			prefix := fmt.Sprintf("diagnostic_%d", i+1)
 			output = append(output,
@@ -134,6 +176,53 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 
 	writeLines(stdout, output...)
 	return exitOK
+}
+
+type validateRequest struct {
+	root     string
+	gitTrust contracts.GitTrustInputs
+}
+
+func parseValidateArgs(args []string) (validateRequest, error) {
+	request := validateRequest{root: "."}
+	var allowedSignersPath string
+	positionals := make([]string, 0, 1)
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--ssh-allowed-signers":
+			if i+1 >= len(args) {
+				return validateRequest{}, fmt.Errorf("--ssh-allowed-signers requires a path")
+			}
+			i++
+			allowedSignersPath = args[i]
+		case strings.HasPrefix(arg, "--ssh-allowed-signers="):
+			allowedSignersPath = strings.TrimPrefix(arg, "--ssh-allowed-signers=")
+		case strings.HasPrefix(arg, "-"):
+			return validateRequest{}, fmt.Errorf("unknown validate flag %q", arg)
+		default:
+			positionals = append(positionals, arg)
+		}
+	}
+	if len(positionals) > 1 {
+		return validateRequest{}, fmt.Errorf("expected at most one path argument")
+	}
+	if len(positionals) == 1 {
+		request.root = positionals[0]
+	}
+	if allowedSignersPath == "" {
+		return request, nil
+	}
+	allowedSignersData, err := os.ReadFile(allowedSignersPath)
+	if err != nil {
+		return validateRequest{}, fmt.Errorf("read ssh allowed signers file %q: %w", allowedSignersPath, err)
+	}
+	verifier, err := contracts.NewSSHAllowedSignersVerifier(allowedSignersData)
+	if err != nil {
+		return validateRequest{}, fmt.Errorf("load ssh allowed signers file %q: %w", allowedSignersPath, err)
+	}
+	request.gitTrust.SignedTagVerifier = verifier
+	return request, nil
 }
 
 type line struct {
@@ -201,7 +290,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  runectx help")
-	fmt.Fprintln(w, "  runectx validate [path]")
+	fmt.Fprintln(w, "  "+validateUsage)
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Commands:")
 	fmt.Fprintln(w, "  help       Show CLI usage")

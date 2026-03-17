@@ -120,6 +120,9 @@
   wrappers around the same core contracts rather than alternate semantics.
 - [ ] Before alpha.6 is complete, any earlier validation entrypoints use a
   documented and tested machine-readable output contract.
+- [ ] Before alpha.6 is complete, any earlier validation entrypoints that expose
+  signed-tag verification accept explicit trust inputs from the caller and
+  surface structured signed-tag failure reasons/diagnostics.
 - [ ] Early validation entrypoints fail closed with structured diagnostics rather
   than panics when schemas, YAML, markdown contracts, or project references are invalid.
 - [ ] Early validation entrypoints honor declared project content roots and the
