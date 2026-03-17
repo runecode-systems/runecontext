@@ -52,8 +52,13 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 	}
 
 	root := "."
+	resolveOptions := contracts.ResolveOptions{
+		ConfigDiscovery: contracts.ConfigDiscoveryNearestAncestor,
+		ExecutionMode:   contracts.ExecutionModeLocal,
+	}
 	if len(args) == 1 {
 		root = args[0]
+		resolveOptions.ConfigDiscovery = contracts.ConfigDiscoveryExplicitRoot
 	}
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
@@ -68,7 +73,8 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 
 	repo := repoRoot(absRoot)
 	validator := contracts.NewValidator(filepath.Join(repo, "schemas"))
-	if _, err := validator.ValidateProject(absRoot); err != nil {
+	index, err := validator.ValidateProjectWithOptions(absRoot, resolveOptions)
+	if err != nil {
 		lines := []line{
 			{"result", "invalid"},
 			{"command", "validate"},
@@ -86,12 +92,37 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 		writeLines(stderr, lines...)
 		return exitInvalid
 	}
+	defer index.Close()
 
-	writeLines(stdout,
-		line{"result", "ok"},
-		line{"command", "validate"},
-		line{"root", absRoot},
-	)
+	output := []line{
+		{"result", "ok"},
+		{"command", "validate"},
+		{"root", absRoot},
+	}
+	if index.Resolution != nil {
+		output = append(output,
+			line{"selected_config_path", index.Resolution.SelectedConfigPath},
+			line{"project_root", index.Resolution.ProjectRoot},
+			line{"source_root", index.Resolution.SourceRoot},
+			line{"source_mode", string(index.Resolution.SourceMode)},
+			line{"source_ref", index.Resolution.SourceRef},
+			line{"verification_posture", string(index.Resolution.VerificationPosture)},
+			line{"diagnostic_count", fmt.Sprintf("%d", len(index.Resolution.Diagnostics))},
+		)
+		if index.Resolution.ResolvedCommit != "" {
+			output = append(output, line{"resolved_commit", index.Resolution.ResolvedCommit})
+		}
+		for i, diagnostic := range index.Resolution.Diagnostics {
+			prefix := fmt.Sprintf("diagnostic_%d", i+1)
+			output = append(output,
+				line{prefix + "_severity", string(diagnostic.Severity)},
+				line{prefix + "_code", diagnostic.Code},
+				line{prefix + "_message", diagnostic.Message},
+			)
+		}
+	}
+
+	writeLines(stdout, output...)
 	return exitOK
 }
 

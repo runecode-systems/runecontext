@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -27,6 +28,40 @@ func TestRunValidateSuccess(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "root=") {
 		t.Fatalf("expected success output, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "selected_config_path=") {
+		t.Fatalf("expected selected config metadata, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "source_mode=embedded") {
+		t.Fatalf("expected source metadata, got %q", stdout.String())
+	}
+}
+
+func TestRunValidateNearestAncestorDiscoveryReportsSelectedConfig(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(wd)
+	})
+
+	nested := filepath.Join(repoFixtureRoot(t, "source-resolution", "monorepo"), "packages", "service", "internal")
+	if err := os.Chdir(nested); err != nil {
+		t.Fatalf("chdir to nested fixture: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "selected_config_path=") || !strings.Contains(stdout.String(), "packages/service/runecontext.yaml") {
+		t.Fatalf("expected nested selected config path, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "project_root=") || !strings.Contains(stdout.String(), "packages/service") {
+		t.Fatalf("expected nested project root, got %q", stdout.String())
 	}
 }
 
@@ -150,9 +185,15 @@ func TestRunHelp(t *testing.T) {
 
 func fixtureRoot(t *testing.T, name string) string {
 	t.Helper()
+	return filepath.Join(repoFixtureRoot(t, "traceability"), name)
+}
+
+func repoFixtureRoot(t *testing.T, elems ...string) string {
+	t.Helper()
 	root, err := repoRootForTests()
 	if err != nil {
 		t.Fatal(err)
 	}
-	return filepath.Join(root, "fixtures", "traceability", name)
+	parts := append([]string{root, "fixtures"}, elems...)
+	return filepath.Join(parts...)
 }

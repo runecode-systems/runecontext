@@ -1,0 +1,7 @@
+selected_config_path: ${PROJECT_ROOT}/packages/service/runecontext.yaml
+project_root: ${PROJECT_ROOT}/packages/service
+source_root: service-context
+source_mode: embedded
+source_ref: embedded
+verification_posture: embedded
+diagnostics: []

@@ -167,6 +167,17 @@ auditable, and safe for future local/remote parity.
   That metadata should include the selected config path, project root,
   RuneContext source root, source mode, source ref, resolved commit when
   applicable, verification posture, and warnings/diagnostics.
+- Embedded source paths and git `subdir` values must resolve inside the
+  selected project root or fetched repository root respectively; absolute or
+  escaping values fail closed. `type: path` remains allowed to point outside the
+  project repo for developer-local workflows, but any resolved files and
+  symlink targets must remain inside the declared local source tree.
+- Git resolution must validate user-supplied URL/ref/commit values before
+  invoking git, reject option-like values, run with an explicit minimal
+  subprocess environment, and disable interactive prompting so correctness does
+  not depend on hidden host credentials or config.
+- Git network/process steps must run with explicit timeouts and cancellation so
+  validation and future CI flows cannot hang indefinitely on fetch operations.
 - Signed-tag verification must rely on explicitly supplied trusted-signer
   inputs on the trusted side. Alpha.2 should not depend on hidden machine-
   global Git, GPG, or home-directory trust configuration for correctness.

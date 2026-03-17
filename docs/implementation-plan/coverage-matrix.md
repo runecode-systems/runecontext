@@ -81,6 +81,14 @@ plan so it is clear that the planning documents capture the full design.
 - Decision: signed-tag verification must use explicitly supplied trusted-signer
   inputs rather than hidden machine-global trust configuration.
   - Planned capture: `alpha.2`
+- Decision: embedded source paths and git subdirectories must remain contained
+  within the selected project/repository root, while `type: path` may point to
+  developer-local trees outside the repo but must still remain contained within
+  its declared local tree after symlink resolution.
+  - Planned capture: `alpha.2`
+- Decision: git source resolution must reject option-like URL/ref values, avoid
+  hidden host credentials/config, and run with explicit subprocess timeouts.
+  - Planned capture: `alpha.2`
 - Decision: project root config carries `runecontext_version` and
   `assurance_tier`.
   - Planned capture: `alpha.1`, `alpha.2`

@@ -45,6 +45,7 @@ type FrontmatterDocument struct {
 type ProjectIndex struct {
 	RootConfigPath string
 	ContentRoot    string
+	Resolution     *SourceResolution
 	ChangeIDs      map[string]struct{}
 	SpecPaths      map[string]struct{}
 	DecisionPaths  map[string]struct{}
@@ -66,6 +67,13 @@ func NewValidator(schemaRoot string) *Validator {
 		schemaRoot: schemaRoot,
 		cache:      map[string]*jsonschema.Schema{},
 	}
+}
+
+func (p *ProjectIndex) Close() error {
+	if p == nil || p.Resolution == nil {
+		return nil
+	}
+	return p.Resolution.Close()
 }
 
 func (v *Validator) ValidateYAMLFile(schemaName, path string, data []byte) error {
@@ -160,83 +168,22 @@ func (v *Validator) ValidateTraceabilityProject(root string) error {
 }
 
 func (v *Validator) ValidateProject(root string) (*ProjectIndex, error) {
-	rootConfigPath := filepath.Join(root, "runecontext.yaml")
-	rootData, err := os.ReadFile(rootConfigPath)
-	if err != nil {
-		return nil, &ValidationError{Path: rootConfigPath, Message: err.Error()}
-	}
-	if err := v.ValidateYAMLFile("runecontext.schema.json", rootConfigPath, rootData); err != nil {
-		return nil, err
-	}
-	contentRoot, err := resolveContentRoot(root, rootData)
-	if err != nil {
-		return nil, err
-	}
-	index, err := buildProjectIndex(v, contentRoot)
-	if err != nil {
-		return nil, err
-	}
-	index.RootConfigPath = rootConfigPath
-	index.ContentRoot = contentRoot
-	if err := v.validateBundles(rootConfigPath, rootData, filepath.Join(contentRoot, "bundles")); err != nil {
-		return nil, err
-	}
-	for path, record := range index.StatusFiles {
-		if err := v.ValidateExtensionOptIn(rootConfigPath, rootData, path, record.Raw); err != nil {
-			return nil, err
-		}
-		for _, key := range []string{"depends_on", "informed_by", "related_changes"} {
-			if err := validateChangeIDRefs(path, key, record.Data[key], index.ChangeIDs); err != nil {
-				return nil, err
-			}
-		}
-		if err := validatePathRefs(path, "related_specs", record.Data["related_specs"], index.SpecPaths); err != nil {
-			return nil, err
-		}
-		if err := validatePathRefs(path, "related_decisions", record.Data["related_decisions"], index.DecisionPaths); err != nil {
-			return nil, err
-		}
-	}
-	return index, nil
+	return v.ValidateProjectWithOptions(root, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+	})
 }
 
 func resolveContentRoot(projectRoot string, rootData []byte) (string, error) {
-	parsed, err := parseYAML(rootData)
-	if err != nil {
-		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: err.Error()}
-	}
-	rootMap, err := expectObject(filepath.Join(projectRoot, "runecontext.yaml"), parsed, "root config")
+	resolution, err := resolveSourceFromConfig(filepath.Join(projectRoot, "runecontext.yaml"), projectRoot, rootData, ResolveOptions{
+		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
+		ExecutionMode:   ExecutionModeLocal,
+	})
 	if err != nil {
 		return "", err
 	}
-	sourceRaw, ok := rootMap["source"]
-	if !ok {
-		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: "root config is missing source"}
-	}
-	sourceMap, ok := sourceRaw.(map[string]any)
-	if !ok {
-		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: "source must decode to an object"}
-	}
-	sourceType := fmt.Sprint(sourceMap["type"])
-	relativeRoot := ""
-	switch sourceType {
-	case "embedded", "path":
-		relativeRoot = fmt.Sprint(sourceMap["path"])
-	case "git":
-		relativeRoot = "runecontext"
-		if rawSubdir, ok := sourceMap["subdir"]; ok && strings.TrimSpace(fmt.Sprint(rawSubdir)) != "" {
-			relativeRoot = fmt.Sprint(rawSubdir)
-		}
-	default:
-		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: fmt.Sprintf("unsupported source type %q", sourceType)}
-	}
-	if relativeRoot == "" {
-		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: "content root path must not be empty"}
-	}
-	if filepath.IsAbs(relativeRoot) {
-		return filepath.Clean(relativeRoot), nil
-	}
-	return filepath.Clean(filepath.Join(projectRoot, relativeRoot)), nil
+	defer resolution.Close()
+	return resolution.MaterializedRoot(), nil
 }
 
 func (v *Validator) validateBundles(rootConfigPath string, rootData []byte, bundlesRoot string) error {

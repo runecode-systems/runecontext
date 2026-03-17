@@ -28,6 +28,13 @@
   unverified/non-auditable.
 - [ ] Local path sources are invalid for remote/CI mode unless a higher-level
   trusted wrapper explicitly downgrades the run.
+- [ ] Embedded source paths and git subdirectories fail closed if they are
+  absolute or escape the selected project/repository root.
+- [ ] Git source resolution validates URL/ref/commit inputs, rejects option-like
+  values, disables interactive prompting, and does not depend on hidden host
+  credentials or global Git config for correctness.
+- [ ] Git source resolution uses explicit process/network timeouts so local and
+  CI validation cannot hang indefinitely during fetch/checkout steps.
 - [ ] Monorepo nearest-root discovery works and reports the selected config path
   as structured metadata.
 - [ ] Bundle resolution is deterministic, cycle-safe, depth-limited, and path-
