@@ -49,7 +49,7 @@ contracts RuneCode needs in order to integrate cleanly.
 
 | Release | Focus |
 | --- | --- |
-| `v0.1.0-alpha.1` | Core model, naming, file contracts, schemas, and canonical data rules |
+| `v0.1.0-alpha.1` | Core model, naming, file contracts, schemas, canonical data rules, and validation foundation |
 | `v0.1.0-alpha.2` | Source resolution, storage modes, monorepo support, and bundle semantics |
 | `v0.1.0-alpha.3` | Change workflow, standards linkage, traceability, and history preservation |
 | `v0.1.0-alpha.4` | Deterministic context packs, generated indexes, and promotion assessment |
@@ -100,8 +100,15 @@ until the end.
 - Add golden fixtures for deterministic outputs: resolved bundles, context
   packs, pack hashes, manifests, baselines, receipts, and machine-readable CLI
   output.
+- Add parser and project fixtures for markdown contracts and traceability rules,
+  including `proposal.md`, `standards.md`, `specs/*.md`, and `decisions/*.md`.
+- Make whole-project validation exercise the same alpha-stage contracts the docs
+  claim are enforced; do not leave parser-only checks unwired.
 - Add CLI integration tests for write flows, non-interactive behavior, dry-run
   behavior, explain output, and failure classes.
+- Before full `--json` lands, narrow early CLI commands may use stable
+  line-oriented machine output if that contract is explicitly documented and
+  tested.
 - Add adapter smoke tests and reference-project tests so UX layers stay aligned
   with the same core semantics.
 - Add RuneCode companion parity fixtures wherever this repository defines a

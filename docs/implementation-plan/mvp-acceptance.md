@@ -8,8 +8,8 @@
 - [ ] The canonical on-disk model is documented and stable.
 - [ ] The three-layer boundary between core, adapters, and RuneCode integration
   is explicit.
-- [ ] `runecontext.yaml`, bundle files, change-status files, and context packs
-  all have versioned schemas.
+- [ ] `runecontext.yaml`, bundle files, change-status files, context packs,
+  spec frontmatter, and decision frontmatter all have versioned schemas.
 - [ ] The restricted YAML profile and canonical JSON hashing rules are frozen.
 - [ ] Policy neutrality is explicit and tested: RuneContext text does not grant
   capabilities, approvals, or runtime authority.
@@ -79,6 +79,12 @@
 - [ ] The secondary/admin commands exist: `validate`, `doctor`,
   `standard discover`, `promote`, `assurance enable verified`, and
   `assurance backfill`.
+- [ ] Before alpha.6 is complete, any earlier validation entrypoints remain narrow
+  wrappers around the same core contracts rather than alternate semantics.
+- [ ] Before alpha.6 is complete, any earlier validation entrypoints use a
+  documented and tested machine-readable output contract.
+- [ ] Early validation entrypoints fail closed with structured diagnostics rather
+  than panics when schemas, YAML, markdown contracts, or project references are invalid.
 - [ ] The adapter-management command exists: `runectx adapter sync <tool>`.
 - [ ] Machine-facing flags exist and behave consistently: `--json`,
   `--non-interactive`, `--dry-run`, and `--explain`.

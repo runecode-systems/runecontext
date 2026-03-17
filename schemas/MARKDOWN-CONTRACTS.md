@@ -1,6 +1,6 @@
 # Markdown Structure Contracts
 
-This document defines the strict section ordering and structural contracts for `proposal.md` and `standards.md` files in RuneContext.
+This document defines the strict section ordering and structural contracts for `proposal.md`, `standards.md`, `specs/*.md`, and `decisions/*.md` files in RuneContext.
 
 ## proposal.md Structure
 
@@ -159,3 +159,61 @@ RuneContext supports minimal custom/optional markdown files such as `design.md`,
 - They must use standard markdown syntax.
 - They are not parsed by RuneContext core; they are advisory documentation.
 - If RuneCode or other tools later create structured contracts for these files, they will be published in a future version of this document.
+
+## specs/*.md Frontmatter Contract
+
+Specs remain hand-authored markdown documents, but they now carry a strict YAML frontmatter block for traceability metadata.
+
+### Required Frontmatter Fields
+
+The YAML frontmatter for `specs/*.md` must validate against `schemas/spec.schema.json` and include:
+
+- `schema_version`
+  - required and fixed to `1`
+- `id`
+  - required stable spec identifier
+  - must match the path-relative stem under `specs/` without the `.md` extension
+  - example: `runecontext/specs/auth-gateway.md` -> `auth-gateway`
+- `title`
+  - required human-readable spec title
+- `originating_changes`
+  - required non-empty array of change IDs that originally promoted the spec into durable knowledge
+- `revised_by_changes`
+  - required array of later change IDs that revised the spec
+
+### Rules
+
+- The frontmatter block must appear at the start of the file.
+- The body after frontmatter remains freeform markdown in v1.
+- `id` path matching is strict and fail-closed.
+- Change references in `originating_changes` and `revised_by_changes` must resolve to real change folders during project-level validation.
+- Specs should reference standards by path in the markdown body when needed; they should not copy entire standards into the spec body.
+
+## decisions/*.md Frontmatter Contract
+
+Decisions remain hand-authored markdown documents, but they now carry a strict YAML frontmatter block for traceability metadata.
+
+### Required Frontmatter Fields
+
+The YAML frontmatter for `decisions/*.md` must validate against `schemas/decision.schema.json` and include:
+
+- `schema_version`
+  - required and fixed to `1`
+- `id`
+  - required stable decision identifier
+  - must match the path-relative stem under `decisions/` without the `.md` extension
+  - example: `runecontext/decisions/DEC-0001-trust-boundary-model.md` -> `DEC-0001-trust-boundary-model`
+- `title`
+  - required human-readable decision title
+- `originating_changes`
+  - required non-empty array of change IDs that originally promoted the decision
+- `related_changes`
+  - required array of later change IDs that materially relate to, rely on, or revisit the decision
+
+### Rules
+
+- The frontmatter block must appear at the start of the file.
+- The body after frontmatter remains freeform markdown in v1.
+- `id` path matching is strict and fail-closed.
+- Change references in `originating_changes` and `related_changes` must resolve to real change folders during project-level validation.
+- Decisions are durable ADR-like references; richer lifecycle/state metadata is intentionally deferred beyond alpha.1.

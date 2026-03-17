@@ -41,9 +41,9 @@ plan so it is clear that the planning documents capture the full design.
 | Proposal.md Structure | Generator/parser/validator rules | `alpha.1`, `alpha.3` | Yes |
 | Standards.md Structure | Normalized structure and auto-maintenance | `alpha.1`, `alpha.3` | Yes |
 | Automatic Standards Maintenance | Change creation/shaping refresh and review diffs | `alpha.3`, `alpha.6` | Yes |
-| Stable Specs | Durable spec conventions and traceability metadata | `alpha.3` | Yes |
-| Decisions | Durable decision conventions and traceability metadata | `alpha.3` | Yes |
-| Traceability And Future Lineage | Minimum traceability now, richer lineage later | `alpha.3`, `alpha.4`, `post-mvp.md` | Yes |
+| Stable Specs | Durable spec conventions and traceability metadata | `alpha.1`, `alpha.3` | Yes |
+| Decisions | Durable decision conventions and traceability metadata | `alpha.1`, `alpha.3` | Yes |
+| Traceability And Future Lineage | Minimum traceability now, richer lineage later | `alpha.1`, `alpha.3`, `alpha.4`, `post-mvp.md` | Yes |
 | Context Bundle Semantics | Ordered rule application and validation rules | `alpha.2` | Yes |
 | Deterministic Resolved Output | Context pack generation, provenance, pack hash | `alpha.4` | Yes |
 | Standards Membership And Authoring Model | Manual versus assisted standards workflow | `alpha.3` | Yes |

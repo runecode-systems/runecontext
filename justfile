@@ -8,6 +8,9 @@ lint:
   just layout-check
 
 test:
+  go test ./...
+
+release-check:
   nix build --no-link .#release-artifacts
 
 layout-check:
@@ -27,9 +30,9 @@ layout-check:
 check:
   nix flake check --no-write-lock-file
 
-ci: lint
+ci: lint test
 
-nix-ci: lint test check
+nix-ci: lint test release-check check
 
 release:
   nix build .#release-artifacts
