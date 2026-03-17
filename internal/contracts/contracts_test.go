@@ -203,6 +203,36 @@ func TestValidateProjectRejectsSpecSymlinkEscape(t *testing.T) {
 	}
 }
 
+func TestWalkProjectFilesAllowsSymlinkedRootDirectory(t *testing.T) {
+	root := t.TempDir()
+	target := filepath.Join(root, "real-specs")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatalf("mkdir real root: %v", err)
+	}
+	file := filepath.Join(target, "example.md")
+	if err := os.WriteFile(file, []byte("# Example\n"), 0o644); err != nil {
+		t.Fatalf("write test file: %v", err)
+	}
+	linked := filepath.Join(root, "specs")
+	if err := tryCreateSymlink("real-specs", linked); err != nil {
+		if strings.Contains(err.Error(), "symlink tests skipped") {
+			t.Skip(err.Error())
+		}
+		t.Fatal(err)
+	}
+
+	paths := make([]string, 0)
+	if err := walkProjectFiles(linked, func(path string) error {
+		paths = append(paths, filepath.Base(path))
+		return nil
+	}); err != nil {
+		t.Fatalf("expected symlinked root directory to be walkable: %v", err)
+	}
+	if len(paths) != 1 || paths[0] != "example.md" {
+		t.Fatalf("expected to visit example.md through symlinked root, got %v", paths)
+	}
+}
+
 func TestParseSpecAllowsClosingFrontmatterDelimiterAtEOF(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	data := []byte("---\nschema_version: 1\nid: auth-gateway\ntitle: Auth Gateway\noriginating_changes:\n  - CHG-2026-001-a3f2-auth-gateway\nrevised_by_changes: []\n---\n# Auth Gateway")

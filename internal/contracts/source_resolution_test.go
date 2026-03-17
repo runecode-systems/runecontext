@@ -266,11 +266,7 @@ func TestSourceResolutionRejectsPathSymlinkCycle(t *testing.T) {
 func TestSourceResolutionRejectsEmbeddedPathSymlinkEscape(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	projectRoot := t.TempDir()
-	actualRoot := filepath.Join(projectRoot, "actual-runecontext")
 	outsideRoot := filepath.Join(filepath.Dir(projectRoot), "outside-runecontext")
-	if err := os.MkdirAll(actualRoot, 0o755); err != nil {
-		t.Fatalf("mkdir actual root: %v", err)
-	}
 	if err := os.MkdirAll(outsideRoot, 0o755); err != nil {
 		t.Fatalf("mkdir outside root: %v", err)
 	}

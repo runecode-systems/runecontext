@@ -201,12 +201,19 @@ auditable, and safe for future local/remote parity.
 - Whole-project artifact discovery and reads should apply the same resolved-path
   containment model so specs, decisions, and other validated project files
   cannot escape their selected subtree through symlinked files.
+- Symlinked artifact-root directories that still resolve in-bounds (for example,
+  a symlinked `specs/` or `standards/` directory) should remain valid; the
+  guardrail is on the fully resolved target, not on whether the root directory
+  entry itself is a symlink.
 - Local path snapshots should exclude obvious repository-control directories like
   `.git/` and fail closed when practical depth, file-count, or byte-size bounds
   are exceeded, so alpha.2 snapshotting remains usable without silently copying
   arbitrarily large trees.
 - Bundle traversal should also enforce practical depth and file-count bounds so
   pathological trees fail closed rather than consuming unbounded work.
+- Bundle exact and glob evaluation should canonicalize aspect roots before
+  containment checks so in-bounds symlinked aspect directories are accepted
+  consistently.
 - Validation entrypoints that materialize temporary source trees must close and
   clean up those trees on success as well as failure.
 - Alpha.2 should capture concrete per-glob match sets and structured

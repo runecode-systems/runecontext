@@ -177,6 +177,29 @@ Follow-up tests were added for:
 - whole-project spec symlink escape rejection
 - defensive-copy behavior for cached bundle resolutions
 
+### 7. PR Review Follow-Up Fixes
+
+The re-run PR review surfaced a small set of additional follow-up fixes, all of
+which are now incorporated:
+
+- **Safe bundle-file reads**: bundle catalog loading now reuses the same
+  containment-aware file-read path as other project artifacts instead of raw
+  `os.ReadFile` after discovery.
+- **Canonical aspect roots**: exact and glob bundle evaluation now canonicalize
+  the selected aspect root before containment checks so in-bounds symlinked
+  aspect directories are accepted consistently.
+- **Symlinked root directories**: whole-project discovery now accepts symlinked
+  root directories like `specs/` or `bundles/` when they resolve inside the
+  selected subtree.
+- **Clearer diagnostics**: non-regular-file errors now report the resolved path
+  rather than the unresolved logical path.
+
+Additional regression tests now cover:
+
+- walking a symlinked root directory
+- bundle resolution with a symlinked in-bounds aspect root
+- removal of stale unused setup in the embedded symlink-escape test
+
 ---
 
 ## Security and Audit Implications

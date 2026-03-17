@@ -119,6 +119,38 @@ func TestBundleResolutionRejectsRootEscapeSymlink(t *testing.T) {
 	}
 }
 
+func TestBundleResolutionAllowsSymlinkedAspectRootWhenInBounds(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	projectRoot := copyBundleFixtureProject(t, "valid-project")
+	contentRoot := filepath.Join(projectRoot, "runecontext")
+	original := filepath.Join(contentRoot, "standards")
+	target := filepath.Join(contentRoot, "standards-real")
+	if err := os.Rename(original, target); err != nil {
+		t.Fatalf("rename standards dir: %v", err)
+	}
+	if err := tryCreateSymlink("standards-real", original); err != nil {
+		if strings.Contains(err.Error(), "symlink tests skipped") {
+			t.Skip(err.Error())
+		}
+		t.Fatal(err)
+	}
+
+	index, err := v.ValidateProject(projectRoot)
+	if err != nil {
+		t.Fatalf("expected symlinked standards root to validate: %v", err)
+	}
+	defer index.Close()
+
+	resolution, err := index.ResolveBundle("diamond")
+	if err != nil {
+		t.Fatalf("resolve bundle with symlinked standards root: %v", err)
+	}
+	selected := resolution.Aspects[BundleAspectStandards].Selected
+	if len(selected) == 0 {
+		t.Fatalf("expected standards selections with symlinked standards root")
+	}
+}
+
 func assertBundleResolutionMatchesGolden(t *testing.T, resolution *BundleResolution, goldenPath string) {
 	t.Helper()
 	if resolution == nil {

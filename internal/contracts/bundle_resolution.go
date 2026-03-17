@@ -149,7 +149,7 @@ func loadBundleCatalog(v *Validator, rootConfigPath string, rootData []byte, con
 	}
 	sort.Strings(bundlePaths)
 	for _, bundlePath := range bundlePaths {
-		data, err := os.ReadFile(bundlePath)
+		data, err := readProjectFile(bundlesRoot, bundlePath)
 		if err != nil {
 			return nil, err
 		}
@@ -341,6 +341,10 @@ func (c *BundleCatalog) evaluateRule(rule bundleRule) (BundleRuleEvaluation, err
 }
 
 func (c *BundleCatalog) evaluateExactRule(rule bundleRule) ([]string, []BundleDiagnostic, error) {
+	aspectRoot, err := canonicalContainedRoot(filepath.Join(c.Root, string(rule.Aspect)))
+	if err != nil {
+		return nil, nil, &ValidationError{Path: rule.SourcePath, Message: err.Error()}
+	}
 	logicalPath := filepath.Join(c.Root, filepath.FromSlash(rule.Pattern))
 	if _, err := os.Lstat(logicalPath); err != nil {
 		if os.IsNotExist(err) {
@@ -356,7 +360,7 @@ func (c *BundleCatalog) evaluateExactRule(rule bundleRule) ([]string, []BundleDi
 		}
 		return nil, nil, &ValidationError{Path: rule.SourcePath, Message: fmt.Sprintf("bundle rule %q could not be evaluated: %v", rule.Pattern, err)}
 	}
-	if err := validateResolvedBundlePath(logicalPath, c.Root, filepath.Join(c.Root, string(rule.Aspect))); err != nil {
+	if err := validateResolvedBundlePath(logicalPath, c.Root, aspectRoot); err != nil {
 		return nil, nil, &ValidationError{Path: rule.SourcePath, Message: fmt.Sprintf("bundle rule %q %v", rule.Pattern, err)}
 	}
 	info, err := os.Stat(logicalPath)
@@ -391,7 +395,11 @@ func (c *BundleCatalog) evaluateGlobRule(rule bundleRule) ([]string, []BundleDia
 	}
 	matches := make([]string, 0)
 	seen := map[string]struct{}{}
-	err := walkBundleFiles(c.Root, filepath.Join(c.Root, string(rule.Aspect)), anchorPath, map[string]struct{}{}, &bundleWalkState{}, func(logicalPath string) error {
+	aspectRoot, err := canonicalContainedRoot(filepath.Join(c.Root, string(rule.Aspect)))
+	if err != nil {
+		return nil, nil, &ValidationError{Path: rule.SourcePath, Message: err.Error()}
+	}
+	err = walkBundleFiles(c.Root, aspectRoot, anchorPath, map[string]struct{}{}, &bundleWalkState{}, func(logicalPath string) error {
 		rel := runeContextRelativePath(c.Root, logicalPath)
 		if !matchBundlePattern(rule.Pattern, rel) {
 			return nil
@@ -684,7 +692,7 @@ func walkBundleFiles(contentRoot, aspectRoot, logicalPath string, active map[str
 		return nil
 	}
 	if !info.Mode().IsRegular() {
-		return fmt.Errorf("resolved path %q is not a regular file", logicalPath)
+		return fmt.Errorf("resolved path %q is not a regular file", resolvedPath)
 	}
 	state.files++
 	if state.files > bundleTraversalLimits.MaxFiles {
@@ -694,6 +702,10 @@ func walkBundleFiles(contentRoot, aspectRoot, logicalPath string, active map[str
 }
 
 func validateResolvedBundlePath(logicalPath, contentRoot, aspectRoot string) error {
+	canonicalAspectRoot, err := canonicalContainedRoot(aspectRoot)
+	if err != nil {
+		return err
+	}
 	resolvedPath, err := filepath.EvalSymlinks(logicalPath)
 	if err != nil {
 		return err
@@ -701,10 +713,21 @@ func validateResolvedBundlePath(logicalPath, contentRoot, aspectRoot string) err
 	if !isWithinRoot(contentRoot, resolvedPath) {
 		return fmt.Errorf("resolves to %q, which escapes the RuneContext root", resolvedPath)
 	}
-	if !isWithinRoot(aspectRoot, resolvedPath) {
+	if !isWithinRoot(canonicalAspectRoot, resolvedPath) {
 		return fmt.Errorf("resolves to %q, which escapes the selected aspect root", resolvedPath)
 	}
 	return nil
+}
+
+func canonicalContainedRoot(root string) (string, error) {
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return filepath.Clean(root), nil
+		}
+		return "", fmt.Errorf("resolve root %q: %w", root, err)
+	}
+	return filepath.Clean(resolvedRoot), nil
 }
 
 func cloneBundleResolution(resolution *BundleResolution) *BundleResolution {

@@ -667,7 +667,7 @@ func walkChangeDirectories(root string, visit func(changeDir string) error) erro
 }
 
 func walkProjectFiles(root string, visit func(path string) error) error {
-	info, err := os.Lstat(root)
+	info, err := os.Stat(root)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -715,7 +715,7 @@ func walkContainedFiles(boundaryResolved, currentPath string, active map[string]
 		return nil
 	}
 	if !info.Mode().IsRegular() {
-		return &ValidationError{Path: currentPath, Message: fmt.Sprintf("resolved path %q is not a regular file", currentPath)}
+		return &ValidationError{Path: currentPath, Message: fmt.Sprintf("resolved path %q is not a regular file", resolvedPath)}
 	}
 	return visit(currentPath)
 }
@@ -749,7 +749,7 @@ func readProjectFile(boundaryPath, path string) ([]byte, error) {
 		return nil, &ValidationError{Path: path, Message: "expected a file, found a directory"}
 	}
 	if !info.Mode().IsRegular() {
-		return nil, &ValidationError{Path: path, Message: fmt.Sprintf("resolved path %q is not a regular file", path)}
+		return nil, &ValidationError{Path: path, Message: fmt.Sprintf("resolved path %q is not a regular file", resolvedPath)}
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {

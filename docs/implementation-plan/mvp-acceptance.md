@@ -61,6 +61,10 @@
   RuneContext-root-relative path model with aspect-boundary enforcement.
 - [ ] Whole-project validation fails closed when specs, decisions, bundle files,
   or other validated artifacts escape their selected subtree through symlinks.
+- [ ] Whole-project validation and bundle traversal still accept symlinked root
+  directories when the fully resolved target remains in-bounds.
+- [ ] Bundle aspect-root containment checks canonicalize the aspect root before
+  comparing against resolved bundle matches.
 
 ## 3. Change Workflow And Standards
 
