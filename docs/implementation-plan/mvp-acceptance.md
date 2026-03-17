@@ -85,6 +85,8 @@
   documented and tested machine-readable output contract.
 - [ ] Early validation entrypoints fail closed with structured diagnostics rather
   than panics when schemas, YAML, markdown contracts, or project references are invalid.
+- [ ] Early validation entrypoints honor declared project content roots and the
+  full restricted-YAML profile rather than relying on default-path assumptions.
 - [ ] The adapter-management command exists: `runectx adapter sync <tool>`.
 - [ ] Machine-facing flags exist and behave consistently: `--json`,
   `--non-interactive`, `--dry-run`, and `--explain`.

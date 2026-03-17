@@ -9,6 +9,7 @@ This package provides the executable alpha.1 validation foundation for RuneConte
 - strict markdown parsing for `proposal.md` and `standards.md`
 - strict YAML-frontmatter validation for `specs/*.md` and `decisions/*.md`
 - project-level traceability checks across changes, bundles, specs, and decisions
+- content-root-aware project validation that follows `runecontext.yaml` source settings
 
 ## Intentional Scope
 

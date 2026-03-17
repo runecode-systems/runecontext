@@ -104,6 +104,8 @@ until the end.
   including `proposal.md`, `standards.md`, `specs/*.md`, and `decisions/*.md`.
 - Make whole-project validation exercise the same alpha-stage contracts the docs
   claim are enforced; do not leave parser-only checks unwired.
+- Validate against the project's declared content root instead of assuming a
+  fixed embedded directory name when alpha-stage source settings allow variation.
 - Add CLI integration tests for write flows, non-interactive behavior, dry-run
   behavior, explain output, and failure classes.
 - Before full `--json` lands, narrow early CLI commands may use stable

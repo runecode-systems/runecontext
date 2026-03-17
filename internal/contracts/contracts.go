@@ -44,6 +44,7 @@ type FrontmatterDocument struct {
 
 type ProjectIndex struct {
 	RootConfigPath string
+	ContentRoot    string
 	ChangeIDs      map[string]struct{}
 	SpecPaths      map[string]struct{}
 	DecisionPaths  map[string]struct{}
@@ -162,12 +163,17 @@ func (v *Validator) ValidateProject(root string) (*ProjectIndex, error) {
 	if err := v.ValidateYAMLFile("runecontext.schema.json", rootConfigPath, rootData); err != nil {
 		return nil, err
 	}
-	index, err := buildProjectIndex(v, root)
+	contentRoot, err := resolveContentRoot(root, rootData)
+	if err != nil {
+		return nil, err
+	}
+	index, err := buildProjectIndex(v, contentRoot)
 	if err != nil {
 		return nil, err
 	}
 	index.RootConfigPath = rootConfigPath
-	if err := v.validateBundles(rootConfigPath, rootData, filepath.Join(root, "runecontext", "bundles")); err != nil {
+	index.ContentRoot = contentRoot
+	if err := v.validateBundles(rootConfigPath, rootData, filepath.Join(contentRoot, "bundles")); err != nil {
 		return nil, err
 	}
 	for path, doc := range index.StatusFileData {
@@ -191,6 +197,45 @@ func (v *Validator) ValidateProject(root string) (*ProjectIndex, error) {
 		}
 	}
 	return index, nil
+}
+
+func resolveContentRoot(projectRoot string, rootData []byte) (string, error) {
+	parsed, err := parseYAML(rootData)
+	if err != nil {
+		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: err.Error()}
+	}
+	rootMap, err := expectObject(filepath.Join(projectRoot, "runecontext.yaml"), parsed, "root config")
+	if err != nil {
+		return "", err
+	}
+	sourceRaw, ok := rootMap["source"]
+	if !ok {
+		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: "root config is missing source"}
+	}
+	sourceMap, ok := sourceRaw.(map[string]any)
+	if !ok {
+		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: "source must decode to an object"}
+	}
+	sourceType := fmt.Sprint(sourceMap["type"])
+	relativeRoot := ""
+	switch sourceType {
+	case "embedded", "path":
+		relativeRoot = fmt.Sprint(sourceMap["path"])
+	case "git":
+		relativeRoot = "runecontext"
+		if rawSubdir, ok := sourceMap["subdir"]; ok && strings.TrimSpace(fmt.Sprint(rawSubdir)) != "" {
+			relativeRoot = fmt.Sprint(rawSubdir)
+		}
+	default:
+		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: fmt.Sprintf("unsupported source type %q", sourceType)}
+	}
+	if relativeRoot == "" {
+		return "", &ValidationError{Path: filepath.Join(projectRoot, "runecontext.yaml"), Message: "content root path must not be empty"}
+	}
+	if filepath.IsAbs(relativeRoot) {
+		return filepath.Clean(relativeRoot), nil
+	}
+	return filepath.Clean(filepath.Join(projectRoot, relativeRoot)), nil
 }
 
 func (v *Validator) validateBundles(rootConfigPath string, rootData []byte, bundlesRoot string) error {
@@ -422,6 +467,12 @@ func rejectRestrictedYAMLFeatures(data []byte) error {
 		if n.Style&yaml.TaggedStyle != 0 {
 			return fmt.Errorf("YAML tags are not allowed")
 		}
+		if isNonEmptyFlowCollection(n) {
+			return fmt.Errorf("YAML flow-style collections are not allowed")
+		}
+		if n.Style&yaml.LiteralStyle != 0 || n.Style&yaml.FoldedStyle != 0 {
+			return fmt.Errorf("YAML multiline strings are not allowed")
+		}
 		for _, child := range n.Content {
 			if err := walk(child); err != nil {
 				return err
@@ -430,6 +481,16 @@ func rejectRestrictedYAMLFeatures(data []byte) error {
 		return nil
 	}
 	return walk(&node)
+}
+
+func isNonEmptyFlowCollection(node *yaml.Node) bool {
+	if node.Style&yaml.FlowStyle == 0 {
+		return false
+	}
+	if node.Kind != yaml.SequenceNode && node.Kind != yaml.MappingNode {
+		return false
+	}
+	return len(node.Content) > 0
 }
 
 func normalizeYAMLValue(value any) any {
@@ -488,27 +549,43 @@ func (v *Validator) loadSchema(name string) (*jsonschema.Schema, error) {
 
 func validatePathMatchedID(path, root string, rawID any) error {
 	id := fmt.Sprint(rawID)
-	normalizedPath := filepath.ToSlash(path)
-	needle := root + "/"
-	idx := strings.Index(normalizedPath, needle)
-	if idx == -1 {
+	artifactRoot, err := findNearestArtifactRoot(path, root)
+	if err != nil {
 		return &ValidationError{Path: path, Message: fmt.Sprintf("path does not live under %s/", root)}
 	}
-	rel := strings.TrimSuffix(normalizedPath[idx+len(needle):], ".md")
+	rel, err := filepath.Rel(artifactRoot, filepath.Clean(path))
+	if err != nil {
+		return &ValidationError{Path: path, Message: err.Error()}
+	}
+	rel = strings.TrimSuffix(filepath.ToSlash(rel), ".md")
 	if rel != id {
 		return &ValidationError{Path: path, Message: fmt.Sprintf("frontmatter id %q must match path-relative stem %q", id, rel)}
 	}
 	return nil
 }
 
-func buildProjectIndex(v *Validator, root string) (*ProjectIndex, error) {
+func findNearestArtifactRoot(path, root string) (string, error) {
+	current := filepath.Clean(filepath.Dir(path))
+	for {
+		if filepath.Base(current) == root {
+			return current, nil
+		}
+		next := filepath.Dir(current)
+		if next == current {
+			return "", os.ErrNotExist
+		}
+		current = next
+	}
+}
+
+func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) {
 	index := &ProjectIndex{
 		ChangeIDs:      map[string]struct{}{},
 		SpecPaths:      map[string]struct{}{},
 		DecisionPaths:  map[string]struct{}{},
 		StatusFileData: map[string]map[string]any{},
 	}
-	if err := walkChangeDirectories(filepath.Join(root, "runecontext", "changes"), func(changeDir string) error {
+	if err := walkChangeDirectories(filepath.Join(contentRoot, "changes"), func(changeDir string) error {
 		statusPath := filepath.Join(changeDir, "status.yaml")
 		statusData, err := os.ReadFile(statusPath)
 		if err != nil {
@@ -556,7 +633,7 @@ func buildProjectIndex(v *Validator, root string) (*ProjectIndex, error) {
 	}); err != nil {
 		return nil, err
 	}
-	if err := walkProjectFiles(filepath.Join(root, "runecontext", "specs"), func(path string) error {
+	if err := walkProjectFiles(filepath.Join(contentRoot, "specs"), func(path string) error {
 		if filepath.Ext(path) != ".md" {
 			return nil
 		}
@@ -573,7 +650,7 @@ func buildProjectIndex(v *Validator, root string) (*ProjectIndex, error) {
 				return err
 			}
 		}
-		rel, err := filepath.Rel(filepath.Join(root, "runecontext"), path)
+		rel, err := filepath.Rel(contentRoot, path)
 		if err != nil {
 			return err
 		}
@@ -582,7 +659,7 @@ func buildProjectIndex(v *Validator, root string) (*ProjectIndex, error) {
 	}); err != nil {
 		return nil, err
 	}
-	if err := walkProjectFiles(filepath.Join(root, "runecontext", "decisions"), func(path string) error {
+	if err := walkProjectFiles(filepath.Join(contentRoot, "decisions"), func(path string) error {
 		if filepath.Ext(path) != ".md" {
 			return nil
 		}
@@ -599,7 +676,7 @@ func buildProjectIndex(v *Validator, root string) (*ProjectIndex, error) {
 				return err
 			}
 		}
-		rel, err := filepath.Rel(filepath.Join(root, "runecontext"), path)
+		rel, err := filepath.Rel(contentRoot, path)
 		if err != nil {
 			return err
 		}

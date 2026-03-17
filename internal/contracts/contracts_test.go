@@ -44,6 +44,8 @@ func TestSchemaFixtures(t *testing.T) {
 		"reject-context-pack-unknown-field.yaml": "context-pack.schema.json",
 		"reject-yaml-anchors-aliases.yaml":       "change-status.schema.json",
 		"reject-yaml-custom-tag.yaml":            "change-status.schema.json",
+		"reject-yaml-flow-style.yaml":            "bundle.schema.json",
+		"reject-yaml-multiline-string.yaml":      "bundle.schema.json",
 	}
 	for name, schema := range rejectCases {
 		t.Run(name, func(t *testing.T) {
@@ -131,6 +133,10 @@ func TestTraceabilityProjectFixtures(t *testing.T) {
 	if _, err := v.ValidateProject(validRoot); err != nil {
 		t.Fatalf("expected valid traceability project: %v", err)
 	}
+	validCustomRoot := fixturePath(t, "traceability", "valid-project-custom-root")
+	if _, err := v.ValidateProject(validCustomRoot); err != nil {
+		t.Fatalf("expected valid custom-root traceability project: %v", err)
+	}
 
 	rejectCases := []struct {
 		name       string
@@ -142,6 +148,7 @@ func TestTraceabilityProjectFixtures(t *testing.T) {
 		{name: "reject extensions without opt-in", fixtureDir: "reject-extensions-without-optin", contains: "extensions require `allow_extensions: true`"},
 		{name: "reject bundle invalid", fixtureDir: "reject-bundle-invalid", contains: "missing property 'includes'"},
 		{name: "reject proposal invalid", fixtureDir: "reject-proposal-invalid", contains: "appears where \"Problem\" is required"},
+		{name: "reject spec ancestor path collision", fixtureDir: "reject-spec-ancestor-path-collision", contains: "must match path-relative stem"},
 	}
 	for _, tc := range rejectCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -165,6 +172,19 @@ func TestParseSpecAllowsClosingFrontmatterDelimiterAtEOF(t *testing.T) {
 	dataNoTrailingNewline := []byte("---\nschema_version: 1\nid: auth-gateway\ntitle: Auth Gateway\noriginating_changes:\n  - CHG-2026-001-a3f2-auth-gateway\nrevised_by_changes: []\n---")
 	if _, err := v.ParseSpec("fixtures/specs/auth-gateway.md", dataNoTrailingNewline); err != nil {
 		t.Fatalf("expected closing delimiter at EOF without body to parse: %v", err)
+	}
+}
+
+func TestResolveContentRoot(t *testing.T) {
+	projectRoot := fixturePath(t, "traceability", "valid-project-custom-root")
+	rootData := readFixture(t, filepath.Join(projectRoot, "runecontext.yaml"))
+	contentRoot, err := resolveContentRoot(projectRoot, rootData)
+	if err != nil {
+		t.Fatalf("expected content root to resolve: %v", err)
+	}
+	expected := filepath.Join(projectRoot, "docs-context")
+	if contentRoot != expected {
+		t.Fatalf("expected content root %q, got %q", expected, contentRoot)
 	}
 }
 

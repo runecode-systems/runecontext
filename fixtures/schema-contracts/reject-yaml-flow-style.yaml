@@ -1,0 +1,3 @@
+schema_version: 1
+id: flow-style
+includes: {standards: [standards/global/**]}

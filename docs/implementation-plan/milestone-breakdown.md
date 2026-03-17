@@ -95,6 +95,9 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
 - [x] Issue: close review-identified fail-open gaps in the alpha.1 validation
   foundation, including project-level markdown enforcement, bundle validation,
   structured error handling, and restricted-YAML tag rejection.
+- [x] Issue: close PR-review gaps in alpha.1 validation hardening, including
+  content-root-aware project validation, full restricted-YAML style checks, and
+  segment-safe spec/decision path matching.
 
 ### Exit Criteria
 
@@ -128,6 +131,8 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
 - Whole-project validation now covers required change markdown files,
   `runecontext/bundles/*.yaml`, extension opt-in enforcement, and restricted YAML
   tag rejection without panic-based failure paths.
+- Whole-project validation follows `runecontext.yaml` source-root settings and
+  rejects the remaining forbidden YAML styles (flow collections and multiline scalars).
 - Future alphas can build without reopening naming or ownership decisions.
 
 ### RuneCode Companion-Track Checkpoints

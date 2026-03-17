@@ -1,0 +1,7 @@
+schema_version: 1
+id: auth-review
+includes:
+  specs:
+    - specs/auth-gateway.md
+  decisions:
+    - decisions/DEC-0001-trust-boundary-model.md

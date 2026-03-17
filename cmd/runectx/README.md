@@ -40,6 +40,9 @@ Consumers should split each output record on the first `=` character.
 - In the current repository-first alpha.1 implementation, schemas are discovered
   relative to the source checkout. Release-oriented schema embedding or explicit
   schema-root overrides remain future work.
+- Whole-project validation follows the content root declared in `runecontext.yaml`
+  (`source.path` for embedded/path sources and `source.subdir` for git sources)
+  rather than assuming a fixed `runecontext/` directory.
 
 The CLI remains intentionally narrow in alpha.1. Broader command coverage is
 still planned for later milestones.
