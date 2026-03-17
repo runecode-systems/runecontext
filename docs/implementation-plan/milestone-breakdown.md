@@ -167,6 +167,26 @@ auditable, and safe for future local/remote parity.
   That metadata should include the selected config path, project root,
   RuneContext source root, source mode, source ref, resolved commit when
   applicable, verification posture, and warnings/diagnostics.
+- Embedded source paths and git `subdir` values must resolve inside the
+  selected project root or fetched repository root respectively; absolute or
+  escaping values fail closed. `type: path` remains allowed to point outside the
+  project repo for developer-local workflows, but any resolved files and
+  symlink targets must remain inside the declared local source tree.
+- Git resolution must validate user-supplied URL/ref/commit values before
+  invoking git, reject option-like values, run with an explicit minimal
+  subprocess environment, and disable interactive prompting so correctness does
+  not depend on hidden host credentials or config.
+- Mutable git refs should be validated more strictly than a broad character
+  whitelist so obviously invalid refs fail before any subprocess execution.
+- RuneContext should not expose environment-variable configuration or use
+  environment variables as semantic inputs. Correctness-critical behavior must
+  come from repository state, explicit config files, or caller-supplied options.
+  A minimal inherited process environment is allowed only for non-semantic OS
+  plumbing such as executable lookup and temp-directory access.
+- Git network/process steps must run with explicit timeouts and cancellation so
+  validation and future CI flows cannot hang indefinitely on fetch operations.
+- Pinned-commit resolution must work against ordinary advertised refs rather than
+  relying on direct fetch-by-SHA support from the remote.
 - Signed-tag verification must rely on explicitly supplied trusted-signer
   inputs on the trusted side. Alpha.2 should not depend on hidden machine-
   global Git, GPG, or home-directory trust configuration for correctness.
@@ -175,6 +195,12 @@ auditable, and safe for future local/remote parity.
 - Symlinks may be followed only when their fully resolved targets remain inside
   both the RuneContext root and the selected aspect root; otherwise resolution
   must fail closed.
+- Local path snapshots should exclude obvious repository-control directories like
+  `.git/` and fail closed when practical depth, file-count, or byte-size bounds
+  are exceeded, so alpha.2 snapshotting remains usable without silently copying
+  arbitrarily large trees.
+- Validation entrypoints that materialize temporary source trees must close and
+  clean up those trees on success as well as failure.
 - Alpha.2 should capture concrete per-glob match sets and structured
   diagnostics so later CLI and context-pack flows can compare changed match
   sets without inventing hidden persistent state in this milestone.

@@ -52,8 +52,13 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 	}
 
 	root := "."
+	resolveOptions := contracts.ResolveOptions{
+		ConfigDiscovery: contracts.ConfigDiscoveryNearestAncestor,
+		ExecutionMode:   contracts.ExecutionModeLocal,
+	}
 	if len(args) == 1 {
 		root = args[0]
+		resolveOptions.ConfigDiscovery = contracts.ConfigDiscoveryExplicitRoot
 	}
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
@@ -66,9 +71,20 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 		return exitUsage
 	}
 
-	repo := repoRoot(absRoot)
-	validator := contracts.NewValidator(filepath.Join(repo, "schemas"))
-	if _, err := validator.ValidateProject(absRoot); err != nil {
+	schemaRoot, err := locateSchemaRoot()
+	if err != nil {
+		writeLines(stderr,
+			line{"result", "invalid"},
+			line{"command", "validate"},
+			line{"root", absRoot},
+			line{"error_message", err.Error()},
+		)
+		return exitInvalid
+	}
+
+	validator := contracts.NewValidator(schemaRoot)
+	index, err := validator.ValidateProjectWithOptions(absRoot, resolveOptions)
+	if err != nil {
 		lines := []line{
 			{"result", "invalid"},
 			{"command", "validate"},
@@ -86,12 +102,37 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 		writeLines(stderr, lines...)
 		return exitInvalid
 	}
+	defer index.Close()
 
-	writeLines(stdout,
-		line{"result", "ok"},
-		line{"command", "validate"},
-		line{"root", absRoot},
-	)
+	output := []line{
+		{"result", "ok"},
+		{"command", "validate"},
+		{"root", absRoot},
+	}
+	if index.Resolution != nil {
+		output = append(output,
+			line{"selected_config_path", index.Resolution.SelectedConfigPath},
+			line{"project_root", index.Resolution.ProjectRoot},
+			line{"source_root", index.Resolution.SourceRoot},
+			line{"source_mode", string(index.Resolution.SourceMode)},
+			line{"source_ref", index.Resolution.SourceRef},
+			line{"verification_posture", string(index.Resolution.VerificationPosture)},
+			line{"diagnostic_count", fmt.Sprintf("%d", len(index.Resolution.Diagnostics))},
+		)
+		if index.Resolution.ResolvedCommit != "" {
+			output = append(output, line{"resolved_commit", index.Resolution.ResolvedCommit})
+		}
+		for i, diagnostic := range index.Resolution.Diagnostics {
+			prefix := fmt.Sprintf("diagnostic_%d", i+1)
+			output = append(output,
+				line{prefix + "_severity", string(diagnostic.Severity)},
+				line{prefix + "_code", diagnostic.Code},
+				line{prefix + "_message", diagnostic.Message},
+			)
+		}
+	}
+
+	writeLines(stdout, output...)
 	return exitOK
 }
 
@@ -100,23 +141,59 @@ type line struct {
 	value string
 }
 
-func repoRoot(start string) string {
+func locateSchemaRoot() (string, error) {
+	starts := make([]string, 0, 2)
+	if wd, err := os.Getwd(); err == nil {
+		starts = append(starts, wd)
+	}
+	if exe, err := os.Executable(); err == nil {
+		starts = append(starts, filepath.Dir(exe))
+	}
+	seen := map[string]struct{}{}
+	for _, start := range starts {
+		if start == "" {
+			continue
+		}
+		clean := filepath.Clean(start)
+		if _, ok := seen[clean]; ok {
+			continue
+		}
+		seen[clean] = struct{}{}
+		if root, ok := findSchemaRoot(clean); ok {
+			return root, nil
+		}
+	}
+	return "", fmt.Errorf("could not locate RuneContext schemas from the current working directory or executable location")
+}
+
+func findSchemaRoot(start string) (string, bool) {
 	current := start
 	if info, err := os.Stat(current); err == nil && !info.IsDir() {
 		current = filepath.Dir(current)
 	}
 	for {
-		if _, err := os.Stat(filepath.Join(current, "schemas")); err == nil {
-			if _, err := os.Stat(filepath.Join(current, "go.mod")); err == nil {
-				return current
-			}
+		if isSchemaDir(current) {
+			return current, true
+		}
+		candidate := filepath.Join(current, "schemas")
+		if isSchemaDir(candidate) {
+			return candidate, true
 		}
 		next := filepath.Dir(current)
 		if next == current {
-			return start
+			return "", false
 		}
 		current = next
 	}
+}
+
+func isSchemaDir(path string) bool {
+	for _, name := range []string{"runecontext.schema.json", "bundle.schema.json", "change-status.schema.json", "context-pack.schema.json"} {
+		if _, err := os.Stat(filepath.Join(path, name)); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func printUsage(w io.Writer) {

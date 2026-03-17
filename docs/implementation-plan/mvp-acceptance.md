@@ -28,8 +28,26 @@
   unverified/non-auditable.
 - [ ] Local path sources are invalid for remote/CI mode unless a higher-level
   trusted wrapper explicitly downgrades the run.
+- [ ] Embedded source paths and git subdirectories fail closed if they are
+  absolute or escape the selected project/repository root.
+- [ ] Git source resolution validates URL/ref/commit inputs, rejects option-like
+  values, disables interactive prompting, and does not depend on hidden host
+  credentials or global Git config for correctness.
+- [ ] Mutable git refs reject obviously invalid ref syntax before subprocess
+  execution rather than relying on fetch failures alone.
+- [ ] RuneContext does not use environment variables as user-facing
+  configuration or semantic inputs; correctness-critical behavior comes from
+  repo state, explicit config, or caller-supplied options only.
+- [ ] Git source resolution uses explicit process/network timeouts so local and
+  CI validation cannot hang indefinitely during fetch/checkout steps.
+- [ ] Pinned-commit git resolution works without requiring the remote to support
+  direct fetch-by-SHA behavior.
 - [ ] Monorepo nearest-root discovery works and reports the selected config path
   as structured metadata.
+- [ ] Local path snapshots exclude `.git/` and fail closed when practical
+  snapshot depth, file-count, or byte-size limits are exceeded.
+- [ ] Validation entrypoints clean up any temporary source materializations after
+  successful validation as well as on error.
 - [ ] Bundle resolution is deterministic, cycle-safe, depth-limited, and path-
   boundary-safe.
 - [ ] Bundle rules, diagnostics, and generated inventories use one consistent

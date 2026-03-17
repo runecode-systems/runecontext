@@ -1,0 +1,10 @@
+selected_config_path: ${PROJECT_ROOT}/runecontext.yaml
+project_root: ${PROJECT_ROOT}
+source_root: local-runecontext
+source_mode: path
+source_ref: local-runecontext
+verification_posture: unverified_local_source
+diagnostics:
+  - severity: warning
+    code: unverified_local_source
+    message: local path sources are unverified and non-auditable

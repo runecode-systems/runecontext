@@ -1,0 +1,11 @@
+selected_config_path: ${PROJECT_ROOT}/runecontext.yaml
+project_root: ${PROJECT_ROOT}
+source_root: runecontext
+source_mode: git
+source_ref: main
+resolved_commit: ${COMMIT}
+verification_posture: unverified_mutable_ref
+diagnostics:
+  - severity: warning
+    code: mutable_ref
+    message: mutable git refs are unverified and may resolve differently over time

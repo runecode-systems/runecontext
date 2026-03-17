@@ -186,10 +186,12 @@ func TestParseSpecRejectsNonDelimiterFrontmatterLine(t *testing.T) {
 func TestResolveContentRoot(t *testing.T) {
 	projectRoot := fixturePath(t, "traceability", "valid-project-custom-root")
 	rootData := readFixture(t, filepath.Join(projectRoot, "runecontext.yaml"))
-	contentRoot, err := resolveContentRoot(projectRoot, rootData)
+	resolution, err := resolveContentRoot(projectRoot, rootData)
 	if err != nil {
 		t.Fatalf("expected content root to resolve: %v", err)
 	}
+	defer resolution.Close()
+	contentRoot := resolution.MaterializedRoot()
 	expected := filepath.Join(projectRoot, "docs-context")
 	if contentRoot != expected {
 		t.Fatalf("expected content root %q, got %q", expected, contentRoot)
