@@ -238,7 +238,7 @@ The following are explicitly deferred to later alphas:
 
 1. **Alpha.2 - Actual Source Resolution Logic**: Schemas are frozen, but implementation of resolver, symlink handling, and signed-tag verification logic happens in alpha.2.
 2. **Alpha.3 - Change Workflow Implementation**: Change ID allocation, lifecycle transitions, collision detection deferred to alpha.3.
-3. **Alpha.3 - Automatic Standards Maintenance**: Tooling for refreshing standards.md during change creation deferred to alpha.3.
+3. **Alpha.3 - Automatic Standards Maintenance**: Tooling for refreshing standards.md during change creation deferred to alpha.3, though alpha.1 now includes executable structure validation and fixture coverage.
 4. **Alpha.5 - Assurance Artifacts**: Baseline and receipt schema inventory is defined; implementation deferred to alpha.5.
 5. **Alpha.7 - Adapter Packs**: Tool-specific adapter UX and operations reference deferred to alpha.7.
 

@@ -1,0 +1,21 @@
+schema_version: 1
+id: CHG-2026-001-a3f2-auth-gateway
+title: Add auth gateway
+status: proposed
+type: feature
+size: medium
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions:
+  - decisions/DEC-0001-trust-boundary-model.md
+related_changes: []
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-16"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

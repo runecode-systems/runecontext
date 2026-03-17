@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Spec Frontmatter Schema",
+  "description": "Machine-readable traceability metadata for a RuneContext spec markdown file. Schema version 1.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "originating_changes",
+    "revised_by_changes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version. Unknown versions must fail closed."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?:/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)*$",
+      "description": "Stable spec identifier. Must match the path-relative stem under `specs/` without the `.md` extension."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable spec title."
+    },
+    "originating_changes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^CHG-\\d{4}-\\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "description": "Change IDs that originally promoted this spec into durable project knowledge."
+    },
+    "revised_by_changes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^CHG-\\d{4}-\\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "description": "Later change IDs that revised the spec after its original promotion."
+    }
+  }
+}

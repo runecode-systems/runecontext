@@ -70,7 +70,7 @@ that all later CLI, adapters, and RuneCode integration must share.
   `standards.md`: Applicable Standards, Standards Added Since Last Refresh (optional),
   Standards Considered But Excluded (optional), Resolution Notes (optional).
   Auto-maintained by tooling; always present; reviewable diffs required.
-- [ ] Issue: define traceability metadata conventions for `specs/` and
+- [x] Issue: define traceability metadata conventions for `specs/` and
   `decisions/`.
 
 ### Epic 4: Canonical data rules
@@ -79,14 +79,29 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
 
 ### Epic 5: Testing foundation
 
-- [ ] Issue: define repository-wide test layers and coverage expectations for
+- [x] Issue: define repository-wide test layers and coverage expectations for
   unit tests, golden fixtures, CLI integration tests, adapter smoke tests, and
   reference-project tests.
-- [ ] Issue: define fixture taxonomy and storage conventions for schemas,
+- [x] Issue: define fixture taxonomy and storage conventions for schemas,
   markdown contracts, source resolution, context packs, assurance artifacts,
   and CLI JSON output.
-- [ ] Issue: establish the rule that new semantics cannot land without tests or
+- [x] Issue: establish the rule that new semantics cannot land without tests or
   fixtures in the same milestone.
+- [x] Issue: add a narrow executable validation entrypoint so alpha.1 contracts
+  can be enforced without waiting for the broader alpha.6 CLI surface.
+- [x] Issue: define a stable line-oriented machine output contract for the
+  narrow alpha.1 validation entrypoint without pre-empting the broader alpha.6
+  `--json` work.
+- [x] Issue: close review-identified fail-open gaps in the alpha.1 validation
+  foundation, including project-level markdown enforcement, bundle validation,
+  structured error handling, and restricted-YAML tag rejection.
+- [x] Issue: close PR-review gaps in alpha.1 validation hardening, including
+  content-root-aware project validation, full restricted-YAML style checks, and
+  segment-safe spec/decision path matching.
+- [x] Issue: close re-review correctness gaps in alpha.1 foundation work,
+  including exact frontmatter delimiter parsing, valid Go module/toolchain
+  directives, release metadata version alignment, and avoiding redundant
+  project-validation rereads.
 
 ### Exit Criteria
 
@@ -100,8 +115,9 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
 - Alpha-stage contract refinements must update generators, fixtures, and docs together before downstream consumers depend on the hash or schema shape.
 - Schema version 1 files must fail closed on unknown `schema_version` and unknown enum
   values.
-- Markdown contracts for `proposal.md` and `standards.md` are frozen with section ordering
-  and regeneration rules.
+- Markdown contracts for `proposal.md`, `standards.md`, `specs/*.md`, and
+  `decisions/*.md` are frozen with section ordering, frontmatter, path-matched IDs,
+  and regeneration rules where applicable.
 - The `allow_extensions: true` opt-in flag is defined in `runecontext.yaml` with visible
   warning behavior.
 - The core file model is frozen enough for fixture generation.
@@ -109,6 +125,21 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
 - The LLM-input trust rule is explicit and testable.
 - The test strategy and fixture taxonomy are defined early enough to shape every
   later alpha.
+- An executable Go validation foundation exists for schema, markdown, YAML-profile,
+  and alpha.1 traceability rules.
+- A narrow `runectx validate [path]` entrypoint exists for whole-project contract
+  enforcement without pulling alpha.6 command breadth into alpha.1.
+- The alpha.1 validation entrypoint emits stable one-line `key=value` fields for
+  success, invalid, and usage-error outcomes so CI and scripts can consume it
+  before broader machine-facing flags land.
+- Whole-project validation now covers required change markdown files,
+  `runecontext/bundles/*.yaml`, extension opt-in enforcement, and restricted YAML
+  tag rejection without panic-based failure paths.
+- Whole-project validation follows `runecontext.yaml` source-root settings and
+  rejects the remaining forbidden YAML styles (flow collections and multiline scalars).
+- Frontmatter parsing only accepts exact `---` delimiter lines, release metadata
+  matches the documented `v0.1.0-alpha.1` train, and Go module metadata is valid
+  for standard tooling.
 - Future alphas can build without reopening naming or ownership decisions.
 
 ### RuneCode Companion-Track Checkpoints
