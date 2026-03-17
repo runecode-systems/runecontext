@@ -19,12 +19,8 @@ const (
 
 func Run(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		writeLines(stderr,
-			line{"result", "usage_error"},
-			line{"error_message", "missing command"},
-			line{"usage", "runectx validate [path]"},
-		)
-		return exitUsage
+		printUsage(stdout)
+		return exitOK
 	}
 
 	switch args[0] {
@@ -127,9 +123,11 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "RuneContext CLI")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Usage:")
+	fmt.Fprintln(w, "  runectx help")
 	fmt.Fprintln(w, "  runectx validate [path]")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Commands:")
+	fmt.Fprintln(w, "  help       Show CLI usage")
 	fmt.Fprintln(w, "  validate   Validate RuneContext contracts for a project root")
 }
 

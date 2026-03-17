@@ -115,14 +115,14 @@ func TestRunNoCommand(t *testing.T) {
 	var stderr bytes.Buffer
 
 	code := Run(nil, &stdout, &stderr)
-	if code != 2 {
-		t.Fatalf("expected usage exit code, got %d", code)
+	if code != 0 {
+		t.Fatalf("expected help exit code, got %d", code)
 	}
-	if !strings.Contains(stderr.String(), "result=usage_error") {
-		t.Fatalf("expected usage result output, got %q", stderr.String())
+	if !strings.Contains(stdout.String(), "Usage:") {
+		t.Fatalf("expected help output, got %q", stdout.String())
 	}
-	if !strings.Contains(stderr.String(), "error_message=missing command") {
-		t.Fatalf("expected missing command output, got %q", stderr.String())
+	if stderr.String() != "" {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
 	}
 }
 
@@ -136,6 +136,12 @@ func TestRunHelp(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "Usage:") {
 		t.Fatalf("expected help output, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "runectx help") {
+		t.Fatalf("expected help subcommand in usage output, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "help       Show CLI usage") {
+		t.Fatalf("expected help command description, got %q", stdout.String())
 	}
 	if stderr.String() != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())
