@@ -49,8 +49,12 @@ type ProjectIndex struct {
 	Resolution     *SourceResolution
 	Bundles        *BundleCatalog
 	ChangeIDs      map[string]struct{}
+	Changes        map[string]*ChangeRecord
+	MarkdownFiles  map[string]*MarkdownArtifact
 	SpecPaths      map[string]struct{}
+	Specs          map[string]*SpecRecord
 	DecisionPaths  map[string]struct{}
+	Decisions      map[string]*DecisionRecord
 	StatusFiles    map[string]StatusFileRecord
 }
 
@@ -540,8 +544,12 @@ func findNearestArtifactRoot(path, root string) (string, error) {
 func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) {
 	index := &ProjectIndex{
 		ChangeIDs:     map[string]struct{}{},
+		Changes:       map[string]*ChangeRecord{},
+		MarkdownFiles: map[string]*MarkdownArtifact{},
 		SpecPaths:     map[string]struct{}{},
+		Specs:         map[string]*SpecRecord{},
 		DecisionPaths: map[string]struct{}{},
+		Decisions:     map[string]*DecisionRecord{},
 		StatusFiles:   map[string]StatusFileRecord{},
 	}
 	if err := walkChangeDirectories(filepath.Join(contentRoot, "changes"), func(changeDir string) error {
@@ -564,7 +572,12 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
-		index.ChangeIDs[fmt.Sprint(obj["id"])] = struct{}{}
+		record, err := buildChangeRecord(changeDir, statusPath, obj)
+		if err != nil {
+			return err
+		}
+		index.ChangeIDs[record.ID] = struct{}{}
+		index.Changes[record.ID] = record
 		index.StatusFiles[statusPath] = StatusFileRecord{Data: obj, Raw: append([]byte(nil), statusData...)}
 		proposalPath := filepath.Join(changeDir, "proposal.md")
 		proposalData, err := readProjectFile(changeDir, proposalPath)
@@ -577,6 +590,9 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err := v.ValidateProposalMarkdown(proposalPath, proposalData); err != nil {
 			return err
 		}
+		if err := indexMarkdownArtifact(index, contentRoot, proposalPath, proposalData, false); err != nil {
+			return err
+		}
 		standardsPath := filepath.Join(changeDir, "standards.md")
 		standardsData, err := readProjectFile(changeDir, standardsPath)
 		if err != nil {
@@ -587,6 +603,29 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		}
 		if err := v.ValidateStandardsMarkdown(standardsPath, standardsData); err != nil {
 			return err
+		}
+		if err := indexMarkdownArtifact(index, contentRoot, standardsPath, standardsData, false); err != nil {
+			return err
+		}
+		entries, err := os.ReadDir(changeDir)
+		if err != nil {
+			return &ValidationError{Path: changeDir, Message: err.Error()}
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || filepath.Ext(entry.Name()) != ".md" {
+				continue
+			}
+			if entry.Name() == "proposal.md" || entry.Name() == "standards.md" {
+				continue
+			}
+			path := filepath.Join(changeDir, entry.Name())
+			data, err := readProjectFile(changeDir, path)
+			if err != nil {
+				return err
+			}
+			if err := indexMarkdownArtifact(index, contentRoot, path, data, false); err != nil {
+				return err
+			}
 		}
 		return nil
 	}); err != nil {
@@ -604,6 +643,10 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
+		record, err := buildSpecRecord(path, doc)
+		if err != nil {
+			return err
+		}
 		for _, key := range []string{"originating_changes", "revised_by_changes"} {
 			if err := validateChangeIDRefs(path, key, doc.Frontmatter[key], index.ChangeIDs); err != nil {
 				return err
@@ -613,7 +656,12 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
-		index.SpecPaths[filepath.ToSlash(rel)] = struct{}{}
+		record.Path = filepath.ToSlash(rel)
+		index.SpecPaths[record.Path] = struct{}{}
+		index.Specs[record.Path] = record
+		if err := indexMarkdownArtifact(index, contentRoot, path, data, true); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return nil, err
@@ -630,6 +678,10 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
+		record, err := buildDecisionRecord(path, doc)
+		if err != nil {
+			return err
+		}
 		for _, key := range []string{"originating_changes", "related_changes"} {
 			if err := validateChangeIDRefs(path, key, doc.Frontmatter[key], index.ChangeIDs); err != nil {
 				return err
@@ -639,8 +691,25 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
-		index.DecisionPaths[filepath.ToSlash(rel)] = struct{}{}
+		record.Path = filepath.ToSlash(rel)
+		index.DecisionPaths[record.Path] = struct{}{}
+		index.Decisions[record.Path] = record
+		if err := indexMarkdownArtifact(index, contentRoot, path, data, true); err != nil {
+			return err
+		}
 		return nil
+	}); err != nil {
+		return nil, err
+	}
+	if err := walkProjectFiles(filepath.Join(contentRoot, "standards"), func(path string) error {
+		if filepath.Ext(path) != ".md" {
+			return nil
+		}
+		data, err := readProjectFile(filepath.Join(contentRoot, "standards"), path)
+		if err != nil {
+			return err
+		}
+		return indexMarkdownArtifact(index, contentRoot, path, data, false)
 	}); err != nil {
 		return nil, err
 	}

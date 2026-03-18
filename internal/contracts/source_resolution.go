@@ -393,7 +393,7 @@ func (v *Validator) ValidateLoadedProject(loaded *LoadedProject) (*ProjectIndex,
 		if err := v.ValidateExtensionOptIn(rootConfigPath, rootData, path, record.Raw); err != nil {
 			return nil, err
 		}
-		for _, key := range []string{"depends_on", "informed_by", "related_changes"} {
+		for _, key := range []string{"depends_on", "informed_by", "related_changes", "supersedes", "superseded_by"} {
 			if err := validateChangeIDRefs(path, key, record.Data[key], index.ChangeIDs); err != nil {
 				return nil, err
 			}
@@ -404,6 +404,21 @@ func (v *Validator) ValidateLoadedProject(loaded *LoadedProject) (*ProjectIndex,
 		if err := validatePathRefs(path, "related_decisions", record.Data["related_decisions"], index.DecisionPaths); err != nil {
 			return nil, err
 		}
+	}
+	if err := validateChangeLifecycleConsistency(index); err != nil {
+		return nil, err
+	}
+	if err := validateRelatedChangeReciprocity(index); err != nil {
+		return nil, err
+	}
+	if err := validateSupersessionConsistency(index); err != nil {
+		return nil, err
+	}
+	if err := validateArtifactTraceabilityConsistency(index); err != nil {
+		return nil, err
+	}
+	if err := validateMarkdownDeepRefs(index); err != nil {
+		return nil, err
 	}
 	return index, nil
 }

@@ -343,6 +343,15 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
 - Structured traceability should remain artifact-first in machine-readable files
   while markdown docs may use machine-validated deep refs via stable
   `path#heading-fragment` syntax. Do not use line numbers as durable refs.
+- Markdown deep-ref validation and tool-assisted rewrite behavior should ignore
+  fenced code blocks, require RuneContext-root-relative paths instead of `./`,
+  `../`, or absolute `/...` forms, reject line-number fragments such as `#L10`
+  or `#42`, and use documented first-match rewrite semantics for scoped update
+  rules.
+- Automatically derived heading fragments must remain unique within a file even
+  when headings naturally collide with suffixed forms such as `foo-2`; tooling
+  should preserve deterministic, machine-validated fragments rather than
+  silently overwriting earlier headings.
 - Thin `runectx status`, `runectx change new`, `runectx change shape`, and
   `runectx change close` entrypoints may land here as narrow wrappers over the
   same core operations, with the broader CLI contract deferred to `alpha.6`.
@@ -350,8 +359,7 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
   repository carries all correctness-critical state, while RuneCode may add
   richer audit evidence on top without becoming required for collaboration.
 
-### Recommended Branch Cut 1: Change identity, lifecycle, stable-path history,
-and traceability core
+### Recommended Branch Cut 1: Change identity, lifecycle, stable-path history, and traceability core
 
 - [ ] Issue: implement year-scoped change ID allocation with monotonic counter
   plus collision-resistant suffix.
@@ -381,6 +389,9 @@ and traceability core
 - [ ] Issue: implement split-change helpers and validation rules so umbrella
   changes and sub-changes wire `related_changes` and directional `depends_on`
   links consistently when prerequisite ordering matters.
+- [ ] Issue: allow split-change `depends_on` edges to reference external
+  prerequisite changes while still rejecting self-dependencies and intra-split
+  dependency cycles.
 - [ ] Issue: ensure closed and superseded changes remain directly readable at
   stable paths.
 - [ ] Issue: define the minimum traceability needed for future lineage/index
@@ -461,6 +472,9 @@ standards linkage, and thin change/status commands
   closed, and superseded change folders.
 - [ ] Issue: add tests for dangling cross-artifact references, heading-fragment
   rewrite behavior, and standards-maintenance review-diff behavior.
+- [ ] Issue: add tests ensuring fenced code examples do not validate or rewrite
+  as live deep refs, and that absolute or traversal-style markdown deep-ref
+  paths fail closed.
 
 ### Exit Criteria
 

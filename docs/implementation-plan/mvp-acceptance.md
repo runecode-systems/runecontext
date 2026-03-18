@@ -100,6 +100,9 @@
 - [ ] Machine-readable traceability stays artifact-level, and human-readable
   markdown can use machine-validated `path#heading-fragment` deep refs without
   relying on brittle line numbers.
+- [ ] Markdown deep-ref validation and rewrite flows ignore fenced code blocks,
+  reject absolute and traversal-style paths, and reject line-number fragments
+  such as `#L10`, `#L10-L20`, and `#42`.
 - [ ] Multiple non-closed changes can coexist without requiring one global
   active-change slot for the repository.
 - [ ] Large features can be represented as an umbrella change plus linked
@@ -107,6 +110,8 @@
   `depends_on` prerequisites.
 - [ ] Change-splitting flows and validation preserve consistent `depends_on` /
   `related_changes` wiring when one sub-change must land before others.
+- [ ] Split-change helpers reject self-dependencies and intra-split dependency
+  cycles while still allowing external prerequisite change IDs in `depends_on`.
 - [ ] `superseded` works as a terminal successor state distinct from `closed`
   and preserves reciprocal supersession links.
 - [ ] Closed changes remain directly accessible at stable paths.

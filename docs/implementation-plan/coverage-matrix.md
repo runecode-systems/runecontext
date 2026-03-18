@@ -156,6 +156,10 @@ plan so it is clear that the planning documents capture the full design.
   markdown may use machine-validated `path#heading-fragment` deep refs instead
   of brittle line-number links.
   - Planned capture: `alpha.3`, `post-mvp.md`
+- Decision: markdown deep-ref parsing and rewrite flows must ignore fenced code
+  blocks, reject non-root-relative path forms, and use documented deterministic
+  rewrite semantics.
+  - Planned capture: `alpha.3`
 - Decision: promotion is selective and reviewable, not silent auto-promotion.
   - Planned capture: `alpha.4`
 - Decision: users must be able to use embedded or dedicated-repo storage.
