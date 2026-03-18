@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -38,10 +39,14 @@ type ChangeRecord struct {
 	ID                  string
 	DirPath             string
 	StatusPath          string
+	Title               string
 	Status              LifecycleStatus
+	Type                string
+	Size                string
 	VerificationStatus  string
 	ClosedAt            string
 	HasClosedAt         bool
+	ContextBundles      []string
 	StandardRefs        []string
 	ApplicableStandards []string
 	AddedStandards      []string
@@ -355,8 +360,12 @@ func buildChangeRecord(changeDir, statusPath string, data map[string]any) (*Chan
 		ID:                 id,
 		DirPath:            changeDir,
 		StatusPath:         statusPath,
+		Title:              fmt.Sprint(data["title"]),
 		Status:             LifecycleStatus(fmt.Sprint(data["status"])),
+		Type:               fmt.Sprint(data["type"]),
+		Size:               fmt.Sprint(data["size"]),
 		VerificationStatus: fmt.Sprint(data["verification_status"]),
+		ContextBundles:     extractStringList(data["context_bundles"]),
 		RelatedSpecs:       relatedSpecs,
 		RelatedDecisions:   relatedDecisions,
 		RelatedChanges:     relatedChanges,
@@ -665,21 +674,63 @@ func stringSliceToAny(items []string) []any {
 }
 
 func cloneTopLevelValue(value any) any {
-	switch typed := value.(type) {
-	case []any:
-		result := make([]any, len(typed))
-		for i, item := range typed {
-			result[i] = cloneTopLevelValue(item)
+	if value == nil {
+		return nil
+	}
+	cloned := cloneReflectValue(reflect.ValueOf(value))
+	if !cloned.IsValid() {
+		return nil
+	}
+	return cloned.Interface()
+}
+
+func cloneReflectValue(value reflect.Value) reflect.Value {
+	if !value.IsValid() {
+		return value
+	}
+	switch value.Kind() {
+	case reflect.Interface:
+		if value.IsNil() {
+			return reflect.Zero(value.Type())
+		}
+		cloned := cloneReflectValue(value.Elem())
+		wrapped := reflect.New(cloned.Type()).Elem()
+		wrapped.Set(cloned)
+		return wrapped
+	case reflect.Slice:
+		if value.IsNil() {
+			return reflect.Zero(value.Type())
+		}
+		result := reflect.MakeSlice(value.Type(), value.Len(), value.Len())
+		for i := 0; i < value.Len(); i++ {
+			result.Index(i).Set(cloneReflectValue(value.Index(i)))
 		}
 		return result
-	case map[string]any:
-		result := make(map[string]any, len(typed))
-		for key, item := range typed {
-			result[key] = cloneTopLevelValue(item)
+	case reflect.Array:
+		result := reflect.New(value.Type()).Elem()
+		for i := 0; i < value.Len(); i++ {
+			result.Index(i).Set(cloneReflectValue(value.Index(i)))
 		}
+		return result
+	case reflect.Map:
+		if value.IsNil() {
+			return reflect.Zero(value.Type())
+		}
+		result := reflect.MakeMapWithSize(value.Type(), value.Len())
+		iter := value.MapRange()
+		for iter.Next() {
+			result.SetMapIndex(iter.Key(), cloneReflectValue(iter.Value()))
+		}
+		return result
+	case reflect.Pointer:
+		if value.IsNil() {
+			return reflect.Zero(value.Type())
+		}
+		result := reflect.New(value.Elem().Type())
+		result.Elem().Set(cloneReflectValue(value.Elem()))
 		return result
 	default:
-		return typed
+		return value
 	}
 }
 

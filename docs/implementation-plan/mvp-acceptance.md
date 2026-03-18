@@ -74,23 +74,23 @@
 
 ## 3. Change Workflow And Standards
 
-- [ ] Every substantive work item gets a stable change ID.
-- [ ] Stable change IDs remain ASCII-safe even when authored titles contain
+- [x] Every substantive work item gets a stable change ID.
+- [x] Stable change IDs remain ASCII-safe even when authored titles contain
   non-ASCII characters.
-- [ ] Minimum mode works with `status.yaml`, `proposal.md`, and `standards.md`.
-- [ ] Shaped work defaults to `design.md` and `verification.md`, while
+- [x] Minimum mode works with `status.yaml`, `proposal.md`, and `standards.md`.
+- [x] Shaped work defaults to `design.md` and `verification.md`, while
   `tasks.md` and `references.md` remain supplemental files created only when
   they are needed and contain real content.
-- [ ] `change shape` is additive/idempotent and does not behave like a
+- [x] `change shape` is additive/idempotent and does not behave like a
   destructive regeneration pass over authored files.
-- [ ] Large or high-risk work is prompted or inferred toward full mode early,
+- [x] Large or high-risk work is prompted or inferred toward full mode early,
   and non-interactive shaping rationale remains reviewable.
-- [ ] Work-type and size branching rules exist for project, feature, bug,
+- [x] Work-type and size branching rules exist for project, feature, bug,
   standard, and chore changes.
-- [ ] Ask-more versus infer-more heuristics exist and inferred assumptions are
+- [x] Ask-more versus infer-more heuristics exist and inferred assumptions are
   captured in `proposal.md`.
-- [ ] `proposal.md` uses the required section order and validation rules.
-- [ ] `standards.md` is always present and reviewably maintained.
+- [x] `proposal.md` uses the required section order and validation rules.
+- [x] `standards.md` is always present and reviewably maintained.
 - [ ] Standards are referenced by path rather than copied into change/spec
   bodies.
 - [ ] Standards frontmatter validation, deprecation, and rename/migration rules
@@ -134,7 +134,7 @@
   `specs/`, `decisions/`, and `standards/`.
 - [ ] Alpha.3 machine-addressable markdown headings use ATX `#` headings; Setext
   underlined headings are not part of the guaranteed deep-ref contract yet.
-- [ ] Multiple non-closed changes can coexist without requiring one global
+- [x] Multiple non-closed changes can coexist without requiring one global
   active-change slot for the repository.
 - [ ] Large features can be represented as an umbrella change plus linked
   sub-changes using navigable `related_changes` links and directional
@@ -143,11 +143,11 @@
   `related_changes` wiring when one sub-change must land before others.
 - [ ] Split-change helpers reject self-dependencies and intra-split dependency
   cycles while still allowing external prerequisite change IDs in `depends_on`.
-- [ ] `superseded` works as a terminal successor state distinct from `closed`
+- [x] `superseded` works as a terminal successor state distinct from `closed`
   and preserves reciprocal supersession links.
-- [ ] Lifecycle helpers enforce forward-only progression and do not provide a
+- [x] Lifecycle helpers enforce forward-only progression and do not provide a
   built-in reopen/downgrade path in alpha.3.
-- [ ] Closed changes remain directly accessible at stable paths.
+- [x] Closed changes remain directly accessible at stable paths.
 
 ## 4. Context Packs, Promotion, And Indexes
 
@@ -184,14 +184,14 @@
 
 - [ ] The primary CLI commands exist: `init`, `status`, `change new`,
   `change shape`, `bundle resolve`, and `change close`.
-- [ ] `runectx status` can at minimum report active, closed, and superseded
+- [x] `runectx status` can at minimum report active, closed, and superseded
   changes without requiring a single repository-wide active-change slot.
 - [ ] The secondary/admin commands exist: `validate`, `doctor`,
   `standard discover`, `promote`, `assurance enable verified`, and
   `assurance backfill`.
 - [ ] Before alpha.6 is complete, any earlier validation entrypoints remain narrow
   wrappers around the same core contracts rather than alternate semantics.
-- [ ] Before alpha.6 is complete, any earlier `status`, `change new`,
+- [x] Before alpha.6 is complete, any earlier `status`, `change new`,
   `change shape`, and `change close` entrypoints remain narrow wrappers around
   the same core operations rather than alternate semantics.
 - [ ] Before alpha.6 is complete, any earlier validation entrypoints use a

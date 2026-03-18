@@ -1,0 +1,7 @@
+schema_version: 1
+id: security
+includes:
+  project:
+    - project/mission.md
+  standards:
+    - standards/security/review.md

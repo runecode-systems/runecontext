@@ -1,0 +1,21 @@
+schema_version: 1
+id: CHG-2026-001-aabb-launch-payments-platform
+title: Launch payments platform
+status: proposed
+type: project
+size: large
+verification_status: pending
+context_bundles:
+  - base
+related_specs: []
+related_decisions: []
+related_changes: []
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-18"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

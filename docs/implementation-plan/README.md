@@ -88,6 +88,11 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - The latest re-review also locks in RuneContext-root-relative diagnostics for
   standards validation and explicitly rejects non-canonical or additional
   `standards/...` references within a single `standards.md` bullet.
+- The follow-up hardening pass for Branch Cut 3 also locks in three safety
+  behaviors for the thin change/status commands: explicit path arguments remain
+  explicit roots even when the caller passes `.`, `change shape` rejects
+  terminal changes instead of mutating history, and supersession repair fails
+  closed if a reciprocal link would require mutating a terminal successor.
 - `alpha.4` is the planned point where this repository should be able to use
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment

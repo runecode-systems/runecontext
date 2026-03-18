@@ -320,7 +320,8 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
   select the relevant active change or changes.
 - Lifecycle state and change shape are separate axes. `planned` should not imply
   full mode automatically, and `change shape` should be additive/idempotent
-  rather than a destructive regeneration step.
+  rather than a destructive regeneration step. Terminal changes should reject
+  later shaping so historical artifacts stay immutable.
 - Very large or high-risk work should usually start as one minimum-mode change
   and then move into full mode early. `change new` should be able to recommend
   or directly trigger shaping when the requested work appears too large,
@@ -339,7 +340,9 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
 - `superseded` should be treated as a terminal state distinct from `closed`:
   the work was replaced by successor change(s), must carry `superseded_by`,
   must remain bidirectionally consistent with successor `supersedes` links, and
-  should still preserve stable-path readability.
+  should still preserve stable-path readability. If repairing a missing
+  reciprocal supersession link would require mutating a terminal successor,
+  tooling should fail closed instead.
 - Structured traceability should remain artifact-first in machine-readable files
   while markdown docs may use machine-validated deep refs via stable
   `path#heading-fragment` syntax. Do not use line numbers as durable refs.
@@ -373,6 +376,8 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
 - Thin `runectx status`, `runectx change new`, `runectx change shape`, and
   `runectx change close` entrypoints may land here as narrow wrappers over the
   same core operations, with the broader CLI contract deferred to `alpha.6`.
+  Explicit path arguments should remain explicit roots even when the caller
+  passes `.`.
 - Mixed standalone RuneContext and RuneCode teams must remain portable: the
   repository carries all correctness-critical state, while RuneCode may add
   richer audit evidence on top without becoming required for collaboration.
@@ -461,46 +466,45 @@ Post-review clarifications:
   deliberate post-`alpha.3` optimization rather than a correctness requirement
   for Branch Cut 2.
 
-### Recommended Branch Cut 3: Progressive disclosure, intent artifacts,
-standards linkage, and thin change/status commands
+### Recommended Branch Cut 3: Progressive disclosure, intent artifacts, standards linkage, and thin change/status commands
 
-- [ ] Issue: define the branching rules for `project`, `feature`, `bug`,
+- [x] Issue: define the branching rules for `project`, `feature`, `bug`,
   `standard`, and `chore` work so minimum mode versus full mode is chosen
   consistently.
-- [ ] Issue: define size and risk escalation rules so `small`, `medium`, and
+- [x] Issue: define size and risk escalation rules so `small`, `medium`, and
   `large` work items shape correctly.
-- [ ] Issue: implement `change new` heuristics that recommend or immediately
+- [x] Issue: implement `change new` heuristics that recommend or immediately
   trigger full-mode shaping when a requested change appears too large,
   ambiguous, or high-risk for minimum mode.
-- [ ] Issue: define the deeper intake checklist for new-project work, including
+- [x] Issue: define the deeper intake checklist for new-project work, including
   mission, target users, stack/runtime constraints, deployment/security
   constraints, success criteria, and non-goals.
-- [ ] Issue: define the bug-workflow escalation rules for unclear root causes,
+- [x] Issue: define the bug-workflow escalation rules for unclear root causes,
   security impact, schema impact, API impact, and behavior ambiguity.
-- [ ] Issue: define the "ask more vs less" heuristics for when RuneContext must
+- [x] Issue: define the "ask more vs less" heuristics for when RuneContext must
   probe further versus infer defaults from repository conventions.
-- [ ] Issue: ensure inferred assumptions are recorded in `proposal.md` when
+- [x] Issue: ensure inferred assumptions are recorded in `proposal.md` when
   non-trivial decisions are made without prompting.
-- [ ] Issue: implement minimum-mode change scaffolding with `status.yaml`,
+- [x] Issue: implement minimum-mode change scaffolding with `status.yaml`,
   `proposal.md`, and `standards.md`.
-- [ ] Issue: implement shaped change materialization for `design.md` and
+- [x] Issue: implement shaped change materialization for `design.md` and
   `verification.md` by default, with `tasks.md` and `references.md` created
   only when needed and non-empty.
-- [ ] Issue: generate and validate `proposal.md` using the required heading
+- [x] Issue: generate and validate `proposal.md` using the required heading
   order and explicit `N/A` rules.
-- [ ] Issue: generate and validate `status.yaml` fields, including type, size,
+- [x] Issue: generate and validate `status.yaml` fields, including type, size,
   verification status, traceability fields, and promotion assessment state
   scaffolding.
-- [ ] Issue: populate and refresh `standards.md` during change creation and
+- [x] Issue: populate and refresh `standards.md` during change creation and
   shaping.
-- [ ] Issue: enforce reviewable diffs for any automatic `standards.md` refresh.
-- [ ] Issue: implement thin `runectx status` reporting for active, closed, and
+- [x] Issue: enforce reviewable diffs for any automatic `standards.md` refresh.
+- [x] Issue: implement thin `runectx status` reporting for active, closed, and
   superseded changes only, using a documented narrow machine-readable contract.
-- [ ] Issue: implement thin `runectx change new` as a narrow wrapper over the
+- [x] Issue: implement thin `runectx change new` as a narrow wrapper over the
   core change-creation operation.
-- [ ] Issue: implement thin `runectx change shape` as a narrow wrapper over the
+- [x] Issue: implement thin `runectx change shape` as a narrow wrapper over the
   core shaping operation.
-- [ ] Issue: implement thin `runectx change close` as a narrow wrapper over the
+- [x] Issue: implement thin `runectx change close` as a narrow wrapper over the
   core close operation.
 
 ### Recommended Branch Cut 4: Rewrite-heavy edge cases and late alpha.3 polish
@@ -518,7 +522,7 @@ standards linkage, and thin change/status commands
   heading-fragment ref validation.
 - [x] Issue: add parser/validator tests for `proposal.md`, `standards.md`, and
   deep-link markdown reference contracts.
-- [ ] Issue: add golden fixtures for minimum-mode, shaped, supplemental-doc,
+- [x] Issue: add golden fixtures for minimum-mode, shaped, supplemental-doc,
   closed, and superseded change folders.
 - [ ] Issue: add tests for dangling cross-artifact references, heading-fragment
   rewrite behavior, and standards-maintenance review-diff behavior.

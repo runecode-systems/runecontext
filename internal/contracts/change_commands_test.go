@@ -1,0 +1,506 @@
+package contracts
+
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestCreateChangeMinimum(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	defer loaded.Close()
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	if got, want := result.Mode, ChangeModeMinimum; got != want {
+		t.Fatalf("expected mode %q, got %q", want, got)
+	}
+	changeDir := filepath.Join(root, "runecontext", "changes", result.ID)
+	requireFileContent(t, filepath.Join(changeDir, "status.yaml"), strings.Join([]string{
+		"schema_version: 1",
+		"id: CHG-2026-001-aabb-add-cache-invalidation",
+		"title: Add cache invalidation",
+		"status: proposed",
+		"type: feature",
+		"size: small",
+		"verification_status: pending",
+		"context_bundles:",
+		"  - base",
+		"related_specs: []",
+		"related_decisions: []",
+		"related_changes: []",
+		"depends_on: []",
+		"informed_by: []",
+		"supersedes: []",
+		"superseded_by: []",
+		"created_at: \"2026-03-18\"",
+		"closed_at: null",
+		"promotion_assessment:",
+		"  status: pending",
+		"  suggested_targets: []",
+		"",
+	}, "\n"))
+	requireFileContent(t, filepath.Join(changeDir, "proposal.md"), strings.Join([]string{
+		"## Summary",
+		"Add cache invalidation",
+		"",
+		"## Problem",
+		"The repository needs a reviewable RuneContext change record for this work.",
+		"",
+		"## Proposed Change",
+		"Track Add cache invalidation through the minimum RuneContext change artifacts.",
+		"",
+		"## Why Now",
+		"The work needs stable intent, standards linkage, and verification planning before it moves further.",
+		"",
+		"## Assumptions",
+		"- Inferred `just test` from the repository's justfile test target.",
+		"",
+		"## Out of Scope",
+		"Work outside the scoped change tracked here.",
+		"",
+		"## Impact",
+		"The change keeps intent, assumptions, and standards linkage reviewable.",
+		"",
+	}, "\n"))
+	requireFileContent(t, filepath.Join(changeDir, "standards.md"), strings.Join([]string{
+		"## Applicable Standards",
+		"- `standards/global/base.md`: Selected from the current context bundles.",
+		"",
+		"## Resolution Notes",
+		"Generated from the current context bundle selection; review any automatic refresh before committing.",
+		"",
+	}, "\n"))
+	if _, err := os.Stat(filepath.Join(changeDir, "design.md")); !os.IsNotExist(err) {
+		t.Fatalf("expected minimum mode to skip design.md, got err=%v", err)
+	}
+	validated, err := v.ValidateProject(root)
+	if err != nil {
+		t.Fatalf("validate generated project: %v", err)
+	}
+	_ = validated.Close()
+}
+
+func TestCreateProjectChangeAutoShapes(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	defer loaded.Close()
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Launch payments platform",
+		Type:           "project",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	if err != nil {
+		t.Fatalf("create project change: %v", err)
+	}
+	if got, want := result.Mode, ChangeModeFull; got != want {
+		t.Fatalf("expected mode %q, got %q", want, got)
+	}
+	changeDir := filepath.Join(root, "runecontext", "changes", result.ID)
+	requireFileContent(t, filepath.Join(changeDir, "design.md"), strings.Join([]string{
+		"# Design",
+		"",
+		"## Overview",
+		"Shape Launch payments platform before implementation so scope, standards linkage, and verification stay reviewable.",
+		"",
+		"## Shape Rationale",
+		"- Project work uses deeper intake because bad defaults compound.",
+		"",
+		"## Project Intake Checklist",
+		"- Mission and target users.",
+		"- Stack and runtime constraints.",
+		"- Deployment and security constraints.",
+		"- Success criteria.",
+		"- Non-goals.",
+		"",
+		"## Ask More When",
+		"- Mission and target users.",
+		"- Stack and runtime constraints.",
+		"- Deployment and security constraints.",
+		"- Success criteria.",
+		"- Non-goals.",
+		"",
+	}, "\n"))
+	requireFileContent(t, filepath.Join(changeDir, "verification.md"), strings.Join([]string{
+		"# Verification",
+		"",
+		"## Planned Checks",
+		"- `just test`",
+		"",
+		"## Close Gate",
+		"Use the repository's standard verification flow before closing this change.",
+		"",
+	}, "\n"))
+}
+
+func TestShapeChangeCreatesSupplementalDocsAndRefreshesStandards(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	statusPath := filepath.Join(root, "runecontext", "changes", result.ID, "status.yaml")
+	rewriteFile(t, statusPath, func(text string) string {
+		return strings.Replace(text, "- base", "- security", 1)
+	})
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	defer loaded.Close()
+	shapeResult, err := ShapeChange(v, loaded, result.ID, ChangeShapeOptions{
+		Tasks:      []string{"Implement cache invalidation flow.", "Add regression coverage."},
+		References: []string{"docs/cache.md", "issue-42"},
+	})
+	if err != nil {
+		t.Fatalf("shape change: %v", err)
+	}
+	if got, want := shapeResult.StandardsRefreshAction, "updated"; got != want {
+		t.Fatalf("expected standards refresh %q, got %q", want, got)
+	}
+	if !shapeResult.ReviewDiffRequired {
+		t.Fatalf("expected updated standards refresh to require review diff")
+	}
+	changeDir := filepath.Join(root, "runecontext", "changes", result.ID)
+	requireFileContent(t, filepath.Join(changeDir, "design.md"), strings.Join([]string{
+		"# Design",
+		"",
+		"## Overview",
+		"Shape Add cache invalidation before implementation so scope, standards linkage, and verification stay reviewable.",
+		"",
+		"## Shape Rationale",
+		"- Full mode was requested explicitly to deepen the change.",
+		"- Minimum mode is sufficient for the current size and risk signal.",
+		"",
+	}, "\n"))
+	requireFileContent(t, filepath.Join(changeDir, "verification.md"), strings.Join([]string{
+		"# Verification",
+		"",
+		"## Planned Checks",
+		"- `just test`",
+		"",
+		"## Close Gate",
+		"Use the repository's standard verification flow before closing this change.",
+		"",
+	}, "\n"))
+	requireFileContent(t, filepath.Join(changeDir, "tasks.md"), strings.Join([]string{
+		"# Tasks",
+		"",
+		"- Implement cache invalidation flow.",
+		"- Add regression coverage.",
+		"",
+	}, "\n"))
+	requireFileContent(t, filepath.Join(changeDir, "references.md"), strings.Join([]string{
+		"# References",
+		"",
+		"- docs/cache.md",
+		"- issue-42",
+		"",
+	}, "\n"))
+	requireFileContent(t, filepath.Join(changeDir, "standards.md"), strings.Join([]string{
+		"## Applicable Standards",
+		"- `standards/security/review.md`: Selected from the current context bundles.",
+		"",
+		"## Standards Added Since Last Refresh",
+		"- `standards/security/review.md`: Newly selected during standards refresh.",
+		"",
+		"## Resolution Notes",
+		"Generated from the current context bundle selection; review any automatic refresh before committing.",
+		"",
+	}, "\n"))
+}
+
+func TestShapeChangeIsIdempotentAndLeavesStandardsUnchanged(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	firstShape, err := ShapeChange(v, loaded, result.ID, ChangeShapeOptions{})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("first shape change: %v", err)
+	}
+	if got, want := firstShape.StandardsRefreshAction, "unchanged"; got != want {
+		t.Fatalf("expected first standards refresh %q, got %q", want, got)
+	}
+	if firstShape.ReviewDiffRequired {
+		t.Fatalf("expected unchanged standards refresh to avoid review_diff_required on first shape")
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project again: %v", err)
+	}
+	defer loaded.Close()
+	secondShape, err := ShapeChange(v, loaded, result.ID, ChangeShapeOptions{})
+	if err != nil {
+		t.Fatalf("second shape change: %v", err)
+	}
+	if got, want := secondShape.StandardsRefreshAction, "unchanged"; got != want {
+		t.Fatalf("expected second standards refresh %q, got %q", want, got)
+	}
+	if secondShape.ReviewDiffRequired {
+		t.Fatalf("expected idempotent shape to avoid review diff requirement")
+	}
+	if len(secondShape.ChangedFiles) != 0 {
+		t.Fatalf("expected idempotent shape to leave files unchanged, got %#v", secondShape.ChangedFiles)
+	}
+}
+
+func TestShapeChangeRejectsTerminalChange(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	if _, err := CloseChange(v, loaded, result.ID, ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC)}); err != nil {
+		loaded.Close()
+		t.Fatalf("close change: %v", err)
+	}
+	loaded.Close()
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload closed project: %v", err)
+	}
+	defer loaded.Close()
+	_, err = ShapeChange(v, loaded, result.ID, ChangeShapeOptions{})
+	if err == nil || !strings.Contains(err.Error(), "terminal status") {
+		t.Fatalf("expected terminal-shape rejection, got %v", err)
+	}
+}
+
+func TestCloseChangeWritesClosedStatus(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	defer loaded.Close()
+	closeResult, err := CloseChange(v, loaded, result.ID, ChangeCloseOptions{
+		VerificationStatus: "passed",
+		ClosedAt:           time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("close change: %v", err)
+	}
+	if len(closeResult.ContextBundles) != 1 || closeResult.ContextBundles[0] != "base" {
+		t.Fatalf("expected close result to retain context bundles, got %#v", closeResult.ContextBundles)
+	}
+	if len(closeResult.ApplicableStandards) != 1 || closeResult.ApplicableStandards[0] != "standards/global/base.md" {
+		t.Fatalf("expected close result to retain applicable standards, got %#v", closeResult.ApplicableStandards)
+	}
+	requireFileContent(t, filepath.Join(root, "runecontext", "changes", result.ID, "status.yaml"), strings.Join([]string{
+		"schema_version: 1",
+		"id: CHG-2026-001-aabb-add-cache-invalidation",
+		"title: Add cache invalidation",
+		"status: closed",
+		"type: feature",
+		"size: small",
+		"verification_status: passed",
+		"context_bundles:",
+		"  - base",
+		"related_specs: []",
+		"related_decisions: []",
+		"related_changes: []",
+		"depends_on: []",
+		"informed_by: []",
+		"supersedes: []",
+		"superseded_by: []",
+		"created_at: \"2026-03-18\"",
+		"closed_at: \"2026-03-20\"",
+		"promotion_assessment:",
+		"  status: pending",
+		"  suggested_targets: []",
+		"",
+	}, "\n"))
+}
+
+func TestCloseChangeWritesSupersededStatusAndReciprocalLink(t *testing.T) {
+	root := copyTraceabilityFixtureProject(t, "valid-project")
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	defer loaded.Close()
+	if _, err := CloseChange(v, loaded, "CHG-2026-001-a3f2-auth-gateway", ChangeCloseOptions{
+		VerificationStatus: "skipped",
+		ClosedAt:           time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		SupersededBy:       []string{"CHG-2026-002-b4c3-auth-revision"},
+	}); err != nil {
+		t.Fatalf("supersede change: %v", err)
+	}
+	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
+	data, err := os.ReadFile(statusPath)
+	if err != nil {
+		t.Fatalf("read superseded status: %v", err)
+	}
+	text := string(data)
+	if !strings.Contains(text, "status: superseded") || !strings.Contains(text, "closed_at: \"2026-03-18\"") {
+		t.Fatalf("unexpected superseded status contents:\n%s", text)
+	}
+	successorData, err := os.ReadFile(filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "status.yaml"))
+	if err != nil {
+		t.Fatalf("read successor status: %v", err)
+	}
+	if !strings.Contains(string(successorData), "supersedes:\n  - CHG-2026-001-a3f2-auth-gateway") {
+		t.Fatalf("expected reciprocal supersedes link, got:\n%s", string(successorData))
+	}
+}
+
+func TestCloseChangeRejectsTerminalSuccessorWithoutReciprocalLink(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	first, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	if err != nil {
+		loaded.Close()
+		t.Fatalf("create first change: %v", err)
+	}
+	second, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Revise cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xcc, 0xdd}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create second change: %v", err)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	if _, err := CloseChange(v, loaded, second.ID, ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 19, 0, 0, 0, 0, time.UTC)}); err != nil {
+		loaded.Close()
+		t.Fatalf("close successor: %v", err)
+	}
+	loaded.Close()
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project for supersede: %v", err)
+	}
+	defer loaded.Close()
+	_, err = CloseChange(v, loaded, first.ID, ChangeCloseOptions{VerificationStatus: "skipped", ClosedAt: time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC), SupersededBy: []string{second.ID}})
+	if err == nil || !strings.Contains(err.Error(), "cannot be updated with a reciprocal supersedes link") {
+		t.Fatalf("expected terminal successor rejection, got %v", err)
+	}
+}
+
+func copyChangeWorkflowTemplate(t *testing.T) string {
+	t.Helper()
+	src := fixturePath(t, "change-workflow", "template-project")
+	dst := t.TempDir()
+	copyDirTree(t, src, dst)
+	return dst
+}
+
+func requireFileContent(t *testing.T, path, want string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	got := strings.ReplaceAll(string(data), "\r\n", "\n")
+	if got != want {
+		t.Fatalf("unexpected content for %s\nwant:\n%s\n---\ngot:\n%s", path, want, got)
+	}
+}

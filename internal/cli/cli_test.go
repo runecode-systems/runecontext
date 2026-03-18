@@ -249,6 +249,176 @@ func TestRunValidateFailure(t *testing.T) {
 	}
 }
 
+func TestRunChangeNewCreatesChange(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "new", "--title", "Add cache invalidation", "--type", "feature", "--size", "small", "--bundle", "base", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["command"], "change_new"; got != want {
+		t.Fatalf("expected command %q, got %q", want, got)
+	}
+	if got, want := fields["change_mode"], "minimum"; got != want {
+		t.Fatalf("expected change_mode %q, got %q", want, got)
+	}
+	if got := fields["change_id"]; !strings.HasPrefix(got, "CHG-20") {
+		t.Fatalf("expected change_id output, got %q", stdout.String())
+	}
+	if got, want := fields["review_diff_required"], "true"; got != want {
+		t.Fatalf("expected review_diff_required %q, got %q", want, got)
+	}
+	changeDir := filepath.Join(projectRoot, "runecontext", "changes", fields["change_id"])
+	if _, err := os.Stat(filepath.Join(changeDir, "proposal.md")); err != nil {
+		t.Fatalf("expected proposal.md to exist: %v", err)
+	}
+}
+
+func TestRunChangeNewExplicitDotPathUsesExplicitRoot(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot, err := os.MkdirTemp(repoRoot, "cli-explicit-root-")
+	if err != nil {
+		t.Fatalf("mktemp under repo root: %v", err)
+	}
+	defer os.RemoveAll(projectRoot)
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	nestedRoot := filepath.Join(projectRoot, "nested")
+	if err := os.MkdirAll(nestedRoot, 0o755); err != nil {
+		t.Fatalf("mkdir nested root: %v", err)
+	}
+	t.Chdir(nestedRoot)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "new", "--title", "Add cache invalidation", "--type", "feature", "--size", "small", "--bundle", "base", "--path", "."}, &stdout, &stderr)
+	if code != 1 {
+		t.Fatalf("expected invalid exit code for explicit current-dir root, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "runecontext.yaml") {
+		t.Fatalf("expected explicit-root lookup failure mentioning runecontext.yaml, got %q", stderr.String())
+	}
+}
+
+func TestRunChangeShapeRefreshesStandards(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	changeID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+	statusPath := filepath.Join(projectRoot, "runecontext", "changes", changeID, "status.yaml")
+	data, err := os.ReadFile(statusPath)
+	if err != nil {
+		t.Fatalf("read status: %v", err)
+	}
+	updated := strings.Replace(string(data), "- base", "- security", 1)
+	if err := os.WriteFile(statusPath, []byte(updated), 0o644); err != nil {
+		t.Fatalf("write status: %v", err)
+	}
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "shape", changeID, "--task", "Implement cache invalidation flow.", "--reference", "docs/cache.md", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["standards_refresh"], "updated"; got != want {
+		t.Fatalf("expected standards_refresh %q, got %q", want, got)
+	}
+	if got, want := fields["added_standard_1"], "standards/security/review.md"; got != want {
+		t.Fatalf("expected added standard %q, got %q", want, got)
+	}
+	if got, want := fields["review_diff_required"], "true"; got != want {
+		t.Fatalf("expected review_diff_required %q, got %q", want, got)
+	}
+	if got, want := fields["changed_file_1_action"], "created"; got != want {
+		t.Fatalf("expected first file action %q, got %q", want, got)
+	}
+}
+
+func TestRunChangeCloseOutputsClosedChange(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	changeID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "close", changeID, "--verification-status", "passed", "--closed-at", "2026-03-20", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["change_status"], "closed"; got != want {
+		t.Fatalf("expected change_status %q, got %q", want, got)
+	}
+	if got, want := fields["closed_at"], "2026-03-20"; got != want {
+		t.Fatalf("expected closed_at %q, got %q", want, got)
+	}
+}
+
+func TestRunStatusOutputsCounts(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	firstID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+	secondID := runCLIChangeNewForTest(t, projectRoot, "Revise cache invalidation")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "close", firstID, "--verification-status", "skipped", "--superseded-by", secondID, "--closed-at", "2026-03-20", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("close superseded change: %d (%s)", code, stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"change", "close", secondID, "--verification-status", "passed", "--closed-at", "2026-03-21", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("close remaining change: %d (%s)", code, stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"status", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("status command failed: %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["active_count"], "0"; got != want {
+		t.Fatalf("expected active_count %q, got %q", want, got)
+	}
+	if got, want := fields["closed_count"], "1"; got != want {
+		t.Fatalf("expected closed_count %q, got %q", want, got)
+	}
+	if got, want := fields["superseded_count"], "1"; got != want {
+		t.Fatalf("expected superseded_count %q, got %q", want, got)
+	}
+	if got, want := fields["superseded_1_id"], firstID; got != want {
+		t.Fatalf("expected superseded change %q, got %q", want, got)
+	}
+	if got, want := fields["closed_1_id"], secondID; got != want {
+		t.Fatalf("expected closed change %q, got %q", want, got)
+	}
+}
+
 func TestRunValidateRejectsInvalidProposal(t *testing.T) {
 	root := fixtureRoot(t, "reject-proposal-invalid")
 	var stdout bytes.Buffer
@@ -291,6 +461,62 @@ func TestRunValidateUsage(t *testing.T) {
 	if !strings.Contains(stderr.String(), "usage=runectx validate [--ssh-allowed-signers PATH] [path]") {
 		t.Fatalf("expected usage output, got %q", stderr.String())
 	}
+}
+
+func runCLIChangeNewForTest(t *testing.T, projectRoot, title string) string {
+	t.Helper()
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "new", "--title", title, "--type", "feature", "--size", "small", "--bundle", "base", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("change new failed: %d (%s)", code, stderr.String())
+	}
+	return parseCLIKeyValueOutput(t, stdout.String())["change_id"]
+}
+
+func parseCLIKeyValueOutput(t *testing.T, output string) map[string]string {
+	t.Helper()
+	fields := map[string]string{}
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			t.Fatalf("unexpected CLI output line %q", line)
+		}
+		fields[parts[0]] = unsanitizeCLIValue(parts[1])
+	}
+	return fields
+}
+
+func unsanitizeCLIValue(value string) string {
+	var builder strings.Builder
+	for i := 0; i < len(value); i++ {
+		if value[i] != '\\' || i+1 >= len(value) {
+			builder.WriteByte(value[i])
+			continue
+		}
+		i++
+		switch value[i] {
+		case '\\':
+			builder.WriteByte('\\')
+		case 'n':
+			builder.WriteByte('\n')
+		case 'r':
+			builder.WriteByte('\r')
+		case 't':
+			builder.WriteByte('\t')
+		case '0':
+			builder.WriteByte('\x00')
+		case '=':
+			builder.WriteByte('=')
+		default:
+			builder.WriteByte('\\')
+			builder.WriteByte(value[i])
+		}
+	}
+	return builder.String()
 }
 
 func TestRunValidateRejectsUnknownFlag(t *testing.T) {
