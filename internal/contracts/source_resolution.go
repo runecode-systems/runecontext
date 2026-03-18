@@ -176,6 +176,13 @@ type ResolutionDiagnostic struct {
 	Message  string             `json:"message" yaml:"message"`
 }
 
+type ValidationDiagnostic struct {
+	Severity DiagnosticSeverity `json:"severity" yaml:"severity"`
+	Code     string             `json:"code" yaml:"code"`
+	Message  string             `json:"message" yaml:"message"`
+	Path     string             `json:"path,omitempty" yaml:"path,omitempty"`
+}
+
 type LocalSourceTree struct {
 	Root         string `json:"-" yaml:"-"`
 	SnapshotKind string `json:"snapshot_kind,omitempty" yaml:"snapshot_kind,omitempty"`
@@ -389,6 +396,18 @@ func (v *Validator) ValidateLoadedProject(loaded *LoadedProject) (*ProjectIndex,
 		return nil, err
 	}
 	index.Bundles = bundles
+	if err := validateStandardMetadata(index); err != nil {
+		return nil, err
+	}
+	if err := validateChangeStandardReferences(index); err != nil {
+		return nil, err
+	}
+	if err := validateBundleStandardSelections(index); err != nil {
+		return nil, err
+	}
+	if err := validateStandardReferenceBodies(index); err != nil {
+		return nil, err
+	}
 	for path, record := range index.StatusFiles {
 		if err := v.ValidateExtensionOptIn(rootConfigPath, rootData, path, record.Raw); err != nil {
 			return nil, err

@@ -417,17 +417,49 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
 
 ### Recommended Branch Cut 2: Standards authoring and migration semantics
 
-- [ ] Issue: validate standard frontmatter, including stable `id` path matching.
-- [ ] Issue: implement `draft`, `active`, and `deprecated` standard-state
+- [x] Issue: validate standard frontmatter, including stable `id` path matching.
+- [x] Issue: implement `draft`, `active`, and `deprecated` standard-state
   handling.
-- [ ] Issue: implement `replaced_by` and `aliases` support for migration and
+- [x] Issue: implement `replaced_by` and `aliases` support for migration and
   rename workflows.
-- [ ] Issue: tighten `replaced_by` to one canonical standards-path reference
+- [x] Issue: tighten `replaced_by` to one canonical standards-path reference
   form rather than path-or-id ambiguity.
-- [ ] Issue: enforce the rule that standards are referenced by path instead of
+- [x] Issue: enforce the rule that standards are referenced by path instead of
   copied into change/spec bodies.
-- [ ] Issue: ensure `suggested_context_bundles` remains advisory metadata only
+- [x] Issue: ensure `suggested_context_bundles` remains advisory metadata only
   and never becomes authoritative bundle membership.
+
+Post-review clarifications:
+
+- Deprecated standards remain directly selectable in applicable change sections
+  and bundle selections, but validation/tooling must emit warnings and surface
+  `replaced_by` guidance when available.
+- Deprecated standards without a successor remain valid in `alpha.3`, but
+  validation should emit a warning on the standard so missing migration guidance
+  is visible during authoring and review.
+- Draft standards fail closed only when directly selected as applicable/added
+  standards or bundle members; draft and deprecated standards may still appear
+  in `Standards Considered But Excluded` for reviewable migration notes.
+- `aliases` are validated as migration metadata in `alpha.3`, but automated
+  alias-based rewrite/resolution flows remain deferred to later tooling work;
+  authored references must still use canonical standard paths, and no runtime
+  alias lookup is performed in this branch cut.
+- Path-based standard-reference enforcement in `alpha.3` covers `standards.md`,
+  `proposal.md`, and `specs/*.md`; copied standard body text in those authored
+  bodies is rejected to keep standards reviewable and non-duplicated, while
+  fenced and quoted-fenced examples remain exempt from copied-body detection.
+- `standards.md` bullet validation counts canonical standard path spans only, so
+  a bullet may still contain other backticked code snippets in its descriptive
+  text as long as it names exactly one standard path; any additional
+  `standards/...` backticked reference, including non-canonical fragment forms,
+  is rejected.
+- CLI validation output should preserve enough structured diagnostic context
+  (bundle/aspect/rule/pattern/matches/path) to make standards-migration and
+  bundle-selection warnings actionable in automation, using RuneContext-root-
+  relative paths rather than machine-specific absolute paths.
+- Comparable-snippet precomputation for copied-content detection remains a
+  deliberate post-`alpha.3` optimization rather than a correctness requirement
+  for Branch Cut 2.
 
 ### Recommended Branch Cut 3: Progressive disclosure, intent artifacts,
 standards linkage, and thin change/status commands

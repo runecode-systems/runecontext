@@ -16,10 +16,12 @@ Hand-authored JSON Schema files for machine-readable RuneContext artifacts live 
   - YAML frontmatter contract for `specs/*.md`
 - `decision.schema.json`
   - YAML frontmatter contract for `decisions/*.md`
+- `standard.schema.json`
+  - YAML frontmatter contract for `standards/**/*.md`
 
 ## Notes
 
 - All v1 schemas target JSON Schema Draft 2020-12.
 - Machine-readable contracts stay closed by default and fail closed on unknown `schema_version` values.
-- `specs/*.md` and `decisions/*.md` use YAML frontmatter as their strict traceability metadata layer; the markdown body remains hand-authored.
+- `specs/*.md`, `decisions/*.md`, and `standards/**/*.md` use YAML frontmatter as their strict metadata layer; the markdown body remains hand-authored.
 - The executable validation foundation in `internal/contracts/` compiles and exercises these schemas against repository fixtures.

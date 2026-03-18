@@ -35,21 +35,25 @@ var lifecycleOrder = map[LifecycleStatus]int{
 }
 
 type ChangeRecord struct {
-	ID                 string
-	DirPath            string
-	StatusPath         string
-	Status             LifecycleStatus
-	VerificationStatus string
-	ClosedAt           string
-	HasClosedAt        bool
-	RelatedSpecs       []string
-	RelatedDecisions   []string
-	RelatedChanges     []string
-	DependsOn          []string
-	InformedBy         []string
-	Supersedes         []string
-	SupersededBy       []string
-	Data               map[string]any
+	ID                  string
+	DirPath             string
+	StatusPath          string
+	Status              LifecycleStatus
+	VerificationStatus  string
+	ClosedAt            string
+	HasClosedAt         bool
+	StandardRefs        []string
+	ApplicableStandards []string
+	AddedStandards      []string
+	ExcludedStandards   []string
+	RelatedSpecs        []string
+	RelatedDecisions    []string
+	RelatedChanges      []string
+	DependsOn           []string
+	InformedBy          []string
+	Supersedes          []string
+	SupersededBy        []string
+	Data                map[string]any
 }
 
 type SpecRecord struct {

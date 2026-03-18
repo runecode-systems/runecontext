@@ -12,6 +12,7 @@ var markdownFragmentPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 type MarkdownArtifact struct {
 	Path     string
+	Body     string
 	Headings map[string]string
 	Refs     []MarkdownDeepRef
 }
@@ -55,6 +56,7 @@ func indexMarkdownArtifact(index *ProjectIndex, contentRoot, path string, data [
 	}
 	index.MarkdownFiles[rel] = &MarkdownArtifact{
 		Path:     rel,
+		Body:     body,
 		Headings: headings,
 		Refs:     refs,
 	}

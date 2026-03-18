@@ -81,6 +81,51 @@ func TestBundleResolutionRejectFixtures(t *testing.T) {
 	}
 }
 
+func TestBundleResolutionWarnsOnDeprecatedStandards(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	projectRoot := fixturePath(t, "bundle-resolution", "valid-project")
+	index, err := v.ValidateProject(projectRoot)
+	if err != nil {
+		t.Fatalf("expected valid bundle-resolution fixture to validate: %v", err)
+	}
+	defer index.Close()
+
+	resolution, err := index.ResolveBundle("child-reinclude")
+	if err != nil {
+		t.Fatalf("resolve child-reinclude bundle: %v", err)
+	}
+	found := false
+	for _, diagnostic := range resolution.Diagnostics {
+		if diagnostic.Code == "deprecated_standard_selected" && len(diagnostic.Matches) == 1 && diagnostic.Matches[0] == "standards/global/legacy.md" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected deprecated standard diagnostic, got %#v", resolution.Diagnostics)
+	}
+}
+
+func TestBundleResolutionRejectsDraftStandardSelection(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	projectRoot := copyBundleFixtureProject(t, "valid-project")
+	bundlePath := filepath.Join(projectRoot, "runecontext", "bundles", "draft-standard.yaml")
+	if err := os.WriteFile(bundlePath, []byte(strings.Join([]string{
+		"schema_version: 1",
+		"id: draft-standard",
+		"includes:",
+		"  standards:",
+		"    - standards/frontend/example.md",
+	}, "\n")+"\n"), 0o644); err != nil {
+		t.Fatalf("write draft bundle: %v", err)
+	}
+
+	_, err := v.ValidateProject(projectRoot)
+	if err == nil || !strings.Contains(err.Error(), "selects draft standard") {
+		t.Fatalf("expected draft standard bundle selection failure, got %v", err)
+	}
+}
+
 func TestBundleResolutionRejectsAspectEscapeSymlink(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	projectRoot := copyBundleFixtureProject(t, "reject-aspect-escape-symlink")

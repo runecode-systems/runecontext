@@ -22,6 +22,7 @@ func TestSchemaFixtures(t *testing.T) {
 		"valid-custom-type.yaml":                       "change-status.schema.json",
 		"valid-superseded-change.yaml":                 "change-status.schema.json",
 		"valid-context-pack.yaml":                      "context-pack.schema.json",
+		"valid-standard-frontmatter.yaml":              "standard.schema.json",
 	}
 	for name, schema := range validCases {
 		t.Run(name, func(t *testing.T) {
@@ -107,6 +108,41 @@ func TestStandardsMarkdownFixtures(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("reject standards copied body text", func(t *testing.T) {
+		data := readFixture(t, fixturePath(t, "markdown-contracts", "reject-standards-copied-body.md"))
+		if err := v.ValidateStandardsMarkdown("reject-standards-copied-body.md", data); err == nil {
+			t.Fatal("expected copied standard body text to fail")
+		}
+	})
+
+	t.Run("allow excluded draft standard path reference", func(t *testing.T) {
+		data := readFixture(t, fixturePath(t, "markdown-contracts", "valid-standards-excluded-draft.md"))
+		if err := v.ValidateStandardsMarkdown("valid-standards-excluded-draft.md", data); err != nil {
+			t.Fatalf("expected excluded draft standard reference to parse: %v", err)
+		}
+	})
+
+	t.Run("reject multiple standard refs per bullet", func(t *testing.T) {
+		data := []byte("## Applicable Standards\n- `standards/global/a.md` and `standards/global/b.md`: invalid multi-ref bullet\n")
+		if err := v.ValidateStandardsMarkdown("multi-ref.md", data); err == nil {
+			t.Fatal("expected multiple-ref bullet to fail")
+		}
+	})
+
+	t.Run("allow one standard ref plus other backticked code", func(t *testing.T) {
+		data := []byte("## Applicable Standards\n- `standards/global/a.md`: Applies to `POST /v1/auth` without adding a second standard reference.\n")
+		if err := v.ValidateStandardsMarkdown("single-standard-with-code.md", data); err != nil {
+			t.Fatalf("expected non-standard code spans to be ignored, got %v", err)
+		}
+	})
+
+	t.Run("reject mixed canonical and non-canonical standard refs per bullet", func(t *testing.T) {
+		data := []byte("## Applicable Standards\n- `standards/global/a.md`: supersedes `standards/global/a.md#details` which is non-canonical.\n")
+		if err := v.ValidateStandardsMarkdown("mixed-standard-refs.md", data); err == nil {
+			t.Fatal("expected mixed canonical and non-canonical standard refs to fail")
+		}
+	})
 }
 
 func TestSpecAndDecisionFixtures(t *testing.T) {
@@ -119,6 +155,11 @@ func TestSpecAndDecisionFixtures(t *testing.T) {
 	validDecision := readFixture(t, fixturePath(t, "traceability", "valid-project", "runecontext", "decisions", "DEC-0001-trust-boundary-model.md"))
 	if _, err := v.ParseDecision("fixtures/traceability/valid-project/runecontext/decisions/DEC-0001-trust-boundary-model.md", validDecision); err != nil {
 		t.Fatalf("expected valid decision fixture: %v", err)
+	}
+
+	validStandard := readFixture(t, fixturePath(t, "traceability", "valid-project", "runecontext", "standards", "global", "deterministic-check-write.md"))
+	if _, err := v.ParseStandard("fixtures/traceability/valid-project/runecontext/standards/global/deterministic-check-write.md", validStandard); err != nil {
+		t.Fatalf("expected valid standard fixture: %v", err)
 	}
 
 	badSpec := readFixture(t, fixturePath(t, "traceability", "reject-spec-id-mismatch", "runecontext", "specs", "auth-gateway.md"))
@@ -173,7 +214,7 @@ func TestValidateProjectRejectsSpecSymlinkEscape(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(contentRoot, "specs"), 0o755); err != nil {
 		t.Fatalf("mkdir specs dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
 	changeDir := filepath.Join(contentRoot, "changes", "CHG-2026-001-a3f2-auth-gateway")
@@ -185,6 +226,12 @@ func TestValidateProjectRejectsSpecSymlinkEscape(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(changeDir, "standards.md"), []byte("## Applicable Standards\n\n- `standards/global/base.md`\n"), 0o644); err != nil {
 		t.Fatalf("write standards: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(contentRoot, "standards", "global"), 0o755); err != nil {
+		t.Fatalf("mkdir standards dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(contentRoot, "standards", "global", "base.md"), []byte("---\nschema_version: 1\nid: global/base\ntitle: Base\nstatus: active\n---\n\n# Base\n"), 0o644); err != nil {
+		t.Fatalf("write standard: %v", err)
 	}
 	outside := filepath.Join(projectRoot, "outside-spec.md")
 	if err := os.WriteFile(outside, []byte("---\nschema_version: 1\nid: auth-gateway\ntitle: Bad\noriginating_changes: []\nrevised_by_changes: []\n---\n\n# Bad\n"), 0o644); err != nil {

@@ -97,8 +97,27 @@
   work.
 - [ ] Standards migration uses one canonical `replaced_by` path-reference form
   rather than mixed path/id ambiguity.
+- [ ] Deprecated standards may still be referenced directly for compatibility,
+  but validation emits warnings and suggests `replaced_by` targets when present.
+- [ ] Deprecated standards without `replaced_by` remain valid in `alpha.3`, but
+  validation emits a warning so missing migration guidance is reviewable.
+- [ ] Draft or deprecated standards may still appear in `Standards Considered
+  But Excluded`, while draft standards fail closed for applicable selections and
+  bundle membership.
+- [ ] `aliases` are validated as migration metadata and collision-checked even
+  though automatic alias-driven rewrites and runtime alias lookup remain
+  deferred.
+- [ ] Path-based standards references inside `proposal.md` and `specs/*.md`
+  validate both deep-ref and plain backticked `standards/...md` forms.
+- [ ] Copied-standard-content enforcement ignores fenced and quoted-fenced code
+  examples so reviewable excerpts do not trigger false positives.
+- [ ] `standards.md` bullets may include non-standard backticked code in their
+  descriptions, but exactly one canonical standard path is required per bullet,
+  and any extra `standards/...` reference is rejected.
 - [ ] Cross-artifact references in change metadata validate cleanly or produce
   clear diagnostics.
+- [ ] Standards-related validation and warning diagnostics use RuneContext-root-
+  relative paths so CLI output is deterministic across machines.
 - [ ] Machine-readable traceability stays artifact-level, and human-readable
   markdown can use machine-validated `path#heading-fragment` deep refs without
   relying on brittle line numbers.

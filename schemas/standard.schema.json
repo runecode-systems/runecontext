@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Standard Frontmatter Schema",
+  "description": "Machine-readable frontmatter for RuneContext standards markdown files. Schema version 1.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "title"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version. Unknown versions must fail closed."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?:/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)*$",
+      "description": "Stable standard identifier. Must match the path-relative stem under `standards/` without the `.md` extension."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable standard title."
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Optional descriptive tags for discovery and review."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "deprecated"
+      ],
+      "description": "Standard lifecycle state. Draft standards are not selectable; deprecated standards remain selectable with warnings."
+    },
+    "suggested_context_bundles": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+      },
+      "description": "Advisory bundle suggestions only; never authoritative bundle membership."
+    },
+    "replaced_by": {
+      "type": "string",
+      "pattern": "^standards/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?:/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)*\\.md$",
+      "description": "Canonical successor reference for deprecated standards. Must use a `standards/<path>.md` path reference."
+    },
+    "aliases": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?:/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)*$"
+      },
+      "description": "Temporary former IDs retained during rename and migration windows."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "replaced_by"
+        ]
+      },
+      "then": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "deprecated"
+          }
+        }
+      }
+    }
+  ]
+}

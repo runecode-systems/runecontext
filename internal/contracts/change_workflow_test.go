@@ -545,6 +545,285 @@ func TestValidateProjectMarkdownDeepRefs(t *testing.T) {
 	})
 }
 
+func TestValidateProjectStandardFrontmatterAndMigrationSemantics(t *testing.T) {
+	t.Run("valid standard metadata", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected valid project with standards metadata: %v", err)
+		}
+	})
+
+	t.Run("reject standard id mismatch", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "id: global/deterministic-check-write", "id: global/not-the-path", 1)
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "must match path-relative stem") {
+			t.Fatalf("expected standard id mismatch failure, got %v", err)
+		}
+	})
+
+	t.Run("reject draft standard in standards md", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "status: active", "status: draft", 1)
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "section \"Applicable Standards\"") {
+			t.Fatalf("expected draft standard reference failure, got %v", err)
+		}
+	})
+
+	t.Run("reject draft standard in added section with section-specific message", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "status: active", "status: draft", 1)
+		})
+		standardsPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "standards.md")
+		rewriteFile(t, standardsPath, func(text string) string {
+			return "## Applicable Standards\n- `standards/global/other-active.md`: Current active selection.\n\n## Standards Added Since Last Refresh\n- `standards/global/deterministic-check-write.md`: Newly added but still draft.\n"
+		})
+		otherPath := filepath.Join(root, "runecontext", "standards", "global", "other-active.md")
+		if err := os.WriteFile(otherPath, []byte("---\nschema_version: 1\nid: global/other-active\ntitle: Other Active\nstatus: active\n---\n\n# Other Active\n\nUse the active path.\n"), 0o644); err != nil {
+			t.Fatalf("write active standard: %v", err)
+		}
+		otherChangeStandards := filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "standards.md")
+		rewriteFile(t, otherChangeStandards, func(text string) string {
+			return strings.Replace(text, "standards/global/deterministic-check-write.md", "standards/global/other-active.md", 1)
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "section \"Standards Added Since Last Refresh\"") {
+			t.Fatalf("expected added-section draft failure, got %v", err)
+		}
+	})
+
+	t.Run("allow deprecated standard in applicable standards with warning", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		defer func() { _ = os.RemoveAll(root) }()
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "status: active", "status: deprecated\nreplaced_by: standards/global/deterministic-check-write-v2.md", 1)
+		})
+		v2Path := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write-v2.md")
+		if err := os.WriteFile(v2Path, []byte("---\nschema_version: 1\nid: global/deterministic-check-write-v2\ntitle: Deterministic Check Write v2\nstatus: active\n---\n\n# Deterministic Check Write v2\n\nUse the newer wording.\n"), 0o644); err != nil {
+			t.Fatalf("write replacement standard: %v", err)
+		}
+		v := NewValidator(schemaRoot(t))
+		index, err := v.ValidateProject(root)
+		if err != nil {
+			t.Fatalf("expected deprecated applicable standard to warn, got %v", err)
+		}
+		defer index.Close()
+		found := false
+		for _, diagnostic := range index.Diagnostics {
+			if diagnostic.Code == "deprecated_standard_referenced" {
+				if diagnostic.Path != "changes/CHG-2026-001-a3f2-auth-gateway/standards.md" {
+					t.Fatalf("expected relative diagnostic path, got %#v", diagnostic)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("expected deprecated standard warning, got %#v", index.Diagnostics)
+		}
+	})
+
+	t.Run("allow excluded draft standard path references", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		defer func() { _ = os.RemoveAll(root) }()
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "status: active", "status: draft", 1)
+		})
+		standardsPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "standards.md")
+		rewriteFile(t, standardsPath, func(text string) string {
+			return "## Applicable Standards\n- `standards/global/other-active.md`: Replacement active standard.\n\n## Standards Considered But Excluded\n- `standards/global/deterministic-check-write.md`: Still draft and intentionally excluded.\n"
+		})
+		otherChangeStandards := filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "standards.md")
+		rewriteFile(t, otherChangeStandards, func(text string) string {
+			return strings.Replace(text, "standards/global/deterministic-check-write.md", "standards/global/other-active.md", 1)
+		})
+		otherPath := filepath.Join(root, "runecontext", "standards", "global", "other-active.md")
+		if err := os.WriteFile(otherPath, []byte("---\nschema_version: 1\nid: global/other-active\ntitle: Other Active\nstatus: active\n---\n\n# Other Active\n\nUse the active path.\n"), 0o644); err != nil {
+			t.Fatalf("write active standard: %v", err)
+		}
+		v := NewValidator(schemaRoot(t))
+		index, err := v.ValidateProject(root)
+		if err != nil {
+			t.Fatalf("expected excluded draft standard to validate, got %v", err)
+		}
+		defer index.Close()
+	})
+
+	t.Run("reject missing replaced_by target", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "status: active", "status: deprecated\nreplaced_by: standards/global/missing.md", 1)
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "references missing standard") {
+			t.Fatalf("expected missing replaced_by target failure, got %v", err)
+		}
+	})
+
+	t.Run("reject self replaced_by target", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "status: active", "status: deprecated\nreplaced_by: standards/global/deterministic-check-write.md", 1)
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "must not reference the standard itself") {
+			t.Fatalf("expected self replaced_by failure, got %v", err)
+		}
+	})
+
+	t.Run("reject alias collisions", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		otherPath := filepath.Join(root, "runecontext", "standards", "global", "other-active.md")
+		if err := os.WriteFile(otherPath, []byte("---\nschema_version: 1\nid: global/other-active\ntitle: Other Active\nstatus: active\naliases:\n  - global/legacy-id\n---\n\n# Other Active\n\nAlias collision test.\n"), 0o644); err != nil {
+			t.Fatalf("write second standard: %v", err)
+		}
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "suggested_context_bundles:\n  - go-control-plane", "suggested_context_bundles:\n  - go-control-plane\naliases:\n  - global/legacy-id", 1)
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "alias \"global/legacy-id\" is duplicated") {
+			t.Fatalf("expected alias collision failure, got %v", err)
+		}
+	})
+
+	t.Run("reject copied standard body text in standards md", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		standardsPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "standards.md")
+		rewriteFile(t, standardsPath, func(text string) string {
+			return "## Applicable Standards\nTrust Boundary Interfaces\n\n## Resolution Notes\nThis copied body text is invalid.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "must list standards as") {
+			t.Fatalf("expected copied-body rejection, got %v", err)
+		}
+	})
+
+	t.Run("reject copied standard body text in proposal", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\n\nGenerated and reviewed artifacts must remain deterministic and easy to audit.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "appears to copy standard content") {
+			t.Fatalf("expected copied standard content in proposal to fail, got %v", err)
+		}
+	})
+
+	t.Run("allow standard text inside fenced code in proposal", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\n\n```md\nGenerated and reviewed artifacts must remain deterministic and easy to audit.\n```\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected fenced standard excerpt to be ignored, got %v", err)
+		}
+	})
+
+	t.Run("validate plain standard path reference in proposal", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\n\nSee `standards/global/deterministic-check-write.md` for the durable rule.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected plain standard path reference to validate, got %v", err)
+		}
+	})
+
+	t.Run("reject missing plain standard path reference in proposal", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\n\nSee `standards/global/missing.md` for the durable rule.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "points to missing standard") {
+			t.Fatalf("expected missing plain path reference to fail, got %v", err)
+		}
+		if strings.Contains(err.Error(), root) {
+			t.Fatalf("expected proposal diagnostics to use relative paths, got %v", err)
+		}
+	})
+
+	t.Run("reject missing standard deep ref in spec body", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		specPath := filepath.Join(root, "runecontext", "specs", "auth-gateway.md")
+		rewriteFile(t, specPath, func(text string) string {
+			return text + "\n\nSee standards/global/missing.md#missing for the obsolete rule.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "points to missing standard") {
+			t.Fatalf("expected missing standard deep ref to fail, got %v", err)
+		}
+	})
+
+	t.Run("reject copied standard body text in spec", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		specPath := filepath.Join(root, "runecontext", "specs", "auth-gateway.md")
+		rewriteFile(t, specPath, func(text string) string {
+			return text + "\n\nGenerated and reviewed artifacts must remain deterministic and easy to audit.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "appears to copy standard content") {
+			t.Fatalf("expected copied standard content in spec to fail, got %v", err)
+		}
+	})
+
+	t.Run("allow standard text inside blockquote fenced code in spec", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		specPath := filepath.Join(root, "runecontext", "specs", "auth-gateway.md")
+		rewriteFile(t, specPath, func(text string) string {
+			return text + "\n\n> ```md\n> Generated and reviewed artifacts must remain deterministic and easy to audit.\n> ```\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected quoted fenced excerpt to be ignored, got %v", err)
+		}
+	})
+
+	t.Run("validate plain standard path reference in spec", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		specPath := filepath.Join(root, "runecontext", "specs", "auth-gateway.md")
+		rewriteFile(t, specPath, func(text string) string {
+			return text + "\n\nSee `standards/global/deterministic-check-write.md` for review guidance.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected plain standard path reference in spec to validate, got %v", err)
+		}
+	})
+}
+
 func TestExtractMarkdownHeadingFragmentsAvoidsNaturalSuffixCollisions(t *testing.T) {
 	headings, err := extractMarkdownHeadingFragments("# Foo\n# Foo\n# Foo 2\n")
 	if err != nil {
