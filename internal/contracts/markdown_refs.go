@@ -379,6 +379,7 @@ func markdownTextSegments(text string) []markdownSegment {
 }
 
 func markdownFenceMarker(trimmed string) (markdownFence, bool) {
+	trimmed = strings.TrimLeft(trimmed, "> ")
 	if len(trimmed) < 3 {
 		return markdownFence{}, false
 	}

@@ -107,6 +107,8 @@
 - [ ] Markdown deep-ref validation and rewrite flows ignore fenced code blocks,
   reject absolute and traversal-style paths, and reject line-number fragments
   such as `#L10`, `#L10-L20`, and `#42`.
+- [ ] Quoted fenced-code examples such as blockquote-prefixed fences are also
+  ignored by markdown deep-ref validation and rewrite flows.
 - [ ] External URLs containing `.md#fragment` are not misclassified as local
   RuneContext deep refs.
 - [ ] Alpha.3 deep refs target machine-indexed markdown under `changes/`,

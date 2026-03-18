@@ -354,6 +354,9 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
 - Markdown deep-ref detection should ignore external URLs even when they contain
   `.md#fragment` suffixes, and the machine-addressable heading subset for
   alpha.3 is ATX `#` headings rather than Setext underlined headings.
+- Fenced-code exclusion in alpha.3 includes ordinary fenced blocks and
+  blockquote-prefixed fenced examples so quoted examples do not become live
+  machine refs.
 - Stable deep-ref targets for alpha.3 are the machine-indexed markdown areas:
   `changes/`, `specs/`, `decisions/`, and `standards/`.
 - Artifact traceability in alpha.3 is intentionally minimum viable and

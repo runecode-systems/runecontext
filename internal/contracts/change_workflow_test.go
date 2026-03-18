@@ -303,7 +303,7 @@ func TestValidateProjectRejectsNonReciprocalRelatedChanges(t *testing.T) {
 func TestValidateProjectRejectsSupersessionInconsistency(t *testing.T) {
 	root := copyTraceabilityFixtureProject(t, "valid-project")
 	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
-	os.WriteFile(statusPath, []byte(strings.Join([]string{
+	if err := os.WriteFile(statusPath, []byte(strings.Join([]string{
 		"schema_version: 1",
 		"id: CHG-2026-001-a3f2-auth-gateway",
 		"title: Add auth gateway",
@@ -329,7 +329,9 @@ func TestValidateProjectRejectsSupersessionInconsistency(t *testing.T) {
 		"promotion_assessment:",
 		"  status: none",
 		"  suggested_targets: []",
-	}, "\n")+"\n"), 0o644)
+	}, "\n")+"\n"), 0o644); err != nil {
+		t.Fatalf("write superseded status: %v", err)
+	}
 	v := NewValidator(schemaRoot(t))
 	_, err := v.ValidateProject(root)
 	if err == nil || !strings.Contains(err.Error(), "superseded_by must be bidirectionally consistent") {
@@ -469,6 +471,18 @@ func TestValidateProjectMarkdownDeepRefs(t *testing.T) {
 		v := NewValidator(schemaRoot(t))
 		if _, err := v.ValidateProject(root); err != nil {
 			t.Fatalf("expected fenced-code ref to be ignored, got %v", err)
+		}
+	})
+
+	t.Run("blockquote fenced code refs ignored", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\n> ```md\n> /specs/auth-gateway.md#L10\n> ```\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected blockquote fenced-code ref to be ignored, got %v", err)
 		}
 	})
 

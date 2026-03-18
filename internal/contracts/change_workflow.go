@@ -378,7 +378,7 @@ func buildSpecRecord(path string, doc *FrontmatterDocument) (*SpecRecord, error)
 	if err != nil {
 		return nil, err
 	}
-	return &SpecRecord{Path: filepath.ToSlash(path), OriginatingChanges: originating, RevisedByChanges: revisedBy}, nil
+	return &SpecRecord{OriginatingChanges: originating, RevisedByChanges: revisedBy}, nil
 }
 
 func buildDecisionRecord(path string, doc *FrontmatterDocument) (*DecisionRecord, error) {
@@ -390,7 +390,7 @@ func buildDecisionRecord(path string, doc *FrontmatterDocument) (*DecisionRecord
 	if err != nil {
 		return nil, err
 	}
-	return &DecisionRecord{Path: filepath.ToSlash(path), OriginatingChanges: originating, RelatedChanges: related}, nil
+	return &DecisionRecord{OriginatingChanges: originating, RelatedChanges: related}, nil
 }
 
 func validateChangeLifecycleConsistency(index *ProjectIndex) error {
