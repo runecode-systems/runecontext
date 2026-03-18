@@ -340,12 +340,12 @@ func validateStandardsSectionReferences(path, heading, body string) error {
 			continue
 		}
 		if strings.HasPrefix(trimmed, "- ") {
-			refs := extractBacktickedPaths(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
+			refs := extractCanonicalStandardPathRefs(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
 			if len(refs) != 1 {
 				return &ValidationError{Path: path, Message: fmt.Sprintf("section %q must list exactly one backticked standard path per bullet", heading)}
 			}
-			ref, ok := refs[0], true
-			if !ok || !isCanonicalStandardPathRef(ref) {
+			ref := refs[0]
+			if !isCanonicalStandardPathRef(ref) {
 				return &ValidationError{Path: path, Message: fmt.Sprintf("section %q must list standards as backticked RuneContext-root-relative paths", heading)}
 			}
 			inBullet = true
@@ -366,11 +366,22 @@ func extractStandardsSectionReferences(body string) []string {
 		if !strings.HasPrefix(trimmed, "- ") {
 			continue
 		}
-		lineRefs := extractBacktickedPaths(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
+		lineRefs := extractCanonicalStandardPathRefs(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
 		if len(lineRefs) != 1 || !isCanonicalStandardPathRef(lineRefs[0]) {
 			continue
 		}
 		refs = append(refs, lineRefs[0])
+	}
+	return refs
+}
+
+func extractCanonicalStandardPathRefs(value string) []string {
+	all := extractBacktickedPaths(value)
+	refs := make([]string, 0, len(all))
+	for _, ref := range all {
+		if isCanonicalStandardPathRef(ref) {
+			refs = append(refs, ref)
+		}
 	}
 	return refs
 }

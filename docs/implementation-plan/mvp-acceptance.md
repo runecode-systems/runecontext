@@ -105,11 +105,14 @@
   But Excluded`, while draft standards fail closed for applicable selections and
   bundle membership.
 - [ ] `aliases` are validated as migration metadata and collision-checked even
-  though automatic alias-driven rewrites remain deferred.
+  though automatic alias-driven rewrites and runtime alias lookup remain
+  deferred.
 - [ ] Path-based standards references inside `proposal.md` and `specs/*.md`
   validate both deep-ref and plain backticked `standards/...md` forms.
 - [ ] Copied-standard-content enforcement ignores fenced and quoted-fenced code
   examples so reviewable excerpts do not trigger false positives.
+- [ ] `standards.md` bullets may include non-standard backticked code in their
+  descriptions, but exactly one canonical standard path is required per bullet.
 - [ ] Cross-artifact references in change metadata validate cleanly or produce
   clear diagnostics.
 - [ ] Machine-readable traceability stays artifact-level, and human-readable

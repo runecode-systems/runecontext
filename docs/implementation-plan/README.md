@@ -81,6 +81,10 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   the only supported authored reference form in `alpha.3`, deprecated standards
   without successors warn rather than fail, and copied-body enforcement excludes
   fenced example content.
+- The final PR-feedback pass further clarifies that `standards.md` bullets may
+  contain other backticked code snippets as description text, but must still
+  name exactly one canonical standard path, and that alias metadata is not used
+  for runtime reference resolution in `alpha.3`.
 - `alpha.4` is the planned point where this repository should be able to use
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment

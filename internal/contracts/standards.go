@@ -108,7 +108,7 @@ func validateChangeStandardReferences(index *ProjectIndex) error {
 		record := index.Changes[id]
 		standardsPath := filepath.Join(record.DirPath, "standards.md")
 		for _, ref := range record.ApplicableStandards {
-			if err := validateApplicableStandardReference(index, standardsPath, ref); err != nil {
+			if err := validateSelectedStandardReference(index, standardsPath, "Applicable Standards", ref); err != nil {
 				return err
 			}
 			if standard, _ := lookupStandard(index, standardsPath, ref); standard != nil && standard.Status == StandardStatusDeprecated {
@@ -120,7 +120,7 @@ func validateChangeStandardReferences(index *ProjectIndex) error {
 			}
 		}
 		for _, ref := range record.AddedStandards {
-			if err := validateApplicableStandardReference(index, standardsPath, ref); err != nil {
+			if err := validateSelectedStandardReference(index, standardsPath, "Standards Added Since Last Refresh", ref); err != nil {
 				return err
 			}
 			if standard, _ := lookupStandard(index, standardsPath, ref); standard != nil && standard.Status == StandardStatusDeprecated {
@@ -145,19 +145,16 @@ func lookupStandard(index *ProjectIndex, path, ref string) (*StandardRecord, err
 	if standard == nil {
 		return nil, &ValidationError{Path: path, Message: fmt.Sprintf("standards.md references missing standard %q", ref)}
 	}
-	if containsString(standard.Aliases, ref) {
-		appendValidationDiagnostic(index, ValidationDiagnostic{Severity: DiagnosticSeverityInfo, Code: "alias_metadata_only", Message: fmt.Sprintf("standard alias %q is metadata only in alpha.3; use canonical path references instead", ref), Path: path})
-	}
 	return standard, nil
 }
 
-func validateApplicableStandardReference(index *ProjectIndex, path, ref string) error {
+func validateSelectedStandardReference(index *ProjectIndex, path, section, ref string) error {
 	standard, err := lookupStandard(index, path, ref)
 	if err != nil {
 		return err
 	}
 	if standard.Status == StandardStatusDraft {
-		return &ValidationError{Path: path, Message: fmt.Sprintf("standards.md must not reference draft standard %q in applicable selections", ref)}
+		return &ValidationError{Path: path, Message: fmt.Sprintf("standards.md must not reference draft standard %q in section %q", ref, section)}
 	}
 	return nil
 }

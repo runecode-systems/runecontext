@@ -442,14 +442,21 @@ Post-review clarifications:
   in `Standards Considered But Excluded` for reviewable migration notes.
 - `aliases` are validated as migration metadata in `alpha.3`, but automated
   alias-based rewrite/resolution flows remain deferred to later tooling work;
-  authored references must still use canonical standard paths.
+  authored references must still use canonical standard paths, and no runtime
+  alias lookup is performed in this branch cut.
 - Path-based standard-reference enforcement in `alpha.3` covers `standards.md`,
   `proposal.md`, and `specs/*.md`; copied standard body text in those authored
   bodies is rejected to keep standards reviewable and non-duplicated, while
   fenced and quoted-fenced examples remain exempt from copied-body detection.
+- `standards.md` bullet validation counts canonical standard path spans only, so
+  a bullet may still contain other backticked code snippets in its descriptive
+  text as long as it names exactly one standard path.
 - CLI validation output should preserve enough structured diagnostic context
   (bundle/aspect/rule/pattern/matches/path) to make standards-migration and
   bundle-selection warnings actionable in automation.
+- Comparable-snippet precomputation for copied-content detection remains a
+  deliberate post-`alpha.3` optimization rather than a correctness requirement
+  for Branch Cut 2.
 
 ### Recommended Branch Cut 3: Progressive disclosure, intent artifacts,
 standards linkage, and thin change/status commands

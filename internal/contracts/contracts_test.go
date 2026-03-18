@@ -129,6 +129,13 @@ func TestStandardsMarkdownFixtures(t *testing.T) {
 			t.Fatal("expected multiple-ref bullet to fail")
 		}
 	})
+
+	t.Run("allow one standard ref plus other backticked code", func(t *testing.T) {
+		data := []byte("## Applicable Standards\n- `standards/global/a.md`: Applies to `POST /v1/auth` without adding a second standard reference.\n")
+		if err := v.ValidateStandardsMarkdown("single-standard-with-code.md", data); err != nil {
+			t.Fatalf("expected non-standard code spans to be ignored, got %v", err)
+		}
+	})
 }
 
 func TestSpecAndDecisionFixtures(t *testing.T) {

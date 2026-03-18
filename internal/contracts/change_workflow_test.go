@@ -575,8 +575,33 @@ func TestValidateProjectStandardFrontmatterAndMigrationSemantics(t *testing.T) {
 		})
 		v := NewValidator(schemaRoot(t))
 		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must not reference draft standard") {
+		if err == nil || !strings.Contains(err.Error(), "section \"Applicable Standards\"") {
 			t.Fatalf("expected draft standard reference failure, got %v", err)
+		}
+	})
+
+	t.Run("reject draft standard in added section with section-specific message", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
+		rewriteFile(t, standardPath, func(text string) string {
+			return strings.Replace(text, "status: active", "status: draft", 1)
+		})
+		standardsPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "standards.md")
+		rewriteFile(t, standardsPath, func(text string) string {
+			return "## Applicable Standards\n- `standards/global/other-active.md`: Current active selection.\n\n## Standards Added Since Last Refresh\n- `standards/global/deterministic-check-write.md`: Newly added but still draft.\n"
+		})
+		otherPath := filepath.Join(root, "runecontext", "standards", "global", "other-active.md")
+		if err := os.WriteFile(otherPath, []byte("---\nschema_version: 1\nid: global/other-active\ntitle: Other Active\nstatus: active\n---\n\n# Other Active\n\nUse the active path.\n"), 0o644); err != nil {
+			t.Fatalf("write active standard: %v", err)
+		}
+		otherChangeStandards := filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "standards.md")
+		rewriteFile(t, otherChangeStandards, func(text string) string {
+			return strings.Replace(text, "standards/global/deterministic-check-write.md", "standards/global/other-active.md", 1)
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "section \"Standards Added Since Last Refresh\"") {
+			t.Fatalf("expected added-section draft failure, got %v", err)
 		}
 	})
 
