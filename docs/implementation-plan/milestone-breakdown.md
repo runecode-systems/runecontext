@@ -343,11 +343,26 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
 - Structured traceability should remain artifact-first in machine-readable files
   while markdown docs may use machine-validated deep refs via stable
   `path#heading-fragment` syntax. Do not use line numbers as durable refs.
+- Change ID slugs and automatically derived heading fragments should stay
+  ASCII-safe so authored non-ASCII titles or headings never generate invalid
+  machine-readable identifiers.
 - Markdown deep-ref validation and tool-assisted rewrite behavior should ignore
   fenced code blocks, require RuneContext-root-relative paths instead of `./`,
   `../`, or absolute `/...` forms, reject line-number fragments such as `#L10`
   or `#42`, and use documented first-match rewrite semantics for scoped update
   rules.
+- Markdown deep-ref detection should ignore external URLs even when they contain
+  `.md#fragment` suffixes, and the machine-addressable heading subset for
+  alpha.3 is ATX `#` headings rather than Setext underlined headings.
+- Stable deep-ref targets for alpha.3 are the machine-indexed markdown areas:
+  `changes/`, `specs/`, `decisions/`, and `standards/`.
+- Artifact traceability in alpha.3 is intentionally minimum viable and
+  artifact-level: `related_specs` and `related_decisions` must mirror a real
+  change reference on the target artifact, but they do not yet encode a stricter
+  machine distinction between "originating" versus "revision" linkage.
+- Lifecycle helpers remain forward-only in alpha.3: tooling validates monotonic
+  progress and terminal immutability rather than offering an explicit reopen or
+  downgrade workflow.
 - Automatically derived heading fragments must remain unique within a file even
   when headings naturally collide with suffixed forms such as `foo-2`; tooling
   should preserve deterministic, machine-validated fragments rather than

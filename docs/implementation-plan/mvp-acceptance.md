@@ -75,6 +75,8 @@
 ## 3. Change Workflow And Standards
 
 - [ ] Every substantive work item gets a stable change ID.
+- [ ] Stable change IDs remain ASCII-safe even when authored titles contain
+  non-ASCII characters.
 - [ ] Minimum mode works with `status.yaml`, `proposal.md`, and `standards.md`.
 - [ ] Shaped work defaults to `design.md` and `verification.md`, while
   `tasks.md` and `references.md` remain supplemental files created only when
@@ -100,9 +102,17 @@
 - [ ] Machine-readable traceability stays artifact-level, and human-readable
   markdown can use machine-validated `path#heading-fragment` deep refs without
   relying on brittle line numbers.
+- [ ] Automatically derived heading fragments remain ASCII-safe and valid for
+  machine-readable deep refs even when headings contain non-ASCII text.
 - [ ] Markdown deep-ref validation and rewrite flows ignore fenced code blocks,
   reject absolute and traversal-style paths, and reject line-number fragments
   such as `#L10`, `#L10-L20`, and `#42`.
+- [ ] External URLs containing `.md#fragment` are not misclassified as local
+  RuneContext deep refs.
+- [ ] Alpha.3 deep refs target machine-indexed markdown under `changes/`,
+  `specs/`, `decisions/`, and `standards/`.
+- [ ] Alpha.3 machine-addressable markdown headings use ATX `#` headings; Setext
+  underlined headings are not part of the guaranteed deep-ref contract yet.
 - [ ] Multiple non-closed changes can coexist without requiring one global
   active-change slot for the repository.
 - [ ] Large features can be represented as an umbrella change plus linked
@@ -114,6 +124,8 @@
   cycles while still allowing external prerequisite change IDs in `depends_on`.
 - [ ] `superseded` works as a terminal successor state distinct from `closed`
   and preserves reciprocal supersession links.
+- [ ] Lifecycle helpers enforce forward-only progression and do not provide a
+  built-in reopen/downgrade path in alpha.3.
 - [ ] Closed changes remain directly accessible at stable paths.
 
 ## 4. Context Packs, Promotion, And Indexes

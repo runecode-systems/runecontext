@@ -230,6 +230,15 @@ func extractMarkdownDeepRefsFromText(text string, baseOffset int) ([]MarkdownDee
 		if !strings.HasSuffix(candidatePath, ".md") {
 			continue
 		}
+		if strings.Contains(candidatePath, "://") {
+			continue
+		}
+		if pathStart >= 2 && text[pathStart-2:pathStart] == "//" {
+			continue
+		}
+		if strings.HasPrefix(candidatePath, "//") {
+			continue
+		}
 		if pathStart > 0 && isMarkdownPathChar(rune(text[pathStart-1])) {
 			continue
 		}
@@ -239,6 +248,9 @@ func extractMarkdownDeepRefsFromText(text string, baseOffset int) ([]MarkdownDee
 			Fragment: text[i+1 : fragmentEnd],
 			Start:    baseOffset + pathStart,
 			End:      baseOffset + fragmentEnd,
+		}
+		if isLikelyExternalMarkdownURL(text, pathStart) {
+			continue
 		}
 		if err := validateMarkdownDeepRefShape(ref); err != nil {
 			return nil, err
@@ -272,27 +284,7 @@ func validateMarkdownDeepRefShape(ref MarkdownDeepRef) error {
 }
 
 func slugifyHeadingFragment(heading string) string {
-	heading = strings.ToLower(strings.TrimSpace(heading))
-	var b strings.Builder
-	lastDash := false
-	for _, r := range heading {
-		switch {
-		case unicode.IsLetter(r) || unicode.IsDigit(r):
-			b.WriteRune(r)
-			lastDash = false
-		case r == '-' || unicode.IsSpace(r) || r == '_' || r == '/':
-			if b.Len() == 0 || lastDash {
-				continue
-			}
-			b.WriteByte('-')
-			lastDash = true
-		}
-	}
-	fragment := strings.Trim(b.String(), "-")
-	if fragment == "" {
-		return "section"
-	}
-	return fragment
+	return slugifyASCII(heading, "section")
 }
 
 func isLineNumberFragment(fragment string) bool {
@@ -340,13 +332,18 @@ type markdownSegment struct {
 	fenced bool
 }
 
+type markdownFence struct {
+	char   byte
+	length int
+}
+
 func markdownTextSegments(text string) []markdownSegment {
 	segments := make([]markdownSegment, 0)
 	lines := strings.SplitAfter(text, "\n")
 	offset := 0
 	currentStart := 0
 	currentFence := false
-	fenceMarker := ""
+	fence := markdownFence{}
 	flush := func(end int) {
 		if end <= currentStart {
 			return
@@ -356,23 +353,23 @@ func markdownTextSegments(text string) []markdownSegment {
 	}
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		marker := markdownFenceMarker(trimmed)
-		if marker == "" {
+		marker, ok := markdownFenceMarker(trimmed)
+		if !ok {
 			offset += len(line)
 			continue
 		}
 		if !currentFence {
 			flush(offset)
 			currentFence = true
-			fenceMarker = marker
+			fence = marker
 			offset += len(line)
 			continue
 		}
-		if marker == fenceMarker {
+		if marker.char == fence.char && marker.length >= fence.length {
 			offset += len(line)
 			flush(offset)
 			currentFence = false
-			fenceMarker = ""
+			fence = markdownFence{}
 			continue
 		}
 		offset += len(line)
@@ -381,14 +378,22 @@ func markdownTextSegments(text string) []markdownSegment {
 	return segments
 }
 
-func markdownFenceMarker(trimmed string) string {
-	if strings.HasPrefix(trimmed, "```") {
-		return "```"
+func markdownFenceMarker(trimmed string) (markdownFence, bool) {
+	if len(trimmed) < 3 {
+		return markdownFence{}, false
 	}
-	if strings.HasPrefix(trimmed, "~~~") {
-		return "~~~"
+	first := trimmed[0]
+	if first != '`' && first != '~' {
+		return markdownFence{}, false
 	}
-	return ""
+	length := 0
+	for length < len(trimmed) && trimmed[length] == first {
+		length++
+	}
+	if length < 3 {
+		return markdownFence{}, false
+	}
+	return markdownFence{char: first, length: length}, true
 }
 
 func isMarkdownPathChar(r rune) bool {
@@ -397,6 +402,18 @@ func isMarkdownPathChar(r rune) bool {
 
 func isMarkdownFragmentChar(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '_'
+}
+
+func isLikelyExternalMarkdownURL(text string, pathStart int) bool {
+	if pathStart < 3 {
+		return false
+	}
+	prefix := text[:pathStart]
+	lastSpace := strings.LastIndexAny(prefix, " \t\n\r<([")
+	if lastSpace >= 0 {
+		prefix = prefix[lastSpace+1:]
+	}
+	return strings.Contains(prefix, "://")
 }
 
 func allDigits(value string) bool {

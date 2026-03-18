@@ -155,6 +155,10 @@ func CloseChangeStatus(raw map[string]any, options CloseChangeOptions) (map[stri
 	if !ok || strings.TrimSpace(statusValue) == "" {
 		return nil, fmt.Errorf("status data must include a valid string status")
 	}
+	currentID, _ := raw["id"].(string)
+	if err := validateSuccessorChangeIDs(options.SupersededBy, currentID); err != nil {
+		return nil, err
+	}
 	nextStatus := string(StatusClosed)
 	if len(options.SupersededBy) > 0 {
 		nextStatus = string(StatusSuperseded)
@@ -185,6 +189,9 @@ func BuildSplitChangeGraph(plan SplitChangePlan) (map[string]ChangeGraphLinks, e
 	if plan.UmbrellaID == "" {
 		return nil, fmt.Errorf("umbrella change ID is required")
 	}
+	if err := validateChangeIDValue(plan.UmbrellaID, "umbrella change ID"); err != nil {
+		return nil, err
+	}
 	links := map[string]ChangeGraphLinks{
 		plan.UmbrellaID: {},
 	}
@@ -193,6 +200,9 @@ func BuildSplitChangeGraph(plan SplitChangePlan) (map[string]ChangeGraphLinks, e
 	for _, sub := range plan.SubChanges {
 		if sub.ID == "" {
 			return nil, fmt.Errorf("sub-change ID is required")
+		}
+		if err := validateChangeIDValue(sub.ID, fmt.Sprintf("sub-change ID %q", sub.ID)); err != nil {
+			return nil, err
 		}
 		if sub.ID == plan.UmbrellaID {
 			return nil, fmt.Errorf("sub-change ID %q must differ from umbrella change ID", sub.ID)
@@ -216,6 +226,9 @@ func BuildSplitChangeGraph(plan SplitChangePlan) (map[string]ChangeGraphLinks, e
 		for _, depID := range dependsOn {
 			if depID == sub.ID {
 				return nil, fmt.Errorf("sub-change %q must not depend on itself", sub.ID)
+			}
+			if err := validateChangeIDValue(depID, fmt.Sprintf("depends_on entry %q", depID)); err != nil {
+				return nil, err
 			}
 		}
 		links[sub.ID] = ChangeGraphLinks{
@@ -572,15 +585,19 @@ func randomChangeSuffix(entropy io.Reader) (string, error) {
 }
 
 func slugifyTitle(title string) string {
-	title = strings.ToLower(strings.TrimSpace(title))
-	if title == "" {
-		return "change"
+	return slugifyASCII(title, "change")
+}
+
+func slugifyASCII(value, fallback string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return fallback
 	}
 	var b strings.Builder
 	lastDash := false
-	for _, r := range title {
+	for _, r := range value {
 		switch {
-		case unicode.IsLetter(r) || unicode.IsDigit(r):
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
 			b.WriteRune(r)
 			lastDash = false
 		case r == '-' || unicode.IsSpace(r) || r == '_' || r == '/':
@@ -593,7 +610,7 @@ func slugifyTitle(title string) string {
 	}
 	slug := strings.Trim(b.String(), "-")
 	if slug == "" {
-		return "change"
+		return fallback
 	}
 	return slug
 }
@@ -660,6 +677,36 @@ func cloneTopLevelValue(value any) any {
 	default:
 		return typed
 	}
+}
+
+func validateSuccessorChangeIDs(successorIDs []string, currentID string) error {
+	if len(successorIDs) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(successorIDs))
+	for _, successorID := range successorIDs {
+		if err := validateChangeIDValue(successorID, fmt.Sprintf("superseded_by entry %q", successorID)); err != nil {
+			return err
+		}
+		if currentID != "" && successorID == currentID {
+			return fmt.Errorf("superseded_by must not reference the change itself")
+		}
+		if _, ok := seen[successorID]; ok {
+			return fmt.Errorf("superseded_by contains duplicate value %q", successorID)
+		}
+		seen[successorID] = struct{}{}
+	}
+	return nil
+}
+
+func validateChangeIDValue(id, label string) error {
+	if strings.TrimSpace(id) == "" {
+		return fmt.Errorf("%s must not be empty", label)
+	}
+	if !changeIDPattern.MatchString(id) {
+		return fmt.Errorf("%s must match the canonical change ID format", label)
+	}
+	return nil
 }
 
 func validateSplitChangeCycles(umbrellaID string, subChanges []SplitSubChange) error {

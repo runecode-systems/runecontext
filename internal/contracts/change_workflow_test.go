@@ -32,6 +32,21 @@ func TestAllocateChangeID(t *testing.T) {
 	}
 }
 
+func TestAllocateChangeIDSlugifiesToASCII(t *testing.T) {
+	contentRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(contentRoot, "changes"), 0o755); err != nil {
+		t.Fatalf("mkdir changes root: %v", err)
+	}
+	title := "Caf" + string(rune(0x00e9)) + " Auth / R" + string(rune(0x00e9)) + "vision"
+	id, err := AllocateChangeID(contentRoot, time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC), title, bytes.NewReader([]byte{0xaa, 0xbb}))
+	if err != nil {
+		t.Fatalf("allocate change ID: %v", err)
+	}
+	if got, want := id, "CHG-2026-001-aabb-caf-auth-rvision"; got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
 func TestCloseChangeStatus(t *testing.T) {
 	raw := map[string]any{
 		"status":              "implemented",
@@ -70,6 +85,29 @@ func TestCloseChangeStatusRejectsMissingStatus(t *testing.T) {
 	_, err := CloseChangeStatus(map[string]any{"verification_status": "passed"}, CloseChangeOptions{})
 	if err == nil || !strings.Contains(err.Error(), "valid string status") {
 		t.Fatalf("expected missing-status error, got %v", err)
+	}
+}
+
+func TestCloseChangeStatusRejectsInvalidSupersededBy(t *testing.T) {
+	raw := map[string]any{
+		"id":     "CHG-2026-001-a3f2-auth-gateway",
+		"status": "implemented",
+	}
+	for _, tc := range []struct {
+		name         string
+		supersededBy []string
+		want         string
+	}{
+		{name: "invalid format", supersededBy: []string{"not-a-change"}, want: "canonical change ID format"},
+		{name: "self reference", supersededBy: []string{"CHG-2026-001-a3f2-auth-gateway"}, want: "must not reference the change itself"},
+		{name: "duplicate", supersededBy: []string{"CHG-2026-010-cafe-successor", "CHG-2026-010-cafe-successor"}, want: "duplicate value"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := CloseChangeStatus(raw, CloseChangeOptions{SupersededBy: tc.supersededBy})
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("expected %q error, got %v", tc.want, err)
+			}
+		})
 	}
 }
 
@@ -120,6 +158,19 @@ func TestBuildSplitChangeGraphAllowsExternalDependency(t *testing.T) {
 	}
 	if got := links["CHG-2026-002-b4c3-api"].DependsOn; !reflect.DeepEqual(got, []string{"CHG-2025-099-dead-external-prereq"}) {
 		t.Fatalf("unexpected dependency set: %#v", got)
+	}
+}
+
+func TestBuildSplitChangeGraphRejectsInvalidDependencyID(t *testing.T) {
+	_, err := BuildSplitChangeGraph(SplitChangePlan{
+		UmbrellaID: "CHG-2026-001-a3f2-umbrella",
+		SubChanges: []SplitSubChange{{
+			ID:        "CHG-2026-002-b4c3-api",
+			DependsOn: []string{"external ticket 42"},
+		}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "canonical change ID format") {
+		t.Fatalf("expected invalid dependency format error, got %v", err)
 	}
 }
 
@@ -179,6 +230,26 @@ func TestRewriteMarkdownReferenceTargetsIgnoresFencedCode(t *testing.T) {
 	}
 	if !strings.Contains(text, "See specs/security/auth-gateway.md#gateway-overview.") {
 		t.Fatalf("expected prose ref to be rewritten, got %q", text)
+	}
+}
+
+func TestRewriteMarkdownReferenceTargetsIgnoresLongerFenceNesting(t *testing.T) {
+	data := []byte("````md\n```\nspecs/auth-gateway.md#auth-gateway\n```\n````\n\nSee specs/auth-gateway.md#auth-gateway.\n")
+	rewritten, count, err := RewriteMarkdownReferenceTargets(data, []MarkdownReferenceRewrite{{
+		OldPath:     "specs/auth-gateway.md",
+		NewPath:     "specs/security/auth-gateway.md",
+		OldFragment: "auth-gateway",
+		NewFragment: "gateway-overview",
+	}})
+	if err != nil {
+		t.Fatalf("rewrite markdown refs: %v", err)
+	}
+	if got, want := count, 1; got != want {
+		t.Fatalf("expected %d rewrite, got %d", want, got)
+	}
+	text := string(rewritten)
+	if !strings.Contains(text, "````md\n```\nspecs/auth-gateway.md#auth-gateway\n```\n````") {
+		t.Fatalf("expected nested fenced code ref to stay unchanged, got %q", text)
 	}
 }
 
@@ -413,6 +484,51 @@ func TestValidateProjectMarkdownDeepRefs(t *testing.T) {
 			t.Fatalf("expected numeric-line fragment failure, got %v", err)
 		}
 	})
+
+	t.Run("line range fragment rejected", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\nAvoid specs/auth-gateway.md#l10-l20 because line ranges are not durable.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || (!strings.Contains(err.Error(), "must use a heading fragment") && !strings.Contains(err.Error(), "missing heading fragment")) {
+			t.Fatalf("expected line-range fragment failure, got %v", err)
+		}
+	})
+
+	t.Run("external markdown URL ignored", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\nReference https://example.com/docs/auth-gateway.md#overview for external context.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected external markdown URL to be ignored, got %v", err)
+		}
+	})
+
+	t.Run("project markdown target allowed", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		projectDir := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway")
+		if err := os.MkdirAll(projectDir, 0o755); err != nil {
+			t.Fatalf("mkdir change dir: %v", err)
+		}
+		projectPath := filepath.Join(projectDir, "mission.md")
+		if err := os.WriteFile(projectPath, []byte("# Mission\n\nShip stable change workflows.\n"), 0o644); err != nil {
+			t.Fatalf("write project markdown: %v", err)
+		}
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\nSee changes/CHG-2026-001-a3f2-auth-gateway/mission.md#mission for the high-level intent.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected indexed change markdown deep ref to validate, got %v", err)
+		}
+	})
 }
 
 func TestExtractMarkdownHeadingFragmentsAvoidsNaturalSuffixCollisions(t *testing.T) {
@@ -425,6 +541,18 @@ func TestExtractMarkdownHeadingFragmentsAvoidsNaturalSuffixCollisions(t *testing
 		"foo-3": "Foo",
 		"foo-2": "Foo 2",
 	}
+	if !reflect.DeepEqual(headings, expected) {
+		t.Fatalf("unexpected heading fragments: %#v", headings)
+	}
+}
+
+func TestExtractMarkdownHeadingFragmentsSlugifiesToASCII(t *testing.T) {
+	heading := "# Caf" + string(rune(0x00e9)) + " R" + string(rune(0x00e9)) + "vision\n"
+	headings, err := extractMarkdownHeadingFragments(heading)
+	if err != nil {
+		t.Fatalf("extract heading fragments: %v", err)
+	}
+	expected := map[string]string{"caf-rvision": "Caf" + string(rune(0x00e9)) + " R" + string(rune(0x00e9)) + "vision"}
 	if !reflect.DeepEqual(headings, expected) {
 		t.Fatalf("unexpected heading fragments: %#v", headings)
 	}
@@ -468,7 +596,8 @@ func rewriteFile(t *testing.T, path string, transform func(string) string) {
 	if err != nil {
 		t.Fatalf("read file %s: %v", path, err)
 	}
-	updated := transform(string(data))
+	normalized := strings.ReplaceAll(string(data), "\r\n", "\n")
+	updated := transform(normalized)
 	if err := os.WriteFile(path, []byte(updated), 0o644); err != nil {
 		t.Fatalf("write file %s: %v", path, err)
 	}

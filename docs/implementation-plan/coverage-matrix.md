@@ -160,6 +160,19 @@ plan so it is clear that the planning documents capture the full design.
   blocks, reject non-root-relative path forms, and use documented deterministic
   rewrite semantics.
   - Planned capture: `alpha.3`
+- Decision: external URLs containing `.md#fragment` are not local deep refs,
+  alpha.3 addressable headings use ATX `#` syntax, and machine-indexed markdown
+  targets remain the indexed change/spec/decision/standards content areas.
+  - Planned capture: `alpha.3`
+- Decision: change ID slugs and derived heading fragments must remain ASCII-safe
+  so non-ASCII authored text never produces invalid machine identifiers.
+  - Planned capture: `alpha.3`
+- Decision: alpha.3 traceability remains artifact-level and intentionally does
+  not yet enforce a stricter originating-vs-revision semantic mirror contract.
+  - Planned capture: `alpha.3`, `alpha.4`
+- Decision: alpha.3 lifecycle helpers are forward-only and do not define a
+  dedicated reopen/downgrade workflow.
+  - Planned capture: `alpha.3`
 - Decision: promotion is selective and reviewable, not silent auto-promotion.
   - Planned capture: `alpha.4`
 - Decision: users must be able to use embedded or dedicated-repo storage.
