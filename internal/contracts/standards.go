@@ -106,7 +106,10 @@ func validateStandardMetadata(index *ProjectIndex) error {
 func validateChangeStandardReferences(index *ProjectIndex) error {
 	for _, id := range SortedKeys(index.Changes) {
 		record := index.Changes[id]
-		standardsPath := filepath.Join(record.DirPath, "standards.md")
+		standardsPath, err := changeArtifactRelativePath(index, record, "standards.md")
+		if err != nil {
+			return err
+		}
 		for _, ref := range record.ApplicableStandards {
 			if err := validateSelectedStandardReference(index, standardsPath, "Applicable Standards", ref); err != nil {
 				return err
@@ -138,6 +141,17 @@ func validateChangeStandardReferences(index *ProjectIndex) error {
 		}
 	}
 	return nil
+}
+
+func changeArtifactRelativePath(index *ProjectIndex, record *ChangeRecord, name string) (string, error) {
+	if index == nil || record == nil {
+		return "", fmt.Errorf("change artifact path requires index and record")
+	}
+	rel, err := filepath.Rel(index.ContentRoot, filepath.Join(record.DirPath, name))
+	if err != nil {
+		return "", err
+	}
+	return filepath.ToSlash(rel), nil
 }
 
 func lookupStandard(index *ProjectIndex, path, ref string) (*StandardRecord, error) {

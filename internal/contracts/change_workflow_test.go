@@ -625,6 +625,9 @@ func TestValidateProjectStandardFrontmatterAndMigrationSemantics(t *testing.T) {
 		found := false
 		for _, diagnostic := range index.Diagnostics {
 			if diagnostic.Code == "deprecated_standard_referenced" {
+				if diagnostic.Path != "changes/CHG-2026-001-a3f2-auth-gateway/standards.md" {
+					t.Fatalf("expected relative diagnostic path, got %#v", diagnostic)
+				}
 				found = true
 				break
 			}
@@ -764,6 +767,9 @@ func TestValidateProjectStandardFrontmatterAndMigrationSemantics(t *testing.T) {
 		_, err := v.ValidateProject(root)
 		if err == nil || !strings.Contains(err.Error(), "points to missing standard") {
 			t.Fatalf("expected missing plain path reference to fail, got %v", err)
+		}
+		if strings.Contains(err.Error(), root) {
+			t.Fatalf("expected proposal diagnostics to use relative paths, got %v", err)
 		}
 	})
 

@@ -23,12 +23,11 @@ func validateStandardReferenceBodies(index *ProjectIndex) error {
 func validateChangeProposalStandardReferenceBodies(index *ProjectIndex) error {
 	for _, changeID := range SortedKeys(index.Changes) {
 		record := index.Changes[changeID]
-		proposalPath := filepath.Join(record.DirPath, "proposal.md")
-		rel, err := filepath.Rel(index.ContentRoot, proposalPath)
+		proposalPath, err := changeArtifactRelativePath(index, record, "proposal.md")
 		if err != nil {
 			return err
 		}
-		artifact := index.MarkdownFiles[filepath.ToSlash(rel)]
+		artifact := index.MarkdownFiles[proposalPath]
 		if artifact == nil {
 			continue
 		}

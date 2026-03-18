@@ -450,10 +450,13 @@ Post-review clarifications:
   fenced and quoted-fenced examples remain exempt from copied-body detection.
 - `standards.md` bullet validation counts canonical standard path spans only, so
   a bullet may still contain other backticked code snippets in its descriptive
-  text as long as it names exactly one standard path.
+  text as long as it names exactly one standard path; any additional
+  `standards/...` backticked reference, including non-canonical fragment forms,
+  is rejected.
 - CLI validation output should preserve enough structured diagnostic context
   (bundle/aspect/rule/pattern/matches/path) to make standards-migration and
-  bundle-selection warnings actionable in automation.
+  bundle-selection warnings actionable in automation, using RuneContext-root-
+  relative paths rather than machine-specific absolute paths.
 - Comparable-snippet precomputation for copied-content detection remains a
   deliberate post-`alpha.3` optimization rather than a correctness requirement
   for Branch Cut 2.

@@ -266,3 +266,5 @@ The YAML frontmatter for `standards/**/*.md` must validate against `schemas/stan
 - Change docs and specs should reference standards by path rather than copying full standard content into the markdown body, aside from short quoted excerpts when necessary.
 - Path references inside `proposal.md` and `specs/*.md` may use plain backticked `standards/<path>.md` or machine-validated deep refs; both must resolve.
 - Copied-content detection should ignore fenced and quoted-fenced examples so demonstrative snippets do not become validation failures.
+- In `standards.md`, each bullet may include other backticked code in its descriptive text, but it must contain exactly one canonical `standards/<path>.md` reference and must not include additional non-canonical `standards/...` variants such as fragments.
+- Standards-related diagnostics should use RuneContext-root-relative paths for deterministic CLI and automation output.

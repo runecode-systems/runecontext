@@ -340,7 +340,7 @@ func validateStandardsSectionReferences(path, heading, body string) error {
 			continue
 		}
 		if strings.HasPrefix(trimmed, "- ") {
-			refs := extractCanonicalStandardPathRefs(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
+			refs := extractStandardsLikeBacktickedRefs(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
 			if len(refs) != 1 {
 				return &ValidationError{Path: path, Message: fmt.Sprintf("section %q must list exactly one backticked standard path per bullet", heading)}
 			}
@@ -366,7 +366,7 @@ func extractStandardsSectionReferences(body string) []string {
 		if !strings.HasPrefix(trimmed, "- ") {
 			continue
 		}
-		lineRefs := extractCanonicalStandardPathRefs(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
+		lineRefs := extractStandardsLikeBacktickedRefs(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
 		if len(lineRefs) != 1 || !isCanonicalStandardPathRef(lineRefs[0]) {
 			continue
 		}
@@ -375,11 +375,11 @@ func extractStandardsSectionReferences(body string) []string {
 	return refs
 }
 
-func extractCanonicalStandardPathRefs(value string) []string {
+func extractStandardsLikeBacktickedRefs(value string) []string {
 	all := extractBacktickedPaths(value)
 	refs := make([]string, 0, len(all))
 	for _, ref := range all {
-		if isCanonicalStandardPathRef(ref) {
+		if strings.HasPrefix(ref, "standards/") {
 			refs = append(refs, ref)
 		}
 	}

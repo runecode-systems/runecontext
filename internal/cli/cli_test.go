@@ -94,6 +94,9 @@ func TestRunValidateSurfacesProjectValidationDiagnostics(t *testing.T) {
 	if !strings.Contains(stdout.String(), "diagnostic_1_path=") && !strings.Contains(stdout.String(), "diagnostic_2_path=") {
 		t.Fatalf("expected diagnostic path metadata, got %q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), "changes/CHG-2026-001-a3f2-auth-gateway/standards.md") {
+		t.Fatalf("expected relative diagnostic path, got %q", stdout.String())
+	}
 }
 
 func TestCollectDiagnosticsDeduplicatesBundleWarnings(t *testing.T) {

@@ -136,6 +136,13 @@ func TestStandardsMarkdownFixtures(t *testing.T) {
 			t.Fatalf("expected non-standard code spans to be ignored, got %v", err)
 		}
 	})
+
+	t.Run("reject mixed canonical and non-canonical standard refs per bullet", func(t *testing.T) {
+		data := []byte("## Applicable Standards\n- `standards/global/a.md`: supersedes `standards/global/a.md#details` which is non-canonical.\n")
+		if err := v.ValidateStandardsMarkdown("mixed-standard-refs.md", data); err == nil {
+			t.Fatal("expected mixed canonical and non-canonical standard refs to fail")
+		}
+	})
 }
 
 func TestSpecAndDecisionFixtures(t *testing.T) {

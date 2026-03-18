@@ -112,9 +112,12 @@
 - [ ] Copied-standard-content enforcement ignores fenced and quoted-fenced code
   examples so reviewable excerpts do not trigger false positives.
 - [ ] `standards.md` bullets may include non-standard backticked code in their
-  descriptions, but exactly one canonical standard path is required per bullet.
+  descriptions, but exactly one canonical standard path is required per bullet,
+  and any extra `standards/...` reference is rejected.
 - [ ] Cross-artifact references in change metadata validate cleanly or produce
   clear diagnostics.
+- [ ] Standards-related validation and warning diagnostics use RuneContext-root-
+  relative paths so CLI output is deterministic across machines.
 - [ ] Machine-readable traceability stays artifact-level, and human-readable
   markdown can use machine-validated `path#heading-fragment` deep refs without
   relying on brittle line numbers.
