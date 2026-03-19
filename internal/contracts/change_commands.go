@@ -140,6 +140,14 @@ const maxCreateChangeDirAttempts = 8
 
 var justfileTestTargetPattern = regexp.MustCompile(`(?m)^test\s*:`)
 
+var allowedPromotionAssessmentStatuses = map[string]struct{}{
+	"pending":   {},
+	"none":      {},
+	"suggested": {},
+	"accepted":  {},
+	"completed": {},
+}
+
 func CreateChange(v *Validator, loaded *LoadedProject, options ChangeCreateOptions) (*ChangeOperationResult, error) {
 	if v == nil {
 		return nil, fmt.Errorf("validator is required")
@@ -750,7 +758,11 @@ func statusDocumentFromMap(raw map[string]any) (statusDocument, error) {
 		},
 	}
 	if promotionRaw, ok := raw["promotion_assessment"].(map[string]any); ok {
-		doc.PromotionAssessment.Status = fmt.Sprint(promotionRaw["status"])
+		status, err := promotionAssessmentStatusValue(promotionRaw["status"])
+		if err != nil {
+			return statusDocument{}, err
+		}
+		doc.PromotionAssessment.Status = status
 		for _, targetRaw := range extractAnySlice(promotionRaw["suggested_targets"]) {
 			targetMap, ok := targetRaw.(map[string]any)
 			if !ok {
@@ -976,6 +988,17 @@ func inferVerificationCommands(projectRoot string) ([]string, string) {
 		return []string{"npm test"}, "Inferred `npm test` from the repository's package.json."
 	}
 	return nil, ""
+}
+
+func promotionAssessmentStatusValue(raw any) (string, error) {
+	status := optionalStringValue(raw)
+	if status == "" {
+		return "pending", nil
+	}
+	if _, ok := allowedPromotionAssessmentStatuses[status]; !ok {
+		return "", fmt.Errorf("promotion_assessment.status must be one of pending, none, suggested, accepted, or completed")
+	}
+	return status, nil
 }
 
 func validateCloseVerificationStatus(current, requested string) error {

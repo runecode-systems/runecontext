@@ -96,6 +96,9 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - The same hardening pass also requires optional change-status string fields to
   stay omitted when absent rather than being rewritten as placeholder strings
   such as `<nil>` in summaries or rewritten `status.yaml` files.
+- That same rewrite safety rule also preserves the default
+  `promotion_assessment.status` of `pending` when the promotion assessment block
+  is present but omits an explicit status.
 - `alpha.4` is the planned point where this repository should be able to use
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment

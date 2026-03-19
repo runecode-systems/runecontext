@@ -540,6 +540,60 @@ func TestCloseChangeOmitsMissingOptionalFieldsWhenRewritingStatus(t *testing.T) 
 	}
 }
 
+func TestCloseChangePreservesDefaultPromotionAssessmentStatusWhenEmpty(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	changeID := writeExistingChangeWithEmptyPromotionAssessment(t, root)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	defer loaded.Close()
+	if _, err := CloseChange(v, loaded, changeID, ChangeCloseOptions{
+		VerificationStatus: "passed",
+		ClosedAt:           time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC),
+	}); err != nil {
+		t.Fatalf("close change: %v", err)
+	}
+	statusData, err := os.ReadFile(filepath.Join(root, "runecontext", "changes", changeID, "status.yaml"))
+	if err != nil {
+		t.Fatalf("read rewritten status: %v", err)
+	}
+	text := strings.ReplaceAll(string(statusData), "\r\n", "\n")
+	if strings.Contains(text, "<nil>") {
+		t.Fatalf("expected rewritten status to avoid <nil> placeholders, got:\n%s", text)
+	}
+	if !strings.Contains(text, "promotion_assessment:\n  status: pending\n  suggested_targets: []") {
+		t.Fatalf("expected empty promotion assessment to preserve pending default, got:\n%s", text)
+	}
+}
+
+func TestStatusDocumentFromMapRejectsInvalidPromotionAssessmentStatus(t *testing.T) {
+	_, err := statusDocumentFromMap(map[string]any{
+		"schema_version":      1,
+		"id":                  "CHG-2026-001-a3f2-auth-gateway",
+		"title":               "Add auth gateway",
+		"status":              "proposed",
+		"type":                "feature",
+		"verification_status": "pending",
+		"context_bundles":     []any{"base"},
+		"related_specs":       []any{},
+		"related_decisions":   []any{},
+		"related_changes":     []any{},
+		"depends_on":          []any{},
+		"informed_by":         []any{},
+		"supersedes":          []any{},
+		"superseded_by":       []any{},
+		"closed_at":           nil,
+		"promotion_assessment": map[string]any{
+			"status": "not-valid",
+		},
+	})
+	if err == nil || !strings.Contains(err.Error(), "promotion_assessment.status") {
+		t.Fatalf("expected invalid promotion assessment status error, got %v", err)
+	}
+}
+
 func copyChangeWorkflowTemplate(t *testing.T) string {
 	t.Helper()
 	src := fixturePath(t, "change-workflow", "template-project")
@@ -614,6 +668,16 @@ func writeExistingChangeWithoutOptionalFields(t *testing.T, root string) string 
 	}, "\n")), 0o644); err != nil {
 		t.Fatalf("write standards: %v", err)
 	}
+	return changeID
+}
+
+func writeExistingChangeWithEmptyPromotionAssessment(t *testing.T, root string) string {
+	t.Helper()
+	changeID := writeExistingChangeWithoutOptionalFields(t, root)
+	statusPath := filepath.Join(root, "runecontext", "changes", changeID, "status.yaml")
+	rewriteFile(t, statusPath, func(text string) string {
+		return strings.Replace(text, "promotion_assessment:\n  status: pending\n  suggested_targets: []", "promotion_assessment: {}", 1)
+	})
 	return changeID
 }
 

@@ -497,6 +497,8 @@ Post-review clarifications:
   scaffolding.
   - Optional string fields that are absent stay omitted on rewrite rather than
     being serialized as placeholder values such as `<nil>`.
+  - Empty promotion-assessment maps preserve the default `pending` status on
+    rewrite rather than serializing placeholder values or invalid enum entries.
 - [x] Issue: populate and refresh `standards.md` during change creation and
   shaping.
 - [x] Issue: enforce reviewable diffs for any automatic `standards.md` refresh.
