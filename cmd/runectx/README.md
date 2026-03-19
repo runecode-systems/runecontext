@@ -17,6 +17,12 @@ This directory now contains the initial Go CLI entrypoint.
   - closes or supersedes a change without moving it off its stable path
   - fails closed if a missing reciprocal `supersedes` link would require mutating
     an already-terminal successor change
+- `runectx change reallocate CHANGE_ID ...`
+  - reallocates a rare colliding change ID before merge
+  - rejects terminal changes, stages the rewrite outside the live `changes/`
+    tree, and fails closed when external artifacts reference the old ID
+  - rewrites local change-path references inside the change and returns warnings
+    instead of ambiguous failures when only backup cleanup needs manual follow-up
 - `runectx validate [path]`
   - validates the root `runecontext.yaml`
   - validates change status files, markdown contracts, spec/decision frontmatter,
@@ -34,7 +40,7 @@ The alpha.3 thin commands all use the same narrow line-oriented machine contract
   - `command=<command>`
   - `root=<absolute-path>`
   - command-specific metadata such as change IDs, lifecycle counts, standards
-    refresh details, and changed file paths/actions
+    refresh details, warnings, and changed file paths/actions
 - validation failure on stderr
   - `result=invalid`
   - `command=<command>`

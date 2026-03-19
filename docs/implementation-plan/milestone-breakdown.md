@@ -513,9 +513,13 @@ Post-review clarifications:
 
 ### Recommended Branch Cut 4: Rewrite-heavy edge cases and late alpha.3 polish
 
-- [ ] Issue: implement merge-time change-ID collision detection, reallocation,
+- [x] Issue: implement merge-time change-ID collision detection, reallocation,
   and atomic local-reference rewriting for the rare case where branches still
   collide.
+  - Post-review hardening: reject terminal or externally referenced changes,
+    stage outside the live `changes/` tree, reject symlinked change artifacts,
+    rewrite self-referential status metadata, and surface backup-cleanup as a
+    warning rather than an ambiguous command failure.
 
 ### Cross-Cutting Workflow Tests and Fixtures
 

@@ -93,6 +93,11 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   explicit roots even when the caller passes `.`, `change shape` rejects
   terminal changes instead of mutating history, and supersession repair fails
   closed if a reciprocal link would require mutating a terminal successor.
+- The final Branch Cut 4 hardening pass extends that same fail-closed posture to
+  `change reallocate`: terminal changes cannot be rewritten, reallocation only
+  rewrites local change-path references inside the change, staging happens
+  outside the live `changes/` tree, and leftover backup-cleanup problems surface
+  as warnings instead of ambiguous post-success failures.
 - The same hardening pass also requires optional change-status string fields to
   stay omitted when absent rather than being rewritten as placeholder strings
   such as `<nil>` in summaries or rewritten `status.yaml` files.

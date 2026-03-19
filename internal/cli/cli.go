@@ -19,12 +19,13 @@ const (
 )
 
 const (
-	validateUsage    = "runectx validate [--ssh-allowed-signers PATH] [path]"
-	statusUsage      = "runectx status [path]"
-	changeUsage      = "runectx change <new|shape|close> ..."
-	changeNewUsage   = "runectx change new --title TITLE --type TYPE [--size SIZE] [--bundle ID] [--shape minimum|full] [--description TEXT] [--path PATH]"
-	changeShapeUsage = "runectx change shape CHANGE_ID [--design TEXT] [--verification TEXT] [--task TEXT] [--reference TEXT] [--path PATH]"
-	changeCloseUsage = "runectx change close CHANGE_ID [--verification-status STATUS] [--superseded-by ID] [--closed-at YYYY-MM-DD] [--path PATH]"
+	validateUsage         = "runectx validate [--ssh-allowed-signers PATH] [path]"
+	statusUsage           = "runectx status [path]"
+	changeUsage           = "runectx change <new|shape|close|reallocate> ..."
+	changeNewUsage        = "runectx change new --title TITLE --type TYPE [--size SIZE] [--bundle ID] [--shape minimum|full] [--description TEXT] [--path PATH]"
+	changeShapeUsage      = "runectx change shape CHANGE_ID [--design TEXT] [--verification TEXT] [--task TEXT] [--reference TEXT] [--path PATH]"
+	changeCloseUsage      = "runectx change close CHANGE_ID [--verification-status STATUS] [--superseded-by ID] [--closed-at YYYY-MM-DD] [--path PATH]"
+	changeReallocateUsage = "runectx change reallocate CHANGE_ID [--path PATH]"
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -280,6 +281,8 @@ func runChange(args []string, stdout, stderr io.Writer) int {
 		return runChangeShape(args[1:], stdout, stderr)
 	case "close":
 		return runChangeClose(args[1:], stdout, stderr)
+	case "reallocate":
+		return runChangeReallocate(args[1:], stdout, stderr)
 	default:
 		writeLines(stderr,
 			line{"result", "usage_error"},
@@ -289,6 +292,55 @@ func runChange(args []string, stdout, stderr io.Writer) int {
 		)
 		return exitUsage
 	}
+}
+
+func runChangeReallocate(args []string, stdout, stderr io.Writer) int {
+	request, err := parseChangeReallocateArgs(args)
+	if err != nil {
+		writeLines(stderr,
+			line{"result", "usage_error"},
+			line{"command", "change_reallocate"},
+			line{"error_message", err.Error()},
+			line{"usage", changeReallocateUsage},
+		)
+		return exitUsage
+	}
+	absRoot, validator, loaded, err := loadProjectForCLI(request.root, request.explicitRoot)
+	if err != nil {
+		writeLines(stderr,
+			line{"result", "invalid"},
+			line{"command", "change_reallocate"},
+			line{"root", absRootOrFallback(request.root, absRoot)},
+			line{"error_message", err.Error()},
+		)
+		return exitInvalid
+	}
+	defer loaded.Close()
+	result, err := contracts.ReallocateChange(validator, loaded, request.changeID, contracts.ChangeReallocateOptions{})
+	if err != nil {
+		writeLines(stderr,
+			line{"result", "invalid"},
+			line{"command", "change_reallocate"},
+			line{"root", absRoot},
+			line{"error_message", err.Error()},
+		)
+		return exitInvalid
+	}
+	output := []line{
+		{"result", "ok"},
+		{"command", "change_reallocate"},
+		{"root", absRoot},
+		{"selected_config_path", loaded.Resolution.SelectedConfigPath},
+		{"old_change_id", result.OldID},
+		{"change_id", result.ID},
+		{"old_change_path", result.OldChangePath},
+		{"change_path", result.ChangePath},
+		{"rewritten_reference_count", fmt.Sprintf("%d", result.RewrittenReferenceCount)},
+	}
+	output = appendWarnings(output, result.Warnings)
+	output = appendChangedFiles(output, result.ChangedFiles)
+	writeLines(stdout, output...)
+	return exitOK
 }
 
 func runChangeNew(args []string, stdout, stderr io.Writer) int {
@@ -560,6 +612,12 @@ type changeCloseRequest struct {
 	supersededBy       []string
 }
 
+type changeReallocateRequest struct {
+	root         string
+	explicitRoot bool
+	changeID     string
+}
+
 func parseStatusArgs(args []string) (statusRequest, error) {
 	if len(args) > 1 {
 		return statusRequest{}, fmt.Errorf("expected at most one path argument")
@@ -791,6 +849,36 @@ func parseChangeCloseArgs(args []string) (changeCloseRequest, error) {
 	return request, nil
 }
 
+func parseChangeReallocateArgs(args []string) (changeReallocateRequest, error) {
+	request := changeReallocateRequest{root: "."}
+	positionals := make([]string, 0, 1)
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--path":
+			value, next, err := requireFlagValue(args, i, "--path")
+			if err != nil {
+				return changeReallocateRequest{}, err
+			}
+			request.root = value
+			request.explicitRoot = true
+			i = next
+		case strings.HasPrefix(arg, "--path="):
+			request.root = strings.TrimSpace(strings.TrimPrefix(arg, "--path="))
+			request.explicitRoot = true
+		case strings.HasPrefix(arg, "-"):
+			return changeReallocateRequest{}, fmt.Errorf("unknown change reallocate flag %q", arg)
+		default:
+			positionals = append(positionals, arg)
+		}
+	}
+	if len(positionals) != 1 {
+		return changeReallocateRequest{}, fmt.Errorf("change reallocate requires exactly one change ID")
+	}
+	request.changeID = positionals[0]
+	return request, nil
+}
+
 func requireFlagValue(args []string, index int, flag string) (string, int, error) {
 	if index+1 >= len(args) {
 		return "", index, fmt.Errorf("%s requires a value", flag)
@@ -866,6 +954,14 @@ func appendReasonsAndAssumptions(lines []line, reasons, assumptions []string) []
 	lines = append(lines, line{"assumption_count", fmt.Sprintf("%d", len(assumptions))})
 	for i, assumption := range assumptions {
 		lines = append(lines, line{fmt.Sprintf("assumption_%d", i+1), assumption})
+	}
+	return lines
+}
+
+func appendWarnings(lines []line, warnings []string) []line {
+	lines = append(lines, line{"warning_count", fmt.Sprintf("%d", len(warnings))})
+	for i, warning := range warnings {
+		lines = append(lines, line{fmt.Sprintf("warning_%d", i+1), warning})
 	}
 	return lines
 }
@@ -951,12 +1047,13 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+changeNewUsage)
 	fmt.Fprintln(w, "  "+changeShapeUsage)
 	fmt.Fprintln(w, "  "+changeCloseUsage)
+	fmt.Fprintln(w, "  "+changeReallocateUsage)
 	fmt.Fprintln(w, "  "+validateUsage)
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Commands:")
 	fmt.Fprintln(w, "  help       Show CLI usage")
 	fmt.Fprintln(w, "  status     Report active, closed, and superseded changes")
-	fmt.Fprintln(w, "  change     Create, shape, and close changes")
+	fmt.Fprintln(w, "  change     Create, shape, close, and reallocate changes")
 	fmt.Fprintln(w, "  validate   Validate RuneContext contracts for a project root")
 }
 

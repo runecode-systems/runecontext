@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -565,6 +566,326 @@ func TestCloseChangePreservesDefaultPromotionAssessmentStatusWhenEmpty(t *testin
 	}
 	if !strings.Contains(text, "promotion_assessment:\n  status: pending\n  suggested_targets: []") {
 		t.Fatalf("expected empty promotion assessment to preserve pending default, got:\n%s", text)
+	}
+}
+
+func TestReallocateChangeUpdatesLocalMarkdownReferences(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	proposalPath := filepath.Join(root, "runecontext", "changes", result.ID, "proposal.md")
+	rewriteFile(t, proposalPath, func(text string) string {
+		return text + "\nSee changes/" + result.ID + " and changes/" + result.ID + "/proposal.md#summary and changes/" + result.ID + "/standards.md#applicable-standards for the local review flow.\n"
+	})
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	defer loaded.Close()
+	reallocated, err := ReallocateChange(v, loaded, result.ID, ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xcc, 0xdd})})
+	if err != nil {
+		t.Fatalf("reallocate change: %v", err)
+	}
+	if got, want := reallocated.OldID, result.ID; got != want {
+		t.Fatalf("expected old ID %q, got %q", want, got)
+	}
+	if got, want := reallocated.ID, "CHG-2026-002-ccdd-add-cache-invalidation"; got != want {
+		t.Fatalf("expected new ID %q, got %q", want, got)
+	}
+	if got, want := reallocated.RewrittenReferenceCount, 3; got != want {
+		t.Fatalf("expected rewritten reference count %d, got %d", want, got)
+	}
+	if len(reallocated.Warnings) != 0 {
+		t.Fatalf("expected successful reallocation without warnings, got %#v", reallocated.Warnings)
+	}
+	if _, err := os.Stat(filepath.Join(root, "runecontext", "changes", result.ID)); !os.IsNotExist(err) {
+		t.Fatalf("expected old change path to disappear, got err=%v", err)
+	}
+	newChangeDir := filepath.Join(root, "runecontext", "changes", reallocated.ID)
+	statusData, err := os.ReadFile(filepath.Join(newChangeDir, "status.yaml"))
+	if err != nil {
+		t.Fatalf("read reallocated status: %v", err)
+	}
+	if !strings.Contains(string(statusData), "id: "+reallocated.ID) {
+		t.Fatalf("expected status ID rewrite, got:\n%s", string(statusData))
+	}
+	proposalData, err := os.ReadFile(filepath.Join(newChangeDir, "proposal.md"))
+	if err != nil {
+		t.Fatalf("read reallocated proposal: %v", err)
+	}
+	proposalText := strings.ReplaceAll(string(proposalData), "\r\n", "\n")
+	if strings.Contains(proposalText, result.ID) {
+		t.Fatalf("expected old change ID refs to be rewritten, got:\n%s", proposalText)
+	}
+	if !strings.Contains(proposalText, "changes/"+reallocated.ID+"/proposal.md#summary") {
+		t.Fatalf("expected proposal self-reference rewrite, got:\n%s", proposalText)
+	}
+	if !strings.Contains(proposalText, "changes/"+reallocated.ID+" and") {
+		t.Fatalf("expected change-root reference rewrite, got:\n%s", proposalText)
+	}
+	if !strings.Contains(proposalText, "changes/"+reallocated.ID+"/standards.md#applicable-standards") {
+		t.Fatalf("expected standards self-reference rewrite, got:\n%s", proposalText)
+	}
+	validated, err := v.ValidateProject(root)
+	if err != nil {
+		t.Fatalf("validate reallocated project: %v", err)
+	}
+	_ = validated.Close()
+	if len(reallocated.ChangedFiles) == 0 {
+		t.Fatalf("expected changed files to be reported")
+	}
+}
+
+func TestReallocateChangeRejectsExternalReferences(t *testing.T) {
+	root := copyTraceabilityFixtureProject(t, "valid-project")
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	defer loaded.Close()
+	_, err = ReallocateChange(v, loaded, "CHG-2026-001-a3f2-auth-gateway", ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xaa, 0xbb})})
+	if err == nil || !strings.Contains(err.Error(), "alpha.3 reallocation only rewrites local references inside the change") {
+		t.Fatalf("expected external-reference rejection, got %v", err)
+	}
+	statusData, readErr := os.ReadFile(filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml"))
+	if readErr != nil {
+		t.Fatalf("read original status after failed reallocation: %v", readErr)
+	}
+	if !strings.Contains(string(statusData), "id: CHG-2026-001-a3f2-auth-gateway") {
+		t.Fatalf("expected failed reallocation to leave original status intact, got:\n%s", string(statusData))
+	}
+}
+
+func TestReallocateChangeRejectsTerminalChange(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	if _, err := CloseChange(v, loaded, result.ID, ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC)}); err != nil {
+		loaded.Close()
+		t.Fatalf("close change: %v", err)
+	}
+	loaded.Close()
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload closed project: %v", err)
+	}
+	defer loaded.Close()
+	_, err = ReallocateChange(v, loaded, result.ID, ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xcc, 0xdd})})
+	if err == nil || !strings.Contains(err.Error(), "terminal status") {
+		t.Fatalf("expected terminal-status rejection, got %v", err)
+	}
+}
+
+func TestReallocateChangeRejectsExistingBackupPath(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	backupPath := filepath.Join(root, "runecontext", ".reallocate-"+result.ID+"-backup")
+	if err := os.MkdirAll(backupPath, 0o755); err != nil {
+		t.Fatalf("mkdir backup path: %v", err)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	defer loaded.Close()
+	_, err = ReallocateChange(v, loaded, result.ID, ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xcc, 0xdd})})
+	if err == nil || !strings.Contains(err.Error(), "backup path") {
+		t.Fatalf("expected backup-path rejection, got %v", err)
+	}
+}
+
+func TestReallocateChangeRejectsSymlinksInChangeDirectory(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	changeDir := filepath.Join(root, "runecontext", "changes", result.ID)
+	if err := os.Symlink("proposal.md", filepath.Join(changeDir, "proposal-link.md")); err != nil {
+		t.Fatalf("create symlink: %v", err)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	defer loaded.Close()
+	_, err = ReallocateChange(v, loaded, result.ID, ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xcc, 0xdd})})
+	if err == nil || !strings.Contains(err.Error(), "does not support symlinks") {
+		t.Fatalf("expected symlink rejection, got %v", err)
+	}
+}
+
+func TestReallocateChangeSurfacesRollbackFailures(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	originalRename := renamePath
+	originalValidate := validateProjectAfterChangeMutation
+	t.Cleanup(func() {
+		renamePath = originalRename
+		validateProjectAfterChangeMutation = originalValidate
+	})
+	validateProjectAfterChangeMutation = func(*Validator, string) (*ProjectIndex, error) {
+		return nil, fmt.Errorf("forced validation failure")
+	}
+	backupPath := filepath.Join(root, "runecontext", ".reallocate-"+result.ID+"-backup")
+	originalChangePath := filepath.Join(root, "runecontext", "changes", result.ID)
+	renamePath = func(oldPath, newPath string) error {
+		if oldPath == backupPath && newPath == originalChangePath {
+			return fmt.Errorf("forced rollback rename failure")
+		}
+		return os.Rename(oldPath, newPath)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	defer loaded.Close()
+	_, err = ReallocateChange(v, loaded, result.ID, ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xcc, 0xdd})})
+	if err == nil || !strings.Contains(err.Error(), "manual recovery may be required") || !strings.Contains(err.Error(), "forced validation failure") || !strings.Contains(err.Error(), "forced rollback rename failure") {
+		t.Fatalf("expected rollback failure details, got %v", err)
+	}
+}
+
+func TestReallocateChangeReturnsCleanupWarning(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	originalRemoveAll := removeAllPath
+	t.Cleanup(func() {
+		removeAllPath = originalRemoveAll
+	})
+	backupPath := filepath.Join(root, "runecontext", ".reallocate-"+result.ID+"-backup")
+	removeAllPath = func(path string) error {
+		if path == backupPath {
+			return fmt.Errorf("forced cleanup failure")
+		}
+		return os.RemoveAll(path)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	defer loaded.Close()
+	reallocated, err := ReallocateChange(v, loaded, result.ID, ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xcc, 0xdd})})
+	if err != nil {
+		t.Fatalf("reallocate change with cleanup warning: %v", err)
+	}
+	if len(reallocated.Warnings) != 1 || !strings.Contains(reallocated.Warnings[0], "forced cleanup failure") {
+		t.Fatalf("expected cleanup warning, got %#v", reallocated.Warnings)
+	}
+}
+
+func TestRewriteStatusChangeIDRefsUpdatesLocalLists(t *testing.T) {
+	raw := map[string]any{
+		"related_changes": []any{"CHG-2026-001-a3f2-auth-gateway", "CHG-2026-002-b4c3-auth-revision"},
+		"depends_on":      []any{"CHG-2026-001-a3f2-auth-gateway"},
+		"informed_by":     []any{"CHG-2026-009-c0de-auth-notes"},
+		"supersedes":      []any{"CHG-2026-001-a3f2-auth-gateway"},
+		"superseded_by":   []any{},
+	}
+	rewriteStatusChangeIDRefs(raw, "CHG-2026-001-a3f2-auth-gateway", "CHG-2026-010-dd44-auth-gateway")
+	for _, key := range []string{"related_changes", "depends_on", "supersedes"} {
+		if got := strings.Join(extractStringList(raw[key]), ","); strings.Contains(got, "CHG-2026-001-a3f2-auth-gateway") {
+			t.Fatalf("expected %s to rewrite old ID, got %q", key, got)
+		}
+	}
+	if got := strings.Join(extractStringList(raw["informed_by"]), ","); got != "CHG-2026-009-c0de-auth-notes" {
+		t.Fatalf("expected unrelated IDs to remain untouched, got %q", got)
 	}
 }
 
