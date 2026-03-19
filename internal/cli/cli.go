@@ -619,12 +619,19 @@ type changeReallocateRequest struct {
 }
 
 func parseStatusArgs(args []string) (statusRequest, error) {
-	if len(args) > 1 {
+	request := statusRequest{root: "."}
+	positionals := make([]string, 0, 1)
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			return statusRequest{}, fmt.Errorf("unknown status flag %q", arg)
+		}
+		positionals = append(positionals, arg)
+	}
+	if len(positionals) > 1 {
 		return statusRequest{}, fmt.Errorf("expected at most one path argument")
 	}
-	request := statusRequest{root: "."}
-	if len(args) == 1 {
-		request.root = args[0]
+	if len(positionals) == 1 {
+		request.root = positionals[0]
 		request.explicitRoot = true
 	}
 	return request, nil

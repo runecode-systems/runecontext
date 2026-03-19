@@ -151,8 +151,13 @@
 - [x] Rare change-ID reallocation stays fail-closed in alpha.3: terminal or
   externally referenced changes are rejected, only local change-path references
   inside the change are rewritten, unchanged markdown preserves its original
-  bytes, and backup cleanup degrades to an explicit warning instead of a
-  misleading hard failure after success.
+  bytes, successful rewrites keep the original newline style, rewrite token
+  boundaries stay UTF-8-safe, and backup cleanup degrades to an explicit
+  warning instead of a misleading hard failure after success.
+- [x] Failed alpha.3 lifecycle mutations do not leave partial on-disk state:
+  rejected closes restore prior status files, failed creates clean up transient
+  change directories, mutation paths reject symlinked targets, and successful
+  transactional rewrites preserve the original file permissions.
 
 ## 4. Context Packs, Promotion, And Indexes
 

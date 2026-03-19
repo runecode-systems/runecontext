@@ -493,6 +493,18 @@ func TestRunStatusOutputsCounts(t *testing.T) {
 	}
 }
 
+func TestRunStatusRejectsUnknownFlag(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"status", "--bogus"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for unknown flag, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "unknown status flag") {
+		t.Fatalf("expected unknown status flag output, got %q", stderr.String())
+	}
+}
+
 func TestRunValidateRejectsInvalidProposal(t *testing.T) {
 	root := fixtureRoot(t, "reject-proposal-invalid")
 	var stdout bytes.Buffer
@@ -591,6 +603,24 @@ func unsanitizeCLIValue(value string) string {
 		}
 	}
 	return builder.String()
+}
+
+func TestSanitizeValueRoundTripsEscapedSequences(t *testing.T) {
+	cases := []string{
+		"plain",
+		"has=equals",
+		"has\\backslash",
+		"line1\nline2",
+		"carriage\rreturn",
+		"tab\tvalue",
+		"null\x00byte",
+		"combo\\=\n\t\r\x00",
+	}
+	for _, value := range cases {
+		if got := unsanitizeCLIValue(sanitizeValue(value)); got != value {
+			t.Fatalf("expected sanitize/unsanitize round trip for %q, got %q", value, got)
+		}
+	}
 }
 
 func TestRunValidateRejectsUnknownFlag(t *testing.T) {

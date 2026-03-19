@@ -96,9 +96,17 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - The final Branch Cut 4 hardening pass extends that same fail-closed posture to
   `runectx change reallocate CHANGE_ID [--path PATH]`: terminal changes cannot
   be rewritten, reallocation only rewrites local change-path references inside
-  the change, unchanged markdown keeps its original bytes, staging happens
-  outside the live `changes/` tree, and leftover backup-cleanup problems surface
-  as warnings instead of ambiguous post-success failures.
+  the change, unchanged markdown keeps its original bytes, rewrite token
+  boundaries stay UTF-8-safe, staging happens outside the live `changes/` tree,
+  and leftover backup-cleanup problems surface as warnings instead of ambiguous
+  post-success failures.
+- The latest follow-up hardening pass applies the same fail-closed expectation
+  to `change close` and `change new`: failed close operations roll back status
+  rewrites instead of leaving partial history mutations behind, failed creates
+  clean up their transient change directories, mutation paths reject symlinked
+  targets across create/close/reallocate, transactional rewrites preserve file
+  permissions, and successful markdown path rewrites keep the original file
+  newline style.
 - The same hardening pass also requires optional change-status string fields to
   stay omitted when absent rather than being rewritten as placeholder strings
   such as `<nil>` in summaries or rewritten `status.yaml` files.
