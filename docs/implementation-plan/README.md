@@ -115,6 +115,11 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - That same rewrite safety rule also preserves the default
   `promotion_assessment.status` of `pending` when the promotion assessment block
   is present but omits an explicit status.
+- The latest alpha.3 traceability hardening pass also requires markdown deep-ref
+  tokenization to stay UTF-8-safe during validation, so surrounding Unicode
+  punctuation such as smart quotes terminates local ref tokens cleanly instead
+  of producing false missing-artifact errors, while machine-readable heading
+  fragments remain ASCII-bounded even when adjacent prose is non-ASCII.
 - `alpha.4` is the planned point where this repository should be able to use
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment

@@ -339,6 +339,53 @@ func TestRewriteMarkdownReferenceTargetsUsesFirstMatch(t *testing.T) {
 	}
 }
 
+func TestExtractMarkdownDeepRefsFromTextStopsAtUTF8Punctuation(t *testing.T) {
+	text := "See \"specs/auth-gateway.md#auth-gateway\" and \u201cspecs/auth-gateway.md#auth-gateway\u201d for context."
+	refs, err := extractMarkdownDeepRefsFromText(text, 0)
+	if err != nil {
+		t.Fatalf("extract markdown refs: %v", err)
+	}
+	if got, want := len(refs), 2; got != want {
+		t.Fatalf("expected %d refs, got %d", want, got)
+	}
+	for _, ref := range refs {
+		if got, want := ref.Path, "specs/auth-gateway.md"; got != want {
+			t.Fatalf("expected path %q, got %q", want, got)
+		}
+		if got, want := ref.Fragment, "auth-gateway"; got != want {
+			t.Fatalf("expected fragment %q, got %q", want, got)
+		}
+	}
+}
+
+func TestExtractMarkdownDeepRefsFromTextStopsBeforeNonASCIIFragmentSuffix(t *testing.T) {
+	text := "See specs/auth-gateway.md#auth-gatewayの情報 for context."
+	refs, err := extractMarkdownDeepRefsFromText(text, 0)
+	if err != nil {
+		t.Fatalf("extract markdown refs: %v", err)
+	}
+	if got, want := len(refs), 1; got != want {
+		t.Fatalf("expected %d ref, got %d", want, got)
+	}
+	if got, want := refs[0].Path, "specs/auth-gateway.md"; got != want {
+		t.Fatalf("expected path %q, got %q", want, got)
+	}
+	if got, want := refs[0].Fragment, "auth-gateway"; got != want {
+		t.Fatalf("expected fragment %q, got %q", want, got)
+	}
+}
+
+func TestExtractMarkdownDeepRefsFromTextRequiresIndexedRootBoundary(t *testing.T) {
+	text := "见specs/auth-gateway.md#auth-gateway and docs/auth-gateway.md#auth-gateway should stay plain text."
+	refs, err := extractMarkdownDeepRefsFromText(text, 0)
+	if err != nil {
+		t.Fatalf("extract markdown refs: %v", err)
+	}
+	if len(refs) != 0 {
+		t.Fatalf("expected no refs for non-indexed or boundaryless paths, got %#v", refs)
+	}
+}
+
 func TestProjectIndexStatusViews(t *testing.T) {
 	index := &ProjectIndex{Changes: map[string]*ChangeRecord{
 		"CHG-2026-001-a3f2-open":       {Status: StatusProposed},
@@ -590,6 +637,30 @@ func TestValidateProjectMarkdownDeepRefs(t *testing.T) {
 		v := NewValidator(schemaRoot(t))
 		if _, err := v.ValidateProject(root); err != nil {
 			t.Fatalf("expected external markdown URL to be ignored, got %v", err)
+		}
+	})
+
+	t.Run("utf8 punctuation around deep ref ignored", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\nSee \u201cspecs/auth-gateway.md#auth-gateway\u201d for quoted context.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected UTF-8 punctuation around deep ref to validate, got %v", err)
+		}
+	})
+
+	t.Run("utf8 prose after fragment ignored", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
+		rewriteFile(t, proposalPath, func(text string) string {
+			return text + "\nSee specs/auth-gateway.md#auth-gatewayの情報 for localized context.\n"
+		})
+		v := NewValidator(schemaRoot(t))
+		if _, err := v.ValidateProject(root); err != nil {
+			t.Fatalf("expected UTF-8 prose after fragment to validate, got %v", err)
 		}
 	})
 

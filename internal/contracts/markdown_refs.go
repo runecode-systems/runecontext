@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 var markdownFragmentPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -213,22 +214,18 @@ func extractMarkdownDeepRefsFromText(text string, baseOffset int) ([]MarkdownDee
 		if text[i] != '#' {
 			continue
 		}
-		fragmentEnd := i + 1
-		for fragmentEnd < len(text) && isMarkdownFragmentChar(rune(text[fragmentEnd])) {
-			fragmentEnd++
-		}
+		fragmentEnd := utf8TokenEnd(text, i+1, isMarkdownFragmentChar)
 		if fragmentEnd == i+1 {
 			continue
 		}
-		pathStart := i - 1
-		for pathStart >= 0 && isMarkdownPathChar(rune(text[pathStart])) {
-			pathStart--
-		}
-		pathStart++
+		pathStart := utf8TokenStart(text, i, isMarkdownPathChar)
 		if pathStart >= i {
 			continue
 		}
 		candidatePath := text[pathStart:i]
+		if !isIndexedMarkdownDeepRefCandidatePath(candidatePath) {
+			continue
+		}
 		if !strings.HasSuffix(candidatePath, ".md") {
 			continue
 		}
@@ -239,9 +236,6 @@ func extractMarkdownDeepRefsFromText(text string, baseOffset int) ([]MarkdownDee
 			continue
 		}
 		if strings.HasPrefix(candidatePath, "//") {
-			continue
-		}
-		if pathStart > 0 && isMarkdownPathChar(rune(text[pathStart-1])) {
 			continue
 		}
 		ref := MarkdownDeepRef{
@@ -261,6 +255,36 @@ func extractMarkdownDeepRefsFromText(text string, baseOffset int) ([]MarkdownDee
 		i = fragmentEnd - 1
 	}
 	return refs, nil
+}
+
+func utf8TokenEnd(text string, start int, allow func(rune) bool) int {
+	pos := start
+	for pos < len(text) {
+		r, size := utf8.DecodeRuneInString(text[pos:])
+		if r == utf8.RuneError && size == 1 {
+			break
+		}
+		if !allow(r) {
+			break
+		}
+		pos += size
+	}
+	return pos
+}
+
+func utf8TokenStart(text string, end int, allow func(rune) bool) int {
+	pos := end
+	for pos > 0 {
+		r, size := utf8.DecodeLastRuneInString(text[:pos])
+		if r == utf8.RuneError && size == 1 {
+			break
+		}
+		if !allow(r) {
+			break
+		}
+		pos -= size
+	}
+	return pos
 }
 
 func validateMarkdownDeepRefShape(ref MarkdownDeepRef) error {
@@ -404,7 +428,7 @@ func isMarkdownPathChar(r rune) bool {
 }
 
 func isMarkdownFragmentChar(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '_'
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || unicode.IsDigit(r) || r == '-' || r == '_'
 }
 
 func isLikelyExternalMarkdownURL(text string, pathStart int) bool {
@@ -417,6 +441,29 @@ func isLikelyExternalMarkdownURL(text string, pathStart int) bool {
 		prefix = prefix[lastSpace+1:]
 	}
 	return strings.Contains(prefix, "://")
+}
+
+func isIndexedMarkdownDeepRefCandidatePath(path string) bool {
+	path = filepath.ToSlash(path)
+	trimmed := strings.TrimPrefix(path, "/")
+	for {
+		switch {
+		case strings.HasPrefix(trimmed, "./"):
+			trimmed = strings.TrimPrefix(trimmed, "./")
+		case strings.HasPrefix(trimmed, "../"):
+			trimmed = strings.TrimPrefix(trimmed, "../")
+		default:
+			goto check
+		}
+	}
+
+check:
+	for _, root := range []string{"changes/", "specs/", "decisions/", "standards/"} {
+		if strings.HasPrefix(trimmed, root) {
+			return true
+		}
+	}
+	return false
 }
 
 func allDigits(value string) bool {

@@ -91,57 +91,61 @@
   captured in `proposal.md`.
 - [x] `proposal.md` uses the required section order and validation rules.
 - [x] `standards.md` is always present and reviewably maintained.
-- [ ] Standards are referenced by path rather than copied into change/spec
+- [x] Standards are referenced by path rather than copied into change/spec
   bodies.
-- [ ] Standards frontmatter validation, deprecation, and rename/migration rules
+- [x] Standards frontmatter validation, deprecation, and rename/migration rules
   work.
-- [ ] Standards migration uses one canonical `replaced_by` path-reference form
+- [x] Standards migration uses one canonical `replaced_by` path-reference form
   rather than mixed path/id ambiguity.
-- [ ] Deprecated standards may still be referenced directly for compatibility,
+- [x] Deprecated standards may still be referenced directly for compatibility,
   but validation emits warnings and suggests `replaced_by` targets when present.
-- [ ] Deprecated standards without `replaced_by` remain valid in `alpha.3`, but
+- [x] Deprecated standards without `replaced_by` remain valid in `alpha.3`, but
   validation emits a warning so missing migration guidance is reviewable.
-- [ ] Draft or deprecated standards may still appear in `Standards Considered
+- [x] Draft or deprecated standards may still appear in `Standards Considered
   But Excluded`, while draft standards fail closed for applicable selections and
   bundle membership.
-- [ ] `aliases` are validated as migration metadata and collision-checked even
+- [x] `aliases` are validated as migration metadata and collision-checked even
   though automatic alias-driven rewrites and runtime alias lookup remain
   deferred.
-- [ ] Path-based standards references inside `proposal.md` and `specs/*.md`
+- [x] Path-based standards references inside `proposal.md` and `specs/*.md`
   validate both deep-ref and plain backticked `standards/...md` forms.
-- [ ] Copied-standard-content enforcement ignores fenced and quoted-fenced code
+- [x] Copied-standard-content enforcement ignores fenced and quoted-fenced code
   examples so reviewable excerpts do not trigger false positives.
-- [ ] `standards.md` bullets may include non-standard backticked code in their
+- [x] `standards.md` bullets may include non-standard backticked code in their
   descriptions, but exactly one canonical standard path is required per bullet,
   and any extra `standards/...` reference is rejected.
-- [ ] Cross-artifact references in change metadata validate cleanly or produce
+- [x] Cross-artifact references in change metadata validate cleanly or produce
   clear diagnostics.
-- [ ] Standards-related validation and warning diagnostics use RuneContext-root-
+- [x] Standards-related validation and warning diagnostics use RuneContext-root-
   relative paths so CLI output is deterministic across machines.
-- [ ] Machine-readable traceability stays artifact-level, and human-readable
+- [x] Machine-readable traceability stays artifact-level, and human-readable
   markdown can use machine-validated `path#heading-fragment` deep refs without
   relying on brittle line numbers.
-- [ ] Automatically derived heading fragments remain ASCII-safe and valid for
+- [x] Automatically derived heading fragments remain ASCII-safe and valid for
   machine-readable deep refs even when headings contain non-ASCII text.
-- [ ] Markdown deep-ref validation and rewrite flows ignore fenced code blocks,
+- [x] Markdown deep-ref validation and rewrite flows ignore fenced code blocks,
   reject absolute and traversal-style paths, and reject line-number fragments
   such as `#L10`, `#L10-L20`, and `#42`.
-- [ ] Quoted fenced-code examples such as blockquote-prefixed fences are also
+- [x] UTF-8-safe deep-ref tokenization does not absorb adjacent non-ASCII prose
+  into machine-readable fragment tokens, which remain ASCII-bounded in
+  `alpha.3`.
+- [x] Quoted fenced-code examples such as blockquote-prefixed fences are also
   ignored by markdown deep-ref validation and rewrite flows.
-- [ ] External URLs containing `.md#fragment` are not misclassified as local
+- [x] External URLs containing `.md#fragment` are not misclassified as local
   RuneContext deep refs.
-- [ ] Alpha.3 deep refs target machine-indexed markdown under `changes/`,
-  `specs/`, `decisions/`, and `standards/`.
-- [ ] Alpha.3 machine-addressable markdown headings use ATX `#` headings; Setext
+- [x] Alpha.3 deep refs target machine-indexed markdown under `specs/`,
+  `decisions/`, `standards/`, and the top-level markdown files inside each
+  `changes/<id>/` directory.
+- [x] Alpha.3 machine-addressable markdown headings use ATX `#` headings; Setext
   underlined headings are not part of the guaranteed deep-ref contract yet.
 - [x] Multiple non-closed changes can coexist without requiring one global
   active-change slot for the repository.
-- [ ] Large features can be represented as an umbrella change plus linked
+- [x] Large features can be represented as an umbrella change plus linked
   sub-changes using navigable `related_changes` links and directional
   `depends_on` prerequisites.
-- [ ] Change-splitting flows and validation preserve consistent `depends_on` /
+- [x] Change-splitting flows and validation preserve consistent `depends_on` /
   `related_changes` wiring when one sub-change must land before others.
-- [ ] Split-change helpers reject self-dependencies and intra-split dependency
+- [x] Split-change helpers reject self-dependencies and intra-split dependency
   cycles while still allowing external prerequisite change IDs in `depends_on`.
 - [x] `superseded` works as a terminal successor state distinct from `closed`
   and preserves reciprocal supersession links.

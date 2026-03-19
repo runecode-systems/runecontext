@@ -354,6 +354,10 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
   `../`, or absolute `/...` forms, reject line-number fragments such as `#L10`
   or `#42`, and use documented first-match rewrite semantics for scoped update
   rules.
+- Markdown deep-ref tokenization must also stay UTF-8-safe so surrounding
+  non-ASCII punctuation in prose does not get absorbed into a local markdown ref
+  or produce false missing-artifact validation failures, while the
+  machine-readable fragment token itself remains ASCII-bounded.
 - Markdown deep-ref detection should ignore external URLs even when they contain
   `.md#fragment` suffixes, and the machine-addressable heading subset for
   alpha.3 is ATX `#` headings rather than Setext underlined headings.
@@ -361,7 +365,8 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
   blockquote-prefixed fenced examples so quoted examples do not become live
   machine refs.
 - Stable deep-ref targets for alpha.3 are the machine-indexed markdown areas:
-  `changes/`, `specs/`, `decisions/`, and `standards/`.
+  `specs/`, `decisions/`, `standards/`, and the top-level markdown files inside
+  each `changes/<id>/` directory.
 - Artifact traceability in alpha.3 is intentionally minimum viable and
   artifact-level: `related_specs` and `related_decisions` must mirror a real
   change reference on the target artifact, but they do not yet encode a stricter
@@ -538,7 +543,7 @@ Post-review clarifications:
   deep-link markdown reference contracts.
 - [x] Issue: add golden fixtures for minimum-mode, shaped, supplemental-doc,
   closed, and superseded change folders.
-- [ ] Issue: add tests for dangling cross-artifact references, heading-fragment
+- [x] Issue: add tests for dangling cross-artifact references, heading-fragment
   rewrite behavior, and standards-maintenance review-diff behavior.
 - [x] Issue: add tests ensuring fenced code examples do not validate or rewrite
   as live deep refs, and that absolute or traversal-style markdown deep-ref
