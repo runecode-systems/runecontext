@@ -96,7 +96,7 @@ func TestSourceResolutionMonorepoNearestAncestor(t *testing.T) {
 func TestSourceResolutionGitPinnedCommitGolden(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, commit := createGitSourceRepo(t)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  commit: %s\n  subdir: runecontext\n", repoDir, commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  commit: %s\n  subdir: runecontext\n", repoDir, commit))
 
 	index, err := v.ValidateProjectWithOptions(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -119,7 +119,7 @@ func TestSourceResolutionGitPinnedCommitGolden(t *testing.T) {
 func TestSourceResolutionGitMutableRefRequiresOptInAndWarns(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, commit := createGitSourceRepo(t)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  ref: main\n  allow_mutable_ref: true\n  subdir: runecontext\n", repoDir))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  ref: main\n  allow_mutable_ref: true\n  subdir: runecontext\n", repoDir))
 
 	index, err := v.ValidateProjectWithOptions(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -134,7 +134,7 @@ func TestSourceResolutionGitMutableRefRequiresOptInAndWarns(t *testing.T) {
 		"${COMMIT}":       commit,
 	})
 
-	rejectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  ref: main\n  subdir: runecontext\n", repoDir))
+	rejectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  ref: main\n  subdir: runecontext\n", repoDir))
 	_, err = v.LoadProject(rejectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
 		ExecutionMode:   ExecutionModeLocal,
@@ -148,7 +148,7 @@ func TestSourceResolutionGitSignedTagTrustedSignerSuccess(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, details := createSignedGitSourceRepo(t)
 	verifier := newSSHAllowedSignersVerifierForTest(t, details.AllowedSigners)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
 
 	index, err := v.ValidateProjectWithOptions(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -177,7 +177,7 @@ func TestSourceResolutionGitSignedTagTrustedSignerSuccess(t *testing.T) {
 func TestSourceResolutionGitSignedTagFailsWithoutExplicitTrustInputs(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, details := createSignedGitSourceRepo(t)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
 
 	_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 	var verificationErr *SignedTagVerificationError
@@ -196,7 +196,7 @@ func TestSourceResolutionGitSignedTagUntrustedSignerFailsClosed(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, details := createSignedGitSourceRepo(t)
 	verifier := newSSHAllowedSignersVerifierForTest(t, details.UntrustedAllowedSigners)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
 
 	_, err := v.LoadProject(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -210,7 +210,7 @@ func TestSourceResolutionGitSignedTagUnsignedFailsClosed(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, details := createSignedGitSourceRepo(t)
 	verifier := newSSHAllowedSignersVerifierForTest(t, details.AllowedSigners)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.UnsignedTagName, details.Commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.UnsignedTagName, details.Commit))
 
 	_, err := v.LoadProject(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -224,7 +224,7 @@ func TestSourceResolutionGitSignedTagBadSignatureFailsClosed(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, details := createSignedGitSourceRepo(t)
 	verifier := newSSHAllowedSignersVerifierForTest(t, details.AllowedSigners)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.BadSignatureTagName, details.Commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.BadSignatureTagName, details.Commit))
 
 	_, err := v.LoadProject(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -257,7 +257,7 @@ func TestSourceResolutionGitSignedTagExpectCommitMismatchFailsClosed(t *testing.
 	if mismatchedCommit == details.Commit {
 		mismatchedCommit = strings.Repeat("b", 40)
 	}
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, mismatchedCommit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, mismatchedCommit))
 
 	_, err := v.LoadProject(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -294,7 +294,7 @@ func TestSSHAllowedSignersVerifierRejectsEmptyTrustMaterial(t *testing.T) {
 func TestSourceResolutionGitSignedTagVerifierReturningNilFailsClosed(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, details := createSignedGitSourceRepo(t)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
 
 	_, err := v.LoadProject(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -307,7 +307,7 @@ func TestSourceResolutionGitSignedTagVerifierReturningNilFailsClosed(t *testing.
 func TestSourceResolutionGitSignedTagVerifierReturningIncompleteSignerFailsClosed(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, details := createSignedGitSourceRepo(t)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.SignedTagName, details.Commit))
 
 	_, err := v.LoadProject(projectRoot, ResolveOptions{
 		ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -326,7 +326,7 @@ func TestSourceResolutionRejectsEmbeddedPathEscape(t *testing.T) {
 	if err := os.MkdirAll(outside, 0o755); err != nil {
 		t.Fatalf("mkdir outside dir: %v", err)
 	}
-	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: embedded\n  path: ../outside-runecontext\n"
+	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: embedded\n  path: ../outside-runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -342,7 +342,7 @@ func TestSourceResolutionRejectsUnsafeGitInputs(t *testing.T) {
 	repoDir, commit := createGitSourceRepo(t)
 
 	t.Run("url starts with dash", func(t *testing.T) {
-		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: -bad-url\n  commit: "+commit+"\n  subdir: runecontext\n")
+		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: -bad-url\n  commit: "+commit+"\n  subdir: runecontext\n")
 		_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 		if err == nil || !strings.Contains(err.Error(), "git source url") {
 			t.Fatalf("expected unsafe git url to fail, got %v", err)
@@ -350,7 +350,7 @@ func TestSourceResolutionRejectsUnsafeGitInputs(t *testing.T) {
 	})
 
 	t.Run("url uses remote helper", func(t *testing.T) {
-		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: ext::helper\n  commit: "+commit+"\n  subdir: runecontext\n")
+		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: ext::helper\n  commit: "+commit+"\n  subdir: runecontext\n")
 		_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 		if err == nil || !strings.Contains(err.Error(), "remote-helper") {
 			t.Fatalf("expected remote-helper git url to fail, got %v", err)
@@ -358,7 +358,7 @@ func TestSourceResolutionRejectsUnsafeGitInputs(t *testing.T) {
 	})
 
 	t.Run("ref starts with dash", func(t *testing.T) {
-		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  ref: -main\n  allow_mutable_ref: true\n  subdir: runecontext\n")
+		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  ref: -main\n  allow_mutable_ref: true\n  subdir: runecontext\n")
 		_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 		if err == nil || !strings.Contains(err.Error(), "git ref") {
 			t.Fatalf("expected unsafe git ref to fail, got %v", err)
@@ -366,7 +366,7 @@ func TestSourceResolutionRejectsUnsafeGitInputs(t *testing.T) {
 	})
 
 	t.Run("ref contains dot dot", func(t *testing.T) {
-		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  ref: feature..branch\n  allow_mutable_ref: true\n  subdir: runecontext\n")
+		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  ref: feature..branch\n  allow_mutable_ref: true\n  subdir: runecontext\n")
 		_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 		if err == nil || !strings.Contains(err.Error(), "must not contain '..'") {
 			t.Fatalf("expected dot-dot git ref to fail, got %v", err)
@@ -374,7 +374,7 @@ func TestSourceResolutionRejectsUnsafeGitInputs(t *testing.T) {
 	})
 
 	t.Run("ref ends with slash", func(t *testing.T) {
-		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  ref: feature/\n  allow_mutable_ref: true\n  subdir: runecontext\n")
+		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  ref: feature/\n  allow_mutable_ref: true\n  subdir: runecontext\n")
 		_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 		if err == nil || !strings.Contains(err.Error(), "start or end with '/'") {
 			t.Fatalf("expected trailing-slash git ref to fail, got %v", err)
@@ -382,7 +382,7 @@ func TestSourceResolutionRejectsUnsafeGitInputs(t *testing.T) {
 	})
 
 	t.Run("subdir escapes repo", func(t *testing.T) {
-		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  commit: "+commit+"\n  subdir: ../outside\n")
+		projectRoot := writeRootConfigProject(t, "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: "+repoDir+"\n  commit: "+commit+"\n  subdir: ../outside\n")
 		_, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 		if err == nil || !strings.Contains(err.Error(), "git subdir") {
 			t.Fatalf("expected escaping git subdir to fail, got %v", err)
@@ -407,7 +407,7 @@ func TestSourceResolutionRejectsPathSymlinkEscape(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
+	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -431,7 +431,7 @@ func TestSourceResolutionRejectsPathSymlinkCycle(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
+	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -455,7 +455,7 @@ func TestSourceResolutionRejectsEmbeddedPathSymlinkEscape(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: embedded\n  path: linked-runecontext\n"
+	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: embedded\n  path: linked-runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -617,7 +617,7 @@ func TestSourceResolutionSkipsDotGitDirectoryInSnapshots(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(localRoot, "changes", "CHG-2026-001-a3f2-source-resolution", "status.yaml"), []byte("schema_version: 1\nid: CHG-2026-001-a3f2-source-resolution\ntitle: Test snapshot exclusions\nstatus: proposed\ntype: feature\nsize: small\nverification_status: pending\ncontext_bundles: []\nrelated_specs: []\nrelated_decisions: []\nrelated_changes: []\ndepends_on: []\ninformed_by: []\nsupersedes: []\nsuperseded_by: []\ncreated_at: \"2026-03-17\"\nclosed_at: null\npromotion_assessment:\n  status: pending\n  suggested_targets: []\n"), 0o644); err != nil {
 		t.Fatalf("write status file: %v", err)
 	}
-	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
+	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -643,7 +643,7 @@ func TestSourceResolutionRejectsOversizedPathSnapshot(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(localRoot, "large.txt"), []byte(data), 0o644); err != nil {
 		t.Fatalf("write oversized file: %v", err)
 	}
-	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
+	rootConfig := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: path\n  path: local-runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(rootConfig), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -874,7 +874,7 @@ func assertSignedTagFailure(t *testing.T, err error, reason SignedTagFailureReas
 func TestSourceResolutionGitPinnedCommitWorksFromAdvertisedRefs(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	repoDir, commit := createGitSourceRepo(t)
-	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  commit: %s\n  subdir: runecontext\n", repoDir, commit))
+	projectRoot := writeRootConfigProject(t, fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  commit: %s\n  subdir: runecontext\n", repoDir, commit))
 
 	loaded, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
 	if err != nil {

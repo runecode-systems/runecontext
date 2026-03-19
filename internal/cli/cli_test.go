@@ -41,6 +41,75 @@ func TestRunValidateSuccess(t *testing.T) {
 	}
 }
 
+func TestRunValidateSurfacesDeprecatedStandardDiagnostics(t *testing.T) {
+	root := filepath.Join(repoFixtureRoot(t, "bundle-resolution"), "valid-project")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := Run([]string{"validate", root}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "deprecated_standard_selected") {
+		t.Fatalf("expected deprecated standard diagnostic, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "_bundle=child-reinclude") {
+		t.Fatalf("expected bundle metadata in diagnostics, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "_aspect=standards") {
+		t.Fatalf("expected aspect metadata in diagnostics, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "_matches=standards/global/legacy.md") {
+		t.Fatalf("expected match metadata in diagnostics, got %q", stdout.String())
+	}
+}
+
+func TestRunValidateSurfacesProjectValidationDiagnostics(t *testing.T) {
+	root := filepath.Join(repoFixtureRoot(t, "traceability"), "valid-project")
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, root, projectRoot)
+	standardPath := filepath.Join(projectRoot, "runecontext", "standards", "global", "deterministic-check-write.md")
+	data, err := os.ReadFile(standardPath)
+	if err != nil {
+		t.Fatalf("read standard fixture: %v", err)
+	}
+	updated := strings.Replace(string(data), "status: active", "status: deprecated\nreplaced_by: standards/global/deterministic-check-write-v2.md", 1)
+	if err := os.WriteFile(standardPath, []byte(updated), 0o644); err != nil {
+		t.Fatalf("write standard fixture: %v", err)
+	}
+	replacementPath := filepath.Join(projectRoot, "runecontext", "standards", "global", "deterministic-check-write-v2.md")
+	if err := os.WriteFile(replacementPath, []byte("---\nschema_version: 1\nid: global/deterministic-check-write-v2\ntitle: Deterministic Check Write v2\nstatus: active\n---\n\n# Deterministic Check Write v2\n\nUse the newer wording.\n"), 0o644); err != nil {
+		t.Fatalf("write replacement standard: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "deprecated_standard_referenced") {
+		t.Fatalf("expected project validation diagnostic, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "diagnostic_1_path=") && !strings.Contains(stdout.String(), "diagnostic_2_path=") {
+		t.Fatalf("expected diagnostic path metadata, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "changes/CHG-2026-001-a3f2-auth-gateway/standards.md") {
+		t.Fatalf("expected relative diagnostic path, got %q", stdout.String())
+	}
+}
+
+func TestCollectDiagnosticsDeduplicatesBundleWarnings(t *testing.T) {
+	index := &contracts.ProjectIndex{}
+	first := emittedDiagnostic{Severity: contracts.DiagnosticSeverityWarning, Code: "deprecated_standard_selected", Message: "same", Bundle: "bundle-a", Aspect: "standards", Rule: "include", Pattern: "standards/global/legacy.md", Matches: []string{"standards/global/legacy.md"}}
+	second := emittedDiagnostic{Severity: contracts.DiagnosticSeverityWarning, Code: "deprecated_standard_selected", Message: "same", Bundle: "bundle-a", Aspect: "standards", Rule: "include", Pattern: "standards/global/legacy.md", Matches: []string{"standards/global/legacy.md"}}
+	_ = index
+	items := dedupeDiagnostics([]emittedDiagnostic{first, second})
+	if len(items) != 1 {
+		t.Fatalf("expected diagnostics to dedupe, got %#v", items)
+	}
+}
+
 func TestRunValidateNearestAncestorDiscoveryReportsSelectedConfig(t *testing.T) {
 	nested := filepath.Join(repoFixtureRoot(t, "source-resolution", "monorepo"), "packages", "service", "internal")
 	t.Chdir(nested)
@@ -68,7 +137,7 @@ func TestRunValidateExternalProjectUsesRepoSchemas(t *testing.T) {
 	t.Chdir(repoRoot)
 
 	projectRoot := t.TempDir()
-	config := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	config := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(config), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -99,7 +168,7 @@ func TestRunValidateOutputsSignedTagSignerMetadata(t *testing.T) {
 
 	repoDir, details := createSignedGitSourceRepoForCLI(t)
 	projectRoot := t.TempDir()
-	config := fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.signedTagName, details.commit)
+	config := fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.signedTagName, details.commit)
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(config), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -134,7 +203,7 @@ func TestRunValidateSignedTagFailureOutputsStructuredReason(t *testing.T) {
 
 	repoDir, details := createSignedGitSourceRepoForCLI(t)
 	projectRoot := t.TempDir()
-	config := fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.2\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.signedTagName, details.commit)
+	config := fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: %s\n  subdir: runecontext\n", repoDir, details.signedTagName, details.commit)
 	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(config), 0o644); err != nil {
 		t.Fatalf("write root config: %v", err)
 	}
@@ -180,6 +249,262 @@ func TestRunValidateFailure(t *testing.T) {
 	}
 }
 
+func TestRunChangeNewCreatesChange(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "new", "--title", "Add cache invalidation", "--type", "feature", "--size", "small", "--bundle", "base", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["command"], "change_new"; got != want {
+		t.Fatalf("expected command %q, got %q", want, got)
+	}
+	if got, want := fields["change_mode"], "minimum"; got != want {
+		t.Fatalf("expected change_mode %q, got %q", want, got)
+	}
+	if got := fields["change_id"]; !strings.HasPrefix(got, "CHG-20") {
+		t.Fatalf("expected change_id output, got %q", stdout.String())
+	}
+	if got, want := fields["review_diff_required"], "true"; got != want {
+		t.Fatalf("expected review_diff_required %q, got %q", want, got)
+	}
+	changeDir := filepath.Join(projectRoot, "runecontext", "changes", fields["change_id"])
+	if _, err := os.Stat(filepath.Join(changeDir, "proposal.md")); err != nil {
+		t.Fatalf("expected proposal.md to exist: %v", err)
+	}
+}
+
+func TestRunChangeNewExplicitDotPathUsesExplicitRoot(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot, err := os.MkdirTemp(repoRoot, "cli-explicit-root-")
+	if err != nil {
+		t.Fatalf("mktemp under repo root: %v", err)
+	}
+	defer os.RemoveAll(projectRoot)
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	nestedRoot := filepath.Join(projectRoot, "nested")
+	if err := os.MkdirAll(nestedRoot, 0o755); err != nil {
+		t.Fatalf("mkdir nested root: %v", err)
+	}
+	t.Chdir(nestedRoot)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "new", "--title", "Add cache invalidation", "--type", "feature", "--size", "small", "--bundle", "base", "--path", "."}, &stdout, &stderr)
+	if code != 1 {
+		t.Fatalf("expected invalid exit code for explicit current-dir root, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "runecontext.yaml") {
+		t.Fatalf("expected explicit-root lookup failure mentioning runecontext.yaml, got %q", stderr.String())
+	}
+}
+
+func TestRunChangeShapeRefreshesStandards(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	changeID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+	statusPath := filepath.Join(projectRoot, "runecontext", "changes", changeID, "status.yaml")
+	data, err := os.ReadFile(statusPath)
+	if err != nil {
+		t.Fatalf("read status: %v", err)
+	}
+	updated := strings.Replace(string(data), "- base", "- security", 1)
+	if err := os.WriteFile(statusPath, []byte(updated), 0o644); err != nil {
+		t.Fatalf("write status: %v", err)
+	}
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "shape", changeID, "--task", "Implement cache invalidation flow.", "--reference", "docs/cache.md", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["standards_refresh"], "updated"; got != want {
+		t.Fatalf("expected standards_refresh %q, got %q", want, got)
+	}
+	if got, want := fields["added_standard_1"], "standards/security/review.md"; got != want {
+		t.Fatalf("expected added standard %q, got %q", want, got)
+	}
+	if got, want := fields["review_diff_required"], "true"; got != want {
+		t.Fatalf("expected review_diff_required %q, got %q", want, got)
+	}
+	if got, want := fields["changed_file_1_action"], "created"; got != want {
+		t.Fatalf("expected first file action %q, got %q", want, got)
+	}
+}
+
+func TestRunChangeCloseOutputsClosedChange(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	changeID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "close", changeID, "--verification-status", "passed", "--closed-at", "2026-03-20", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["change_status"], "closed"; got != want {
+		t.Fatalf("expected change_status %q, got %q", want, got)
+	}
+	if got, want := fields["closed_at"], "2026-03-20"; got != want {
+		t.Fatalf("expected closed_at %q, got %q", want, got)
+	}
+}
+
+func TestRunChangeReallocateOutputsNewChangeID(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	changeID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+	proposalPath := filepath.Join(projectRoot, "runecontext", "changes", changeID, "proposal.md")
+	data, err := os.ReadFile(proposalPath)
+	if err != nil {
+		t.Fatalf("read proposal: %v", err)
+	}
+	updated := strings.ReplaceAll(string(data), "\r\n", "\n") + "\nSee changes/" + changeID + "/proposal.md#summary for the current change summary.\n"
+	if err := os.WriteFile(proposalPath, []byte(updated), 0o644); err != nil {
+		t.Fatalf("write proposal: %v", err)
+	}
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "reallocate", changeID, "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["command"], "change_reallocate"; got != want {
+		t.Fatalf("expected command %q, got %q", want, got)
+	}
+	if got, want := fields["old_change_id"], changeID; got != want {
+		t.Fatalf("expected old_change_id %q, got %q", want, got)
+	}
+	newID := fields["change_id"]
+	if newID == "" || newID == changeID {
+		t.Fatalf("expected a new change ID, got %q", stdout.String())
+	}
+	if got := fields["rewritten_reference_count"]; got != "1" {
+		t.Fatalf("expected one rewritten reference, got %q", got)
+	}
+	if got := fields["warning_count"]; got != "0" {
+		t.Fatalf("expected no warnings, got %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "runecontext", "changes", changeID)); !os.IsNotExist(err) {
+		t.Fatalf("expected old change directory to be removed, got err=%v", err)
+	}
+	proposalData, err := os.ReadFile(filepath.Join(projectRoot, "runecontext", "changes", newID, "proposal.md"))
+	if err != nil {
+		t.Fatalf("read reallocated proposal: %v", err)
+	}
+	if !strings.Contains(string(proposalData), "changes/"+newID+"/proposal.md#summary") {
+		t.Fatalf("expected CLI reallocation to rewrite local reference, got:\n%s", string(proposalData))
+	}
+}
+
+func TestRunChangeReallocateUsageErrors(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "reallocate"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for missing ID, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "change reallocate requires exactly one change ID") {
+		t.Fatalf("expected missing-ID usage output, got %q", stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"change", "reallocate", "CHG-2026-001-a3f2-auth-gateway", "--bogus"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for unknown flag, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "unknown change reallocate flag") {
+		t.Fatalf("expected unknown-flag output, got %q", stderr.String())
+	}
+}
+
+func TestRunStatusOutputsCounts(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+	projectRoot := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "change-workflow", "template-project"), projectRoot)
+	firstID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+	secondID := runCLIChangeNewForTest(t, projectRoot, "Revise cache invalidation")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "close", firstID, "--verification-status", "skipped", "--superseded-by", secondID, "--closed-at", "2026-03-20", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("close superseded change: %d (%s)", code, stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"change", "close", secondID, "--verification-status", "passed", "--closed-at", "2026-03-21", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("close remaining change: %d (%s)", code, stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"status", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("status command failed: %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["active_count"], "0"; got != want {
+		t.Fatalf("expected active_count %q, got %q", want, got)
+	}
+	if got, want := fields["closed_count"], "1"; got != want {
+		t.Fatalf("expected closed_count %q, got %q", want, got)
+	}
+	if got, want := fields["superseded_count"], "1"; got != want {
+		t.Fatalf("expected superseded_count %q, got %q", want, got)
+	}
+	if got, want := fields["superseded_1_id"], firstID; got != want {
+		t.Fatalf("expected superseded change %q, got %q", want, got)
+	}
+	if got, want := fields["closed_1_id"], secondID; got != want {
+		t.Fatalf("expected closed change %q, got %q", want, got)
+	}
+}
+
+func TestRunStatusRejectsUnknownFlag(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"status", "--bogus"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for unknown flag, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "unknown status flag") {
+		t.Fatalf("expected unknown status flag output, got %q", stderr.String())
+	}
+}
+
 func TestRunValidateRejectsInvalidProposal(t *testing.T) {
 	root := fixtureRoot(t, "reject-proposal-invalid")
 	var stdout bytes.Buffer
@@ -221,6 +546,80 @@ func TestRunValidateUsage(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "usage=runectx validate [--ssh-allowed-signers PATH] [path]") {
 		t.Fatalf("expected usage output, got %q", stderr.String())
+	}
+}
+
+func runCLIChangeNewForTest(t *testing.T, projectRoot, title string) string {
+	t.Helper()
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "new", "--title", title, "--type", "feature", "--size", "small", "--bundle", "base", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("change new failed: %d (%s)", code, stderr.String())
+	}
+	return parseCLIKeyValueOutput(t, stdout.String())["change_id"]
+}
+
+func parseCLIKeyValueOutput(t *testing.T, output string) map[string]string {
+	t.Helper()
+	fields := map[string]string{}
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			t.Fatalf("unexpected CLI output line %q", line)
+		}
+		fields[parts[0]] = unsanitizeCLIValue(parts[1])
+	}
+	return fields
+}
+
+func unsanitizeCLIValue(value string) string {
+	var builder strings.Builder
+	for i := 0; i < len(value); i++ {
+		if value[i] != '\\' || i+1 >= len(value) {
+			builder.WriteByte(value[i])
+			continue
+		}
+		i++
+		switch value[i] {
+		case '\\':
+			builder.WriteByte('\\')
+		case 'n':
+			builder.WriteByte('\n')
+		case 'r':
+			builder.WriteByte('\r')
+		case 't':
+			builder.WriteByte('\t')
+		case '0':
+			builder.WriteByte('\x00')
+		case '=':
+			builder.WriteByte('=')
+		default:
+			builder.WriteByte('\\')
+			builder.WriteByte(value[i])
+		}
+	}
+	return builder.String()
+}
+
+func TestSanitizeValueRoundTripsEscapedSequences(t *testing.T) {
+	cases := []string{
+		"plain",
+		"has=equals",
+		"has\\backslash",
+		"line1\nline2",
+		"carriage\rreturn",
+		"tab\tvalue",
+		"null\x00byte",
+		"combo\\=\n\t\r\x00",
+	}
+	for _, value := range cases {
+		if got := unsanitizeCLIValue(sanitizeValue(value)); got != value {
+			t.Fatalf("expected sanitize/unsanitize round trip for %q, got %q", value, got)
+		}
 	}
 }
 

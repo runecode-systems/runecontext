@@ -1,0 +1,12 @@
+schema_version: 1
+id: security/trust-boundary-interfaces
+title: Trust Boundary Interfaces
+tags:
+  - security
+  - trusted
+status: deprecated
+suggested_context_bundles:
+  - trust-boundary-heavy
+replaced_by: standards/security/trust-boundary-protocols.md
+aliases:
+  - security/legacy-trust-boundary-interfaces

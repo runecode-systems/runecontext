@@ -74,22 +74,102 @@
 
 ## 3. Change Workflow And Standards
 
-- [ ] Every substantive work item gets a stable change ID.
-- [ ] Minimum mode works with `status.yaml`, `proposal.md`, and `standards.md`.
-- [ ] Full mode works by materializing deeper files only when needed.
-- [ ] Work-type and size branching rules exist for project, feature, bug,
+- [x] Every substantive work item gets a stable change ID.
+- [x] Stable change IDs remain ASCII-safe even when authored titles contain
+  non-ASCII characters.
+- [x] Minimum mode works with `status.yaml`, `proposal.md`, and `standards.md`.
+- [x] Shaped work defaults to `design.md` and `verification.md`, while
+  `tasks.md` and `references.md` remain supplemental files created only when
+  they are needed and contain real content.
+- [x] `change shape` is additive/idempotent and does not behave like a
+  destructive regeneration pass over authored files.
+- [x] Large or high-risk work is prompted or inferred toward full mode early,
+  and non-interactive shaping rationale remains reviewable.
+- [x] Work-type and size branching rules exist for project, feature, bug,
   standard, and chore changes.
-- [ ] Ask-more versus infer-more heuristics exist and inferred assumptions are
+- [x] Ask-more versus infer-more heuristics exist and inferred assumptions are
   captured in `proposal.md`.
-- [ ] `proposal.md` uses the required section order and validation rules.
-- [ ] `standards.md` is always present and reviewably maintained.
-- [ ] Standards are referenced by path rather than copied into change/spec
+- [x] `proposal.md` uses the required section order and validation rules.
+- [x] `standards.md` is always present and reviewably maintained.
+- [x] Standards are referenced by path rather than copied into change/spec
   bodies.
-- [ ] Standards frontmatter validation, deprecation, and rename/migration rules
+- [x] Standards frontmatter validation, deprecation, and rename/migration rules
   work.
-- [ ] Cross-artifact references in change metadata validate cleanly or produce
+- [x] Standards migration uses one canonical `replaced_by` path-reference form
+  rather than mixed path/id ambiguity.
+- [x] Deprecated standards may still be referenced directly for compatibility,
+  but validation emits warnings and suggests `replaced_by` targets when present.
+- [x] Deprecated standards without `replaced_by` remain valid in `alpha.3`, but
+  validation emits a warning so missing migration guidance is reviewable.
+- [x] Draft or deprecated standards may still appear in `Standards Considered
+  But Excluded`, while draft standards fail closed for applicable selections and
+  bundle membership.
+- [x] `aliases` are validated as migration metadata and collision-checked even
+  though automatic alias-driven rewrites and runtime alias lookup remain
+  deferred.
+- [x] Path-based standards references inside `proposal.md` and `specs/*.md`
+  validate both deep-ref and plain backticked `standards/...md` forms.
+- [x] Copied-standard-content enforcement ignores fenced and quoted-fenced code
+  examples so reviewable excerpts do not trigger false positives.
+- [x] `standards.md` bullets may include non-standard backticked code in their
+  descriptions, but exactly one canonical standard path is required per bullet,
+  and any extra `standards/...` reference is rejected.
+- [x] Cross-artifact references in change metadata validate cleanly or produce
   clear diagnostics.
-- [ ] Closed changes remain directly accessible at stable paths.
+- [x] Standards-related validation and warning diagnostics use RuneContext-root-
+  relative paths so CLI output is deterministic across machines.
+- [x] Machine-readable traceability stays artifact-level, and human-readable
+  markdown can use machine-validated `path#heading-fragment` deep refs without
+  relying on brittle line numbers.
+- [x] Automatically derived heading fragments remain ASCII-safe and valid for
+  machine-readable deep refs even when headings contain non-ASCII text.
+- [x] Markdown deep-ref validation and rewrite flows ignore fenced code blocks,
+  reject absolute and traversal-style paths, and reject line-number fragments
+  such as `#L10`, `#L10-L20`, and `#42`.
+- [x] UTF-8-safe deep-ref tokenization does not absorb adjacent non-ASCII prose
+  into machine-readable fragment tokens, which remain ASCII-bounded in
+  `alpha.3`.
+- [x] Quoted fenced-code examples such as blockquote-prefixed fences are also
+  ignored by markdown deep-ref validation and rewrite flows.
+- [x] External URLs containing `.md#fragment` are not misclassified as local
+  RuneContext deep refs.
+- [x] Alpha.3 deep refs target machine-indexed markdown under `specs/`,
+  `decisions/`, `standards/`, and the top-level markdown files inside each
+  `changes/<id>/` directory.
+- [x] Alpha.3 machine-addressable markdown headings use ATX `#` headings; Setext
+  underlined headings are not part of the guaranteed deep-ref contract yet.
+- [x] Multiple non-closed changes can coexist without requiring one global
+  active-change slot for the repository.
+- [x] Large features can be represented as an umbrella change plus linked
+  sub-changes using navigable `related_changes` links and directional
+  `depends_on` prerequisites.
+- [x] Change-splitting flows and validation preserve consistent `depends_on` /
+  `related_changes` wiring when one sub-change must land before others.
+- [x] Split-change helpers reject self-dependencies and intra-split dependency
+  cycles while still allowing external prerequisite change IDs in `depends_on`.
+- [x] `superseded` works as a terminal successor state distinct from `closed`
+  and preserves reciprocal supersession links.
+- [x] Terminal lifecycle states that represent completed work in alpha.3 do not
+  leave `verification_status` at `pending`; both `closed` and `superseded`
+  require a completed verification outcome.
+- [x] Lifecycle helpers enforce forward-only progression and do not provide a
+  built-in reopen/downgrade path in alpha.3.
+- [x] Closed changes remain directly accessible at stable paths.
+- [x] Rare change-ID reallocation stays fail-closed in alpha.3: terminal or
+  externally referenced changes are rejected, only local change-path references
+  inside the change are rewritten, unchanged markdown preserves its original
+  bytes, successful rewrites keep the original newline style, rewrite token
+  boundaries stay UTF-8-safe, and backup cleanup degrades to an explicit
+  warning instead of a misleading hard failure after success.
+- [x] Failed alpha.3 lifecycle mutations do not leave partial on-disk state:
+  rejected closes restore prior status files, failed creates clean up transient
+  change directories, mutation paths reject symlinked targets, reallocate also
+  rejects symlinked rename roots, successful transactional rewrites preserve the
+  original file permissions, and atomic file replacement works even when the
+  destination already exists on Windows.
+- [x] Missing spec/decision reciprocity diagnostics clearly identify that the
+  reciprocal `related_specs` or `related_decisions` entry belongs on the
+  referenced change `status.yaml`.
 
 ## 4. Context Packs, Promotion, And Indexes
 
@@ -107,9 +187,16 @@
 
 - [ ] Plain mode works without extra assurance artifacts.
 - [ ] Verified mode can be enabled and persisted in `runecontext.yaml`.
+- [ ] Plain and Verified use the same authored workflow and repository source
+  model; Verified adds portable evidence requirements rather than alternate
+  source-of-truth files.
 - [ ] Verified mode generates a baseline artifact.
 - [ ] Verified mode generates receipt families for context packs, changes,
   promotions, and verifications.
+- [ ] Standalone `runectx` can generate the same minimal portable receipt set
+  that a Verified repository requires for mixed-team collaboration.
+- [ ] RuneCode may attach richer parallel audit evidence without becoming the
+  only place correctness-critical assurance state lives.
 - [ ] Receipt filenames are collision-resistant and do not require a shared
   mutable index.
 - [ ] Backfill can generate imported historical provenance distinct from native
@@ -119,11 +206,16 @@
 
 - [ ] The primary CLI commands exist: `init`, `status`, `change new`,
   `change shape`, `bundle resolve`, and `change close`.
+- [x] `runectx status` can at minimum report active, closed, and superseded
+  changes without requiring a single repository-wide active-change slot.
 - [ ] The secondary/admin commands exist: `validate`, `doctor`,
   `standard discover`, `promote`, `assurance enable verified`, and
   `assurance backfill`.
 - [ ] Before alpha.6 is complete, any earlier validation entrypoints remain narrow
   wrappers around the same core contracts rather than alternate semantics.
+- [x] Before alpha.6 is complete, any earlier `status`, `change new`,
+  `change shape`, and `change close` entrypoints remain narrow wrappers around
+  the same core operations rather than alternate semantics.
 - [ ] Before alpha.6 is complete, any earlier validation entrypoints use a
   documented and tested machine-readable output contract.
 - [ ] Before alpha.6 is complete, any earlier validation entrypoints that expose
@@ -150,6 +242,9 @@
 - [ ] The `claude-code`, `opencode`, and `codex` adapters exist.
 - [ ] Adapters differ in UX only, not in core semantics or source-of-truth
   files.
+- [ ] Adapter-driven edits to authoritative RuneContext files automatically run
+  `runectx validate` and surface failures before the workflow step is treated as
+  complete.
 - [ ] Adapters are packaged for release.
 
 ## 8. Release, Install, And Update
@@ -190,6 +285,8 @@ RuneContext makes them possible and testable.
 - [ ] RuneCode can validate linked signed-tag sources in audited flows.
 - [ ] RuneCode can consume receipt and baseline fixtures without asking
   RuneContext to change core semantics.
+- [ ] RuneCode can consume the same portable Verified receipts emitted by
+  standalone `runectx` while also attaching richer parallel audit evidence.
 
 ## 10. Explicitly Not Required For `v0.1.0`
 

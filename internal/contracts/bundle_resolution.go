@@ -121,6 +121,28 @@ type BundleCatalog struct {
 	resolutions map[string]*BundleResolution
 }
 
+func (c *BundleCatalog) Diagnostics() []BundleDiagnostic {
+	if c == nil {
+		return nil
+	}
+	items := make([]BundleDiagnostic, 0)
+	for _, id := range SortedKeys(c.resolutions) {
+		items = append(items, cloneBundleDiagnostics(c.resolutions[id].Diagnostics)...)
+	}
+	return items
+}
+
+func (c *BundleCatalog) appendDiagnostic(bundleID string, diagnostic BundleDiagnostic) {
+	if c == nil {
+		return
+	}
+	resolution := c.resolutions[bundleID]
+	if resolution == nil {
+		return
+	}
+	resolution.Diagnostics = append(resolution.Diagnostics, diagnostic)
+}
+
 type bundleWalkState struct {
 	files int
 	depth int

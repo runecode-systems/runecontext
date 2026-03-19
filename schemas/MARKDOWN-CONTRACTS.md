@@ -217,3 +217,54 @@ The YAML frontmatter for `decisions/*.md` must validate against `schemas/decisio
 - `id` path matching is strict and fail-closed.
 - Change references in `originating_changes` and `related_changes` must resolve to real change folders during project-level validation.
 - Decisions are durable ADR-like references; richer lifecycle/state metadata is intentionally deferred beyond alpha.1.
+
+## standards/**/*.md Frontmatter Contract
+
+Standards remain hand-authored markdown documents, but they now carry a strict YAML frontmatter block for reusable metadata, migration support, and lifecycle validation.
+
+### Required Frontmatter Fields
+
+The YAML frontmatter for `standards/**/*.md` must validate against `schemas/standard.schema.json` and include:
+
+- `schema_version`
+  - required and fixed to `1`
+- `id`
+  - required stable standard identifier
+  - must match the path-relative stem under `standards/` without the `.md` extension
+  - example: `runecontext/standards/security/trust-boundary-interfaces.md` -> `security/trust-boundary-interfaces`
+- `title`
+  - required human-readable standard title
+
+### Optional Frontmatter Fields
+
+- `tags`
+  - optional descriptive tags for discovery and review
+- `status`
+  - optional lifecycle state; allowed values are `draft`, `active`, and `deprecated`
+  - omitted status defaults to `active` for validation semantics
+- `suggested_context_bundles`
+  - optional advisory bundle IDs
+  - this metadata may inform tooling suggestions but is never authoritative bundle membership
+- `replaced_by`
+  - optional canonical successor reference for deprecated standards
+  - must use the single canonical `standards/<path>.md` form rather than ID-or-path ambiguity
+- `aliases`
+  - optional former IDs retained temporarily during rename/migration workflows
+
+### Rules
+
+- The frontmatter block must appear at the start of the file.
+- `id` path matching is strict and fail-closed.
+- Standard IDs must be unique across the full `standards/` tree.
+- Alias IDs must remain unique across all standards and must not collide with active canonical IDs.
+- `replaced_by` may only appear on deprecated standards and must resolve to a real standard path.
+- Draft standards are authorable but are not valid for change `standards.md` references or bundle selection.
+- Deprecated standards may still be selected directly for compatibility, but tooling must surface a warning and include the canonical `replaced_by` target when present.
+- Deprecated standards without `replaced_by` remain valid in `alpha.3`, but validators should emit a warning so missing migration guidance is visible.
+- `Standards Considered But Excluded` may cite draft or deprecated standards for reviewable migration notes, but `Applicable Standards` and `Standards Added Since Last Refresh` must not directly select draft standards.
+- `aliases` are validated and collision-checked in `alpha.3` as migration metadata; automatic alias-driven rewrites remain deferred.
+- Change docs and specs should reference standards by path rather than copying full standard content into the markdown body, aside from short quoted excerpts when necessary.
+- Path references inside `proposal.md` and `specs/*.md` may use plain backticked `standards/<path>.md` or machine-validated deep refs; both must resolve.
+- Copied-content detection should ignore fenced and quoted-fenced examples so demonstrative snippets do not become validation failures.
+- In `standards.md`, each bullet may include other backticked code in its descriptive text, but it must contain exactly one canonical `standards/<path>.md` reference and must not include additional non-canonical `standards/...` variants such as fragments.
+- Standards-related diagnostics should use RuneContext-root-relative paths for deterministic CLI and automation output.

@@ -37,7 +37,7 @@ The MVP includes every v1 RuneContext feature described in
 - explicit caller-supplied signed-tag trust inputs for narrow alpha-stage
   validation entrypoints
 - deterministic bundle resolution and context-pack hashing
-- minimum and full change shapes
+- minimum and lean shaped/full change shapes
 - Plain and Verified assurance tiers
 - minimal CLI surface
 - thin adapters as the primary day-to-day UX
@@ -55,10 +55,10 @@ contracts RuneCode needs in order to integrate cleanly.
 | --- | --- |
 | `v0.1.0-alpha.1` | Core model, naming, file contracts, schemas, canonical data rules, and validation foundation |
 | `v0.1.0-alpha.2` | Source resolution, explicit trust/integrity handling, monorepo support, and deterministic bundle semantics |
-| `v0.1.0-alpha.3` | Change workflow, standards linkage, traceability, and history preservation |
+| `v0.1.0-alpha.3` | Change workflow, standards linkage, traceability, history preservation, and thin change/status commands |
 | `v0.1.0-alpha.4` | Deterministic context packs, generated indexes, and promotion assessment |
 | `v0.1.0-alpha.5` | Plain/Verified assurance, baselines, receipts, and backfill |
-| `v0.1.0-alpha.6` | Minimal CLI, validation, doctoring, and machine-facing command contracts |
+| `v0.1.0-alpha.6` | Broadened CLI, validation, doctoring, and machine-facing command contracts |
 | `v0.1.0-alpha.7` | Generic and tool-specific adapters plus adapter-pack UX |
 | `v0.1.0-alpha.8` | Release/install/update hardening and end-to-end MVP readiness fixtures |
 | `v0.1.0` | Stabilization, compatibility freeze, and MVP acceptance sign-off |
@@ -67,6 +67,72 @@ Signed-tag verification is intentionally part of the MVP and is planned across
 `alpha.2` (resolution/integrity implementation using explicit trusted-signer
 inputs rather than hidden machine-global trust state), `alpha.4` (context-pack
 provenance fields), and `alpha.8` (release/reference-project validation).
+
+## Dogfooding Guidance
+
+- `alpha.3` is the planned point where this repository should be able to start
+  dogfooding RuneContext for new work: repo-local project context,
+  project-specific standards, active changes, and traceability.
+- Post-review `alpha.3` semantics for standards explicitly include strict
+  frontmatter validation, path-based standards references in authored change and
+  spec docs, warning-level handling for deprecated direct selections, and
+  advisory-only `suggested_context_bundles` metadata.
+- Final Branch Cut 2 follow-up also clarifies that canonical path references are
+  the only supported authored reference form in `alpha.3`, deprecated standards
+  without successors warn rather than fail, and copied-body enforcement excludes
+  fenced example content.
+- The final PR-feedback pass further clarifies that `standards.md` bullets may
+  contain other backticked code snippets as description text, but must still
+  name exactly one canonical standard path, and that alias metadata is not used
+  for runtime reference resolution in `alpha.3`.
+- The latest re-review also locks in RuneContext-root-relative diagnostics for
+  standards validation and explicitly rejects non-canonical or additional
+  `standards/...` references within a single `standards.md` bullet.
+- The follow-up hardening pass for Branch Cut 3 also locks in three safety
+  behaviors for the thin change/status commands: explicit path arguments remain
+  explicit roots even when the caller passes `.`, `change shape` rejects
+  terminal changes instead of mutating history, and supersession repair fails
+  closed if a reciprocal link would require mutating a terminal successor.
+- The final Branch Cut 4 hardening pass extends that same fail-closed posture to
+  `runectx change reallocate CHANGE_ID [--path PATH]`: terminal changes cannot
+  be rewritten, reallocation only rewrites local change-path references inside
+  the change, unchanged markdown keeps its original bytes, rewrite token
+  boundaries stay UTF-8-safe, staging happens outside the live `changes/` tree,
+  and leftover backup-cleanup problems surface as warnings instead of ambiguous
+  post-success failures.
+- The latest follow-up hardening pass applies the same fail-closed expectation
+  to `change close` and `change new`: failed close operations roll back status
+  rewrites instead of leaving partial history mutations behind, failed creates
+  clean up their transient change directories, mutation paths reject symlinked
+  targets across create/close/reallocate, reallocate also rejects symlinked
+  rename roots before directory swaps, transactional rewrites preserve file
+  permissions, successful markdown path rewrites keep the original file newline
+  style, and atomic file replacement now has a Windows-safe fallback when the
+  destination already exists.
+- The same hardening pass also requires optional change-status string fields to
+  stay omitted when absent rather than being rewritten as placeholder strings
+  such as `<nil>` in summaries or rewritten `status.yaml` files.
+- That same rewrite safety rule also preserves the default
+  `promotion_assessment.status` of `pending` when the promotion assessment block
+  is present but omits an explicit status.
+- The latest alpha.3 traceability hardening pass also requires markdown deep-ref
+  tokenization to stay UTF-8-safe during validation, so surrounding Unicode
+  punctuation such as smart quotes terminates local ref tokens cleanly instead
+  of producing false missing-artifact errors, while machine-readable heading
+  fragments remain ASCII-bounded even when adjacent prose is non-ASCII.
+- The same alpha.3 hardening pass also aligns terminal lifecycle validation with
+  close-time behavior: both `closed` and `superseded` changes must carry a
+  completed `verification_status`, and missing spec/decision reciprocity now
+  points reviewers back to the referenced change `status.yaml` instead of
+  repeating the same change ID twice.
+- `alpha.4` is the planned point where this repository should be able to use
+  RuneContext as the primary execution-tracking layer for day-to-day feature
+  progression, because generated indexes, manifests, and promotion assessment
+  complete the basic flow from planned work to durable project knowledge.
+- `docs/implementation-plan/` should still remain the home for release-train,
+  acceptance, and coverage-accounting documents even after repo-local
+  RuneContext dogfooding begins; the goal is not a literal 1:1 migration of
+  every planning document into a RuneContext artifact.
 
 ## Document Index
 
@@ -84,6 +150,14 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - Keep the on-disk model, schemas, and resolution semantics canonical.
 - Treat adapters as UX layers, not alternate sources of truth.
 - Keep generated artifacts derived and reviewable.
+- Keep one core authored workflow across `plain` and `verified`; higher
+  assurance adds evidence rather than alternate source-of-truth files.
+- Keep repositories self-sufficient for mixed standalone RuneContext and
+  RuneCode teams; RuneCode evidence may be richer but must remain additive
+  rather than required for correctness.
+- Keep shaped change docs lean: `design.md` and `verification.md` are the
+  default shaped artifacts, while `tasks.md` and `references.md` are created
+  only when they add real value.
 - Keep the release workflow as close as practical to RuneCode's tag-driven
   build/publish split so users can audit one familiar release shape across both
   repositories.
@@ -117,6 +191,8 @@ until the end.
   output.
 - Add parser and project fixtures for markdown contracts and traceability rules,
   including `proposal.md`, `standards.md`, `specs/*.md`, and `decisions/*.md`.
+- Add parser and project fixtures for machine-validated heading-fragment refs so
+  deep links remain human-readable without relying on brittle line numbers.
 - Make whole-project validation exercise the same alpha-stage contracts the docs
   claim are enforced; do not leave parser-only checks unwired.
 - Validate against the project's declared content root instead of assuming a
@@ -130,6 +206,8 @@ until the end.
   tested.
 - Add adapter smoke tests and reference-project tests so UX layers stay aligned
   with the same core semantics.
+- Add adapter tests ensuring that mutations to authoritative RuneContext files
+  automatically trigger `runectx validate` and surface failures immediately.
 - Add RuneCode companion parity fixtures wherever this repository defines a
   contract RuneCode will later consume.
 - Do not treat a feature as complete in any alpha until the tests and fixtures

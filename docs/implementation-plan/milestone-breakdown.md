@@ -312,97 +312,276 @@ auditable, and safe for future local/remote parity.
 Primary outcome: make RuneContext usable as a change-oriented workflow system
 with stable IDs, lightweight shaping, and reviewable standards linkage.
 
-### Epic 1: Change identity and lifecycle
+### Implementation Notes
 
-- [ ] Issue: implement year-scoped change ID allocation with monotonic counter
+- Multiple non-closed changes may exist at the same time. RuneContext should not
+  require one global active-change slot for the whole repository; instead,
+  tooling should surface open versus closed work clearly and let specific runs
+  select the relevant active change or changes.
+- Lifecycle state and change shape are separate axes. `planned` should not imply
+  full mode automatically, and `change shape` should be additive/idempotent
+  rather than a destructive regeneration step. Terminal changes should reject
+  later shaping so historical artifacts stay immutable.
+- Very large or high-risk work should usually start as one minimum-mode change
+  and then move into full mode early. `change new` should be able to recommend
+  or directly trigger shaping when the requested work appears too large,
+  ambiguous, or risky for minimum mode.
+- Shaped changes should stay lean by default: `design.md` and
+  `verification.md` are the baseline shaped artifacts, while `tasks.md` and
+  `references.md` are supplemental shaped docs created only when they add real
+  value.
+- When a large feature is split into an umbrella change plus smaller sub-
+  changes, RuneContext should model that as a linked graph of changes rather
+  than a hidden alternate hierarchy. `related_changes` keeps the graph
+  navigable; directional `depends_on` links capture prerequisite ordering.
+- Tooling should help create and preserve those links when work is split, and
+  validation should fail clearly when prerequisite or related-change references
+  are missing, inconsistent, or no longer resolve.
+- `superseded` should be treated as a terminal state distinct from `closed`:
+  the work was replaced by successor change(s), must carry `superseded_by`,
+  must remain bidirectionally consistent with successor `supersedes` links, and
+  should still preserve stable-path readability, and must not leave
+  `verification_status` at `pending`. If repairing a missing
+  reciprocal supersession link would require mutating a terminal successor,
+  tooling should fail closed instead.
+- Structured traceability should remain artifact-first in machine-readable files
+  while markdown docs may use machine-validated deep refs via stable
+  `path#heading-fragment` syntax. Do not use line numbers as durable refs.
+- Change ID slugs and automatically derived heading fragments should stay
+  ASCII-safe so authored non-ASCII titles or headings never generate invalid
+  machine-readable identifiers.
+- Markdown deep-ref validation and tool-assisted rewrite behavior should ignore
+  fenced code blocks, require RuneContext-root-relative paths instead of `./`,
+  `../`, or absolute `/...` forms, reject line-number fragments such as `#L10`
+  or `#42`, and use documented first-match rewrite semantics for scoped update
+  rules.
+- Markdown deep-ref tokenization must also stay UTF-8-safe so surrounding
+  non-ASCII punctuation in prose does not get absorbed into a local markdown ref
+  or produce false missing-artifact validation failures, while the
+  machine-readable fragment token itself remains ASCII-bounded.
+- Markdown deep-ref detection should ignore external URLs even when they contain
+  `.md#fragment` suffixes, and the machine-addressable heading subset for
+  alpha.3 is ATX `#` headings rather than Setext underlined headings.
+- Fenced-code exclusion in alpha.3 includes ordinary fenced blocks and
+  blockquote-prefixed fenced examples so quoted examples do not become live
+  machine refs.
+- Stable deep-ref targets for alpha.3 are the machine-indexed markdown areas:
+  `specs/`, `decisions/`, `standards/`, and the top-level markdown files inside
+  each `changes/<id>/` directory.
+- Artifact traceability in alpha.3 is intentionally minimum viable and
+  artifact-level: `related_specs` and `related_decisions` must mirror a real
+  change reference on the target artifact, but they do not yet encode a stricter
+  machine distinction between "originating" versus "revision" linkage.
+  Validation errors should still clearly point reviewers back to the change
+  `status.yaml` that needs the reciprocal artifact reference.
+- Lifecycle helpers remain forward-only in alpha.3: tooling validates monotonic
+  progress and terminal immutability rather than offering an explicit reopen or
+  downgrade workflow.
+- Automatically derived heading fragments must remain unique within a file even
+  when headings naturally collide with suffixed forms such as `foo-2`; tooling
+  should preserve deterministic, machine-validated fragments rather than
+  silently overwriting earlier headings.
+- Thin `runectx status`, `runectx change new`, `runectx change shape`, and
+  `runectx change close` entrypoints may land here as narrow wrappers over the
+  same core operations, with the broader CLI contract deferred to `alpha.6`.
+  Explicit path arguments should remain explicit roots even when the caller
+  passes `.`.
+- Mixed standalone RuneContext and RuneCode teams must remain portable: the
+  repository carries all correctness-critical state, while RuneCode may add
+  richer audit evidence on top without becoming required for collaboration.
+
+### Recommended Branch Cut 1: Change identity, lifecycle, stable-path history, and traceability core
+
+- [x] Issue: implement year-scoped change ID allocation with monotonic counter
   plus collision-resistant suffix.
-- [ ] Issue: implement minimum-mode change scaffolding with `status.yaml`,
-  `proposal.md`, and `standards.md`.
-- [ ] Issue: implement full-mode materialization for `design.md`, `tasks.md`,
-  `references.md`, and `verification.md`.
-- [ ] Issue: implement lifecycle state validation for `proposed`, `planned`,
+- [x] Issue: implement lifecycle state validation for `proposed`, `planned`,
   `implemented`, `verified`, `closed`, and `superseded`.
-- [ ] Issue: implement bidirectional supersession consistency checks.
-- [ ] Issue: implement merge-time change-ID collision detection, reallocation,
-  and atomic local-reference rewriting for the rare case where branches still
-  collide.
-
-### Epic 2: Progressive disclosure and intake heuristics
-
-- [ ] Issue: define the branching rules for `project`, `feature`, `bug`,
-  `standard`, and `chore` work so minimum mode versus full mode is chosen
-  consistently.
-- [ ] Issue: define size and risk escalation rules so `small`, `medium`, and
-  `large` work items shape correctly.
-- [ ] Issue: define the deeper intake checklist for new-project work, including
-  mission, target users, stack/runtime constraints, deployment/security
-  constraints, success criteria, and non-goals.
-- [ ] Issue: define the bug-workflow escalation rules for unclear root causes,
-  security impact, schema impact, API impact, and behavior ambiguity.
-- [ ] Issue: define the "ask more vs less" heuristics for when RuneContext must
-  probe further versus infer defaults from repository conventions.
-- [ ] Issue: ensure inferred assumptions are recorded in `proposal.md` when
-  non-trivial decisions are made without prompting.
-
-### Epic 3: Intent artifacts and standards linkage
-
-- [ ] Issue: generate and validate `proposal.md` using the required heading
-  order and explicit `N/A` rules.
-- [ ] Issue: generate and validate `status.yaml` fields, including type, size,
-  verification status, and promotion assessment placeholders.
-- [ ] Issue: populate and refresh `standards.md` during change creation and
-  shaping.
-- [ ] Issue: enforce reviewable diffs for any automatic `standards.md` refresh.
-
-### Epic 4: Standards authoring model
-
-- [ ] Issue: validate standard frontmatter, including stable `id` path matching.
-- [ ] Issue: implement `draft`, `active`, and `deprecated` standard-state
-  handling.
-- [ ] Issue: implement `replaced_by` and `aliases` support for migration and
-  rename workflows.
-- [ ] Issue: enforce the rule that standards are referenced by path instead of
-  copied into change/spec bodies.
-- [ ] Issue: ensure `suggested_context_bundles` remains advisory metadata only
-  and never becomes authoritative bundle membership.
-
-### Epic 5: History preservation and traceability
-
-- [ ] Issue: implement close behavior that updates state without moving change
+- [x] Issue: define terminal-state invariants so `superseded` is distinct from
+  `closed`, requires successor references, and still records terminal metadata
+  such as `closed_at` consistently.
+- [x] Issue: implement bidirectional supersession consistency checks.
+- [x] Issue: implement close behavior that updates state without moving change
   folders into an archive tree.
-- [ ] Issue: implement traceability fields connecting changes, specs, and
-  decisions.
-- [ ] Issue: validate that `depends_on`, `informed_by`, `related_changes`,
+- [x] Issue: define concurrent-open-change behavior so multiple non-closed
+  changes can coexist without requiring one global active change for the whole
+  repository.
+- [x] Issue: implement artifact-level traceability fields connecting changes,
+  specs, and decisions.
+- [x] Issue: validate that `depends_on`, `informed_by`, `related_changes`,
   `related_specs`, and `related_decisions` resolve to real artifacts or report
   clear diagnostics.
-- [ ] Issue: ensure closed changes remain directly readable at stable paths.
-- [ ] Issue: define the minimum traceability needed for future lineage/index
+- [x] Issue: define asymmetric graph semantics so `depends_on` and
+  `informed_by` remain directional while `related_changes` stays reciprocal for
+  navigation.
+- [x] Issue: implement machine-validated deep-link refs in markdown using
+  stable `path#heading-fragment` syntax rather than line-number references.
+- [x] Issue: implement heading-fragment rename/move rewriting for tool-assisted
+  file renames and scoped markdown reference updates.
+- [x] Issue: implement split-change helpers and validation rules so umbrella
+  changes and sub-changes wire `related_changes` and directional `depends_on`
+  links consistently when prerequisite ordering matters.
+- [x] Issue: allow split-change `depends_on` edges to reference external
+  prerequisite changes while still rejecting self-dependencies and intra-split
+  dependency cycles.
+- [x] Issue: ensure closed and superseded changes remain directly readable at
+  stable paths.
+- [x] Issue: define the minimum traceability needed for future lineage/index
   tooling without building that lineage view yet.
 
-### Epic 6: Workflow tests and fixtures
+### Recommended Branch Cut 2: Standards authoring and migration semantics
 
-- [ ] Issue: add unit tests for change ID allocation, lifecycle transitions,
+- [x] Issue: validate standard frontmatter, including stable `id` path matching.
+- [x] Issue: implement `draft`, `active`, and `deprecated` standard-state
+  handling.
+- [x] Issue: implement `replaced_by` and `aliases` support for migration and
+  rename workflows.
+- [x] Issue: tighten `replaced_by` to one canonical standards-path reference
+  form rather than path-or-id ambiguity.
+- [x] Issue: enforce the rule that standards are referenced by path instead of
+  copied into change/spec bodies.
+- [x] Issue: ensure `suggested_context_bundles` remains advisory metadata only
+  and never becomes authoritative bundle membership.
+
+Post-review clarifications:
+
+- Deprecated standards remain directly selectable in applicable change sections
+  and bundle selections, but validation/tooling must emit warnings and surface
+  `replaced_by` guidance when available.
+- Deprecated standards without a successor remain valid in `alpha.3`, but
+  validation should emit a warning on the standard so missing migration guidance
+  is visible during authoring and review.
+- Draft standards fail closed only when directly selected as applicable/added
+  standards or bundle members; draft and deprecated standards may still appear
+  in `Standards Considered But Excluded` for reviewable migration notes.
+- `aliases` are validated as migration metadata in `alpha.3`, but automated
+  alias-based rewrite/resolution flows remain deferred to later tooling work;
+  authored references must still use canonical standard paths, and no runtime
+  alias lookup is performed in this branch cut.
+- Path-based standard-reference enforcement in `alpha.3` covers `standards.md`,
+  `proposal.md`, and `specs/*.md`; copied standard body text in those authored
+  bodies is rejected to keep standards reviewable and non-duplicated, while
+  fenced and quoted-fenced examples remain exempt from copied-body detection.
+- `standards.md` bullet validation counts canonical standard path spans only, so
+  a bullet may still contain other backticked code snippets in its descriptive
+  text as long as it names exactly one standard path; any additional
+  `standards/...` backticked reference, including non-canonical fragment forms,
+  is rejected.
+- CLI validation output should preserve enough structured diagnostic context
+  (bundle/aspect/rule/pattern/matches/path) to make standards-migration and
+  bundle-selection warnings actionable in automation, using RuneContext-root-
+  relative paths rather than machine-specific absolute paths.
+- Comparable-snippet precomputation for copied-content detection remains a
+  deliberate post-`alpha.3` optimization rather than a correctness requirement
+  for Branch Cut 2.
+
+### Recommended Branch Cut 3: Progressive disclosure, intent artifacts, standards linkage, and thin change/status commands
+
+- [x] Issue: define the branching rules for `project`, `feature`, `bug`,
+  `standard`, and `chore` work so minimum mode versus full mode is chosen
+  consistently.
+- [x] Issue: define size and risk escalation rules so `small`, `medium`, and
+  `large` work items shape correctly.
+- [x] Issue: implement `change new` heuristics that recommend or immediately
+  trigger full-mode shaping when a requested change appears too large,
+  ambiguous, or high-risk for minimum mode.
+- [x] Issue: define the deeper intake checklist for new-project work, including
+  mission, target users, stack/runtime constraints, deployment/security
+  constraints, success criteria, and non-goals.
+- [x] Issue: define the bug-workflow escalation rules for unclear root causes,
+  security impact, schema impact, API impact, and behavior ambiguity.
+- [x] Issue: define the "ask more vs less" heuristics for when RuneContext must
+  probe further versus infer defaults from repository conventions.
+- [x] Issue: ensure inferred assumptions are recorded in `proposal.md` when
+  non-trivial decisions are made without prompting.
+- [x] Issue: implement minimum-mode change scaffolding with `status.yaml`,
+  `proposal.md`, and `standards.md`.
+- [x] Issue: implement shaped change materialization for `design.md` and
+  `verification.md` by default, with `tasks.md` and `references.md` created
+  only when needed and non-empty.
+- [x] Issue: generate and validate `proposal.md` using the required heading
+  order and explicit `N/A` rules.
+- [x] Issue: generate and validate `status.yaml` fields, including type, size,
+  verification status, traceability fields, and promotion assessment state
+  scaffolding.
+  - Optional string fields that are absent stay omitted on rewrite rather than
+    being serialized as placeholder values such as `<nil>`.
+  - Empty promotion-assessment maps preserve the default `pending` status on
+    rewrite rather than serializing placeholder values or invalid enum entries.
+- [x] Issue: populate and refresh `standards.md` during change creation and
+  shaping.
+- [x] Issue: enforce reviewable diffs for any automatic `standards.md` refresh.
+- [x] Issue: implement thin `runectx status` reporting for active, closed, and
+  superseded changes only, using a documented narrow machine-readable contract.
+- [x] Issue: implement thin `runectx change new` as a narrow wrapper over the
+  core change-creation operation.
+- [x] Issue: implement thin `runectx change shape` as a narrow wrapper over the
+  core shaping operation.
+- [x] Issue: implement thin `runectx change close` as a narrow wrapper over the
+  core close operation.
+
+### Recommended Branch Cut 4: Rewrite-heavy edge cases and late alpha.3 polish
+
+- [x] Issue: implement merge-time change-ID collision detection, reallocation,
+  and atomic local-reference rewriting for the rare case where branches still
+  collide.
+  - Post-review hardening: reject terminal or externally referenced changes,
+    stage outside the live `changes/` tree, reject symlinked change artifacts,
+    keep reallocation rewrites scoped to local change-path references, preserve
+    unchanged markdown bytes, preserve original line endings on successful
+    rewrites, keep rewrite token boundaries UTF-8-safe, make close/create
+    failure paths roll back or clean up instead of leaving partial state behind,
+    preserve file permissions across transactional rewrites, reject symlinked
+    reallocate rename roots before directory swaps, use a Windows-safe fallback
+    when atomic file replacement targets already exist, and surface
+    backup-cleanup as a warning rather than an ambiguous command failure.
+
+### Cross-Cutting Workflow Tests and Fixtures
+
+- [x] Issue: add unit tests for change ID allocation, lifecycle transitions,
   supersession consistency, and collision reallocation behavior.
-- [ ] Issue: add parser/validator tests for `proposal.md` and `standards.md`
-  contracts.
-- [ ] Issue: add golden fixtures for minimum-mode, full-mode, closed, and
-  superseded change folders.
-- [ ] Issue: add tests for dangling cross-artifact references and standards-
-  maintenance review-diff behavior.
+- [x] Issue: add tests for terminal-state invariants, reciprocal
+  `related_changes`, directional `depends_on`/`informed_by` semantics, and
+  heading-fragment ref validation.
+- [x] Issue: add parser/validator tests for `proposal.md`, `standards.md`, and
+  deep-link markdown reference contracts.
+- [x] Issue: add golden fixtures for minimum-mode, shaped, supplemental-doc,
+  closed, and superseded change folders.
+- [x] Issue: add tests for dangling cross-artifact references, heading-fragment
+  rewrite behavior, and standards-maintenance review-diff behavior.
+- [x] Issue: add tests ensuring fenced code examples do not validate or rewrite
+  as live deep refs, and that absolute or traversal-style markdown deep-ref
+  paths fail closed.
 
 ### Exit Criteria
 
 - Every substantive work item can start in minimum mode and deepen only when
   needed.
+- Shaped changes default to `design.md` and `verification.md`, while
+  `tasks.md` and `references.md` appear only when they carry real content.
+- Large or high-risk work is pushed toward full mode early enough that minimum
+  mode does not become a hiding place for under-shaped work.
 - `proposal.md` is the canonical reviewable intent artifact.
 - `standards.md` is always present and reviewably maintained.
 - Change history stays accessible at stable paths.
+- `superseded` is validated as a terminal successor state distinct from
+  `closed`.
+- Multiple non-closed changes can coexist, and status/reporting flows do not
+  depend on a single repository-wide active-change slot.
+- Large features can be represented as an umbrella change plus linked
+  sub-changes with consistent `related_changes` and prerequisite `depends_on`
+  edges.
+- Machine-readable graph links stay artifact-level, while markdown deep links
+  can target stable heading fragments without relying on line numbers.
+- Thin `status`, `change new`, `change shape`, and `change close` commands exist
+  as wrappers over the same core operations later CLI work will broaden.
 - Minimum/full-mode branching and prompting heuristics are both tested.
 
 ### RuneCode Companion-Track Checkpoints
 
 - RuneCode can bind active change IDs plus proposal sections into audit-history
   fixtures.
+- RuneCode can consume the same artifact-level and heading-fragment references
+  that standalone RuneContext validates.
 - RuneCode can generate reviewable `standards.md` updates rather than silent
   mutations.
 - RuneCode can consume change close outputs as inputs to future promotion flows.
@@ -450,8 +629,9 @@ RuneCode integration.
 
 ### Epic 4: Promotion assessment
 
-- [ ] Issue: implement structured promotion assessment records in `status.yaml`.
-- [ ] Issue: implement the full promotion-assessment status lifecycle:
+- [ ] Issue: build promotion suggestion behavior on top of the alpha.3
+  `promotion_assessment` structure already present in `status.yaml`.
+- [ ] Issue: implement the full promotion-assessment suggestion lifecycle:
   `pending`, `none`, `suggested`, `accepted`, and `completed`.
 - [ ] Issue: implement reviewable suggested promotion targets for `specs/`,
   `standards/`, and `decisions/`.
@@ -491,6 +671,16 @@ RuneCode integration.
 Primary outcome: support both low-friction standalone use and stronger
 verifiable tracing, while keeping assurance progressive rather than mandatory.
 
+### Implementation Notes
+
+- `plain` and `verified` should share one authored workflow and one repository
+  source model. Verified mode adds portable evidence requirements rather than an
+  alternate authoring path.
+- Standalone `runectx` must be able to generate the same minimal portable
+  Verified receipts that mixed-team collaboration depends on.
+- RuneCode may add richer parallel audit evidence, but that evidence must remain
+  additive and must not become hidden required state for correctness.
+
 ### Epic 1: Assurance-tier model
 
 - [ ] Issue: implement persisted `plain` versus `verified` tier behavior.
@@ -507,6 +697,8 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - [ ] Issue: record initial resolved source posture and adoption metadata.
 - [ ] Issue: implement receipt generation triggers for future verified
   operations.
+- [ ] Issue: ensure standalone `runectx` can generate the minimal portable
+  receipt set required by a Verified repository without depending on RuneCode.
 - [ ] Issue: implement commit-policy guidance for what is committed, ignored, or
   treated as ephemeral in Verified mode.
 
@@ -542,6 +734,8 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - Plain mode remains lightweight and usable without extra receipt generation.
 - Verified mode can generate baseline and receipt artifacts for future audit
   consumption.
+- Verified repositories remain fully usable by mixed standalone RuneContext and
+  RuneCode teams through the same portable receipt model.
 - Historical backfill can strengthen trust without pretending to be native
   verified capture.
 - Assurance behavior is covered by deterministic fixtures rather than narrative
@@ -560,18 +754,29 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 Primary outcome: expose the small universal command surface needed for
 automation, CI, debugging, and non-agent workflows.
 
+### Implementation Notes
+
+- `alpha.3` may already expose thin `status` and change write wrappers. This
+  milestone broadens those commands into the stable universal CLI contract
+  rather than redefining their semantics.
+
 ### Epic 1: Primary commands
 
 - [ ] Issue: implement `runectx init`.
-- [ ] Issue: implement `runectx status`.
-- [ ] Issue: implement `runectx change new`.
-- [ ] Issue: implement `runectx change shape`.
+- [ ] Issue: broaden `runectx status` from its alpha.3 narrow status-reporting
+  contract into the stable CLI surface.
+- [ ] Issue: broaden `runectx change new` from its alpha.3 thin wrapper into the
+  stable CLI surface.
+- [ ] Issue: broaden `runectx change shape` from its alpha.3 thin wrapper into
+  the stable CLI surface.
 - [ ] Issue: implement `runectx bundle resolve`.
-- [ ] Issue: implement `runectx change close`.
+- [ ] Issue: broaden `runectx change close` from its alpha.3 thin wrapper into
+  the stable CLI surface.
 
 ### Epic 2: Secondary and admin commands
 
-- [ ] Issue: implement `runectx validate`.
+- [ ] Issue: broaden `runectx validate` from the earlier narrow contract into
+  the stable CLI surface.
 - [ ] Issue: implement `runectx doctor`.
 - [ ] Issue: implement `runectx standard discover`.
 - [ ] Issue: implement `runectx promote`.
@@ -635,6 +840,9 @@ tools while preserving one core model.
 - [ ] Issue: define adapter-to-core operation mapping rules.
 - [ ] Issue: define how adapters consume or derive from the canonical
   operations reference without redefining semantics.
+- [ ] Issue: define the adapter-pack rule that edits to authoritative
+  RuneContext files must automatically trigger `runectx validate` before the
+  tool considers the workflow step complete.
 
 ### Epic 2: Generic adapter
 
@@ -649,6 +857,9 @@ tools while preserving one core model.
 - [ ] Issue: author the `codex` adapter pack.
 - [ ] Issue: define compatibility-mode guidance for hosts with weaker
   interaction capabilities.
+- [ ] Issue: add tool-native automation/skills that run `runectx validate`
+  after edits to authoritative RuneContext files and surface failures
+  immediately.
 
 ### Epic 4: Adapter packaging and sync
 
@@ -674,6 +885,9 @@ tools while preserving one core model.
   operations and expected file mutations.
 - [ ] Issue: add tests ensuring adapters do not introduce hidden state or
   adapter-only correctness requirements.
+- [ ] Issue: add tests ensuring adapter-driven edits to authoritative
+  RuneContext files automatically invoke `runectx validate` while unrelated code
+  edits do not trigger unnecessary validation.
 
 ### Exit Criteria
 

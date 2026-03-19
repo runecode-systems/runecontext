@@ -231,3 +231,13 @@ aspects:
           pattern: decisions/DEC-0001-trust-boundary-model.md
           kind: exact
     excluded: []
+diagnostics:
+  - severity: warning
+    code: deprecated_standard_selected
+    message: bundle "diamond" selects deprecated standard "standards/global/legacy.md"; consider "standards/global/guide.md"
+    bundle: diamond
+    aspect: standards
+    rule: include
+    pattern: standards/global/legacy.md
+    matches:
+      - standards/global/legacy.md

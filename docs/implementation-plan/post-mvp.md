@@ -39,6 +39,9 @@ deferred by the idea document.
 
 - [ ] Issue: design the generated lineage graph model connecting changes,
   decisions, specs, and standards across history.
+- [ ] Issue: build richer lineage views on top of the alpha.3 artifact-level and
+  heading-fragment traceability model without introducing new mandatory authored
+  fields.
 - [ ] Issue: implement a generated lineage/index view over existing traceability
   fields.
 - [ ] Issue: add filters for active, closed, superseded, and promoted history.
@@ -92,6 +95,8 @@ describes as optional or supplementary rather than mandatory for v1.
   RuneContext text used in model-facing flows.
 - [ ] Issue: implement richer provenance-compaction controls when a context pack
   needs separate receipt detail beyond the MVP compact form.
+- [ ] Issue: consider optional deeper section-fragment semantics beyond
+  heading-slug refs only if real-world authoring pressure appears after MVP.
 
 ### RuneCode Companion-Track Checkpoints
 

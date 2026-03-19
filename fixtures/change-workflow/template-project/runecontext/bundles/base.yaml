@@ -1,0 +1,7 @@
+schema_version: 1
+id: base
+includes:
+  project:
+    - project/mission.md
+  standards:
+    - standards/global/base.md

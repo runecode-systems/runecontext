@@ -14,7 +14,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var changeIDPattern = regexp.MustCompile(`^CHG-\d{4}-\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(-[a-z0-9]+)*$`)
+var (
+	changeIDPattern   = regexp.MustCompile(`^CHG-\d{4}-\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(-[a-z0-9]+)*$`)
+	artifactIDPattern = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?:/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)*$`)
+	bundleIDPattern   = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
+)
 
 type Validator struct {
 	schemaRoot string
@@ -35,7 +39,9 @@ func (e *ValidationError) Error() string {
 }
 
 type MarkdownDocument struct {
-	Sections map[string]string
+	Sections      map[string]string
+	Refs          []string
+	RefsBySection map[string][]string
 }
 
 type FrontmatterDocument struct {
@@ -48,9 +54,16 @@ type ProjectIndex struct {
 	ContentRoot    string
 	Resolution     *SourceResolution
 	Bundles        *BundleCatalog
+	Diagnostics    []ValidationDiagnostic
 	ChangeIDs      map[string]struct{}
+	Changes        map[string]*ChangeRecord
+	MarkdownFiles  map[string]*MarkdownArtifact
+	StandardPaths  map[string]struct{}
+	Standards      map[string]*StandardRecord
 	SpecPaths      map[string]struct{}
+	Specs          map[string]*SpecRecord
 	DecisionPaths  map[string]struct{}
+	Decisions      map[string]*DecisionRecord
 	StatusFiles    map[string]StatusFileRecord
 }
 
@@ -171,6 +184,20 @@ func (v *Validator) ParseDecision(path string, data []byte) (*FrontmatterDocumen
 	return doc, nil
 }
 
+func (v *Validator) ParseStandard(path string, data []byte) (*FrontmatterDocument, error) {
+	doc, err := parseFrontmatterMarkdown(path, data)
+	if err != nil {
+		return nil, err
+	}
+	if err := v.ValidateValue("standard.schema.json", path, doc.Frontmatter); err != nil {
+		return nil, err
+	}
+	if err := validatePathMatchedID(path, "standards", doc.Frontmatter["id"]); err != nil {
+		return nil, err
+	}
+	return doc, nil
+}
+
 func (v *Validator) ValidateTraceabilityProject(root string) error {
 	index, err := v.ValidateProject(root)
 	if err != nil {
@@ -264,6 +291,8 @@ func parseStandardsMarkdown(path string, data []byte) (*MarkdownDocument, error)
 	}
 	seen := map[string]struct{}{}
 	parsed := map[string]string{}
+	refs := make([]string, 0)
+	refsBySection := map[string][]string{}
 	lastCanonical := -1
 	customStarted := false
 	for _, section := range sections {
@@ -287,7 +316,119 @@ func parseStandardsMarkdown(path string, data []byte) (*MarkdownDocument, error)
 		}
 		parsed[section.Heading] = section.Body
 	}
-	return &MarkdownDocument{Sections: parsed}, nil
+	for _, heading := range []string{"Applicable Standards", "Standards Added Since Last Refresh", "Standards Considered But Excluded"} {
+		body, ok := parsed[heading]
+		if !ok {
+			continue
+		}
+		if err := validateStandardsSectionReferences(path, heading, body); err != nil {
+			return nil, err
+		}
+		sectionRefs := extractStandardsSectionReferences(body)
+		refs = append(refs, sectionRefs...)
+		refsBySection[heading] = append([]string(nil), sectionRefs...)
+	}
+	return &MarkdownDocument{Sections: parsed, Refs: uniqueSortedStrings(refs), RefsBySection: refsBySection}, nil
+}
+
+func validateStandardsSectionReferences(path, heading, body string) error {
+	lines := strings.Split(body, "\n")
+	inBullet := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "- ") {
+			refs := extractStandardsLikeBacktickedRefs(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
+			if len(refs) != 1 {
+				return &ValidationError{Path: path, Message: fmt.Sprintf("section %q must list exactly one backticked standard path per bullet", heading)}
+			}
+			ref := refs[0]
+			if !isCanonicalStandardPathRef(ref) {
+				return &ValidationError{Path: path, Message: fmt.Sprintf("section %q must list standards as backticked RuneContext-root-relative paths", heading)}
+			}
+			inBullet = true
+			continue
+		}
+		if inBullet && (strings.HasPrefix(line, "  ") || strings.HasPrefix(line, "\t")) {
+			continue
+		}
+		return &ValidationError{Path: path, Message: fmt.Sprintf("section %q must list standards as bullet path references instead of copied body text", heading)}
+	}
+	return nil
+}
+
+func extractStandardsSectionReferences(body string) []string {
+	refs := make([]string, 0)
+	for _, line := range strings.Split(body, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, "- ") {
+			continue
+		}
+		lineRefs := extractStandardsLikeBacktickedRefs(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
+		if len(lineRefs) != 1 || !isCanonicalStandardPathRef(lineRefs[0]) {
+			continue
+		}
+		refs = append(refs, lineRefs[0])
+	}
+	return refs
+}
+
+func extractStandardsLikeBacktickedRefs(value string) []string {
+	all := extractBacktickedPaths(value)
+	refs := make([]string, 0, len(all))
+	for _, ref := range all {
+		if strings.HasPrefix(ref, "standards/") {
+			refs = append(refs, ref)
+		}
+	}
+	return refs
+}
+
+func extractBacktickedPaths(value string) []string {
+	refs := make([]string, 0)
+	for i := 0; i < len(value); i++ {
+		if value[i] != '`' {
+			continue
+		}
+		end := strings.Index(value[i+1:], "`")
+		if end < 0 {
+			break
+		}
+		refs = append(refs, value[i+1:i+1+end])
+		i += end + 1
+	}
+	return refs
+}
+
+func isCanonicalStandardPathRef(ref string) bool {
+	if strings.Contains(ref, "#") {
+		return false
+	}
+	if !strings.HasPrefix(ref, "standards/") || !strings.HasSuffix(ref, ".md") {
+		return false
+	}
+	id := strings.TrimSuffix(strings.TrimPrefix(ref, "standards/"), ".md")
+	if id == "" {
+		return false
+	}
+	if strings.Contains(ref, "//") || strings.Contains(ref, "../") || strings.HasPrefix(ref, "./") || strings.HasPrefix(ref, "/") {
+		return false
+	}
+	return artifactIDPattern.MatchString(id)
+}
+
+func markdownBodyWithoutFrontmatter(data []byte) (string, error) {
+	text := strings.ReplaceAll(string(data), "\r\n", "\n")
+	if strings.HasPrefix(text, "---\n") {
+		doc, err := parseFrontmatterMarkdown("", data)
+		if err != nil {
+			return "", err
+		}
+		return doc.Body, nil
+	}
+	return text, nil
 }
 
 func parseLevel2Sections(path string, data []byte) ([]markdownSection, error) {
@@ -540,8 +681,14 @@ func findNearestArtifactRoot(path, root string) (string, error) {
 func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) {
 	index := &ProjectIndex{
 		ChangeIDs:     map[string]struct{}{},
+		Changes:       map[string]*ChangeRecord{},
+		MarkdownFiles: map[string]*MarkdownArtifact{},
+		StandardPaths: map[string]struct{}{},
+		Standards:     map[string]*StandardRecord{},
 		SpecPaths:     map[string]struct{}{},
+		Specs:         map[string]*SpecRecord{},
 		DecisionPaths: map[string]struct{}{},
+		Decisions:     map[string]*DecisionRecord{},
 		StatusFiles:   map[string]StatusFileRecord{},
 	}
 	if err := walkChangeDirectories(filepath.Join(contentRoot, "changes"), func(changeDir string) error {
@@ -564,7 +711,12 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
-		index.ChangeIDs[fmt.Sprint(obj["id"])] = struct{}{}
+		record, err := buildChangeRecord(changeDir, statusPath, obj)
+		if err != nil {
+			return err
+		}
+		index.ChangeIDs[record.ID] = struct{}{}
+		index.Changes[record.ID] = record
 		index.StatusFiles[statusPath] = StatusFileRecord{Data: obj, Raw: append([]byte(nil), statusData...)}
 		proposalPath := filepath.Join(changeDir, "proposal.md")
 		proposalData, err := readProjectFile(changeDir, proposalPath)
@@ -577,6 +729,9 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err := v.ValidateProposalMarkdown(proposalPath, proposalData); err != nil {
 			return err
 		}
+		if err := indexMarkdownArtifact(index, contentRoot, proposalPath, proposalData, false); err != nil {
+			return err
+		}
 		standardsPath := filepath.Join(changeDir, "standards.md")
 		standardsData, err := readProjectFile(changeDir, standardsPath)
 		if err != nil {
@@ -587,6 +742,37 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		}
 		if err := v.ValidateStandardsMarkdown(standardsPath, standardsData); err != nil {
 			return err
+		}
+		standardsDoc, err := parseStandardsMarkdown(standardsPath, standardsData)
+		if err != nil {
+			return err
+		}
+		record.StandardRefs = append([]string(nil), standardsDoc.Refs...)
+		record.ApplicableStandards = append([]string(nil), standardsDoc.RefsBySection["Applicable Standards"]...)
+		record.AddedStandards = append([]string(nil), standardsDoc.RefsBySection["Standards Added Since Last Refresh"]...)
+		record.ExcludedStandards = append([]string(nil), standardsDoc.RefsBySection["Standards Considered But Excluded"]...)
+		if err := indexMarkdownArtifact(index, contentRoot, standardsPath, standardsData, false); err != nil {
+			return err
+		}
+		entries, err := os.ReadDir(changeDir)
+		if err != nil {
+			return &ValidationError{Path: changeDir, Message: err.Error()}
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || filepath.Ext(entry.Name()) != ".md" {
+				continue
+			}
+			if entry.Name() == "proposal.md" || entry.Name() == "standards.md" {
+				continue
+			}
+			path := filepath.Join(changeDir, entry.Name())
+			data, err := readProjectFile(changeDir, path)
+			if err != nil {
+				return err
+			}
+			if err := indexMarkdownArtifact(index, contentRoot, path, data, false); err != nil {
+				return err
+			}
 		}
 		return nil
 	}); err != nil {
@@ -604,6 +790,10 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
+		record, err := buildSpecRecord(path, doc)
+		if err != nil {
+			return err
+		}
 		for _, key := range []string{"originating_changes", "revised_by_changes"} {
 			if err := validateChangeIDRefs(path, key, doc.Frontmatter[key], index.ChangeIDs); err != nil {
 				return err
@@ -613,7 +803,12 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
-		index.SpecPaths[filepath.ToSlash(rel)] = struct{}{}
+		record.Path = filepath.ToSlash(rel)
+		index.SpecPaths[record.Path] = struct{}{}
+		index.Specs[record.Path] = record
+		if err := indexMarkdownArtifact(index, contentRoot, path, data, true); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return nil, err
@@ -630,6 +825,10 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
+		record, err := buildDecisionRecord(path, doc)
+		if err != nil {
+			return err
+		}
 		for _, key := range []string{"originating_changes", "related_changes"} {
 			if err := validateChangeIDRefs(path, key, doc.Frontmatter[key], index.ChangeIDs); err != nil {
 				return err
@@ -639,8 +838,40 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 		if err != nil {
 			return err
 		}
-		index.DecisionPaths[filepath.ToSlash(rel)] = struct{}{}
+		record.Path = filepath.ToSlash(rel)
+		index.DecisionPaths[record.Path] = struct{}{}
+		index.Decisions[record.Path] = record
+		if err := indexMarkdownArtifact(index, contentRoot, path, data, true); err != nil {
+			return err
+		}
 		return nil
+	}); err != nil {
+		return nil, err
+	}
+	if err := walkProjectFiles(filepath.Join(contentRoot, "standards"), func(path string) error {
+		if filepath.Ext(path) != ".md" {
+			return nil
+		}
+		data, err := readProjectFile(filepath.Join(contentRoot, "standards"), path)
+		if err != nil {
+			return err
+		}
+		doc, err := v.ParseStandard(path, data)
+		if err != nil {
+			return err
+		}
+		record, err := buildStandardRecord(path, doc)
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(contentRoot, path)
+		if err != nil {
+			return err
+		}
+		record.Path = filepath.ToSlash(rel)
+		index.StandardPaths[record.Path] = struct{}{}
+		index.Standards[record.Path] = record
+		return indexMarkdownArtifact(index, contentRoot, path, data, true)
 	}); err != nil {
 		return nil, err
 	}
