@@ -360,11 +360,11 @@ func buildChangeRecord(changeDir, statusPath string, data map[string]any) (*Chan
 		ID:                 id,
 		DirPath:            changeDir,
 		StatusPath:         statusPath,
-		Title:              fmt.Sprint(data["title"]),
-		Status:             LifecycleStatus(fmt.Sprint(data["status"])),
-		Type:               fmt.Sprint(data["type"]),
-		Size:               fmt.Sprint(data["size"]),
-		VerificationStatus: fmt.Sprint(data["verification_status"]),
+		Title:              requiredStringValue(data["title"]),
+		Status:             LifecycleStatus(requiredStringValue(data["status"])),
+		Type:               requiredStringValue(data["type"]),
+		Size:               optionalStringValue(data["size"]),
+		VerificationStatus: requiredStringValue(data["verification_status"]),
 		ContextBundles:     extractStringList(data["context_bundles"]),
 		RelatedSpecs:       relatedSpecs,
 		RelatedDecisions:   relatedDecisions,
@@ -376,7 +376,7 @@ func buildChangeRecord(changeDir, statusPath string, data map[string]any) (*Chan
 		Data:               data,
 	}
 	if closedAt, ok := data["closed_at"]; ok && closedAt != nil {
-		record.ClosedAt = fmt.Sprint(closedAt)
+		record.ClosedAt = optionalStringValue(closedAt)
 		record.HasClosedAt = true
 	}
 	return record, nil
@@ -671,6 +671,16 @@ func stringSliceToAny(items []string) []any {
 		result = append(result, item)
 	}
 	return result
+}
+
+func requiredStringValue(raw any) string {
+	value, _ := raw.(string)
+	return value
+}
+
+func optionalStringValue(raw any) string {
+	value, _ := raw.(string)
+	return strings.TrimSpace(value)
 }
 
 func cloneTopLevelValue(value any) any {

@@ -495,6 +495,8 @@ Post-review clarifications:
 - [x] Issue: generate and validate `status.yaml` fields, including type, size,
   verification status, traceability fields, and promotion assessment state
   scaffolding.
+  - Optional string fields that are absent stay omitted on rewrite rather than
+    being serialized as placeholder values such as `<nil>`.
 - [x] Issue: populate and refresh `standards.md` during change creation and
   shaping.
 - [x] Issue: enforce reviewable diffs for any automatic `standards.md` refresh.

@@ -485,12 +485,136 @@ func TestCloseChangeRejectsTerminalSuccessorWithoutReciprocalLink(t *testing.T) 
 	}
 }
 
+func TestBuildProjectStatusSummaryLeavesMissingOptionalSizeEmpty(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	writeExistingChangeWithoutOptionalFields(t, root)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	defer loaded.Close()
+	summary, err := BuildProjectStatusSummary(v, loaded)
+	if err != nil {
+		t.Fatalf("build status summary: %v", err)
+	}
+	if len(summary.Active) != 1 {
+		t.Fatalf("expected one active change, got %#v", summary.Active)
+	}
+	if got := summary.Active[0].Size; got != "" {
+		t.Fatalf("expected missing size to remain empty, got %q", got)
+	}
+}
+
+func TestCloseChangeOmitsMissingOptionalFieldsWhenRewritingStatus(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	changeID := writeExistingChangeWithoutOptionalFields(t, root)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	defer loaded.Close()
+	if _, err := CloseChange(v, loaded, changeID, ChangeCloseOptions{
+		VerificationStatus: "passed",
+		ClosedAt:           time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC),
+	}); err != nil {
+		t.Fatalf("close change: %v", err)
+	}
+	statusData, err := os.ReadFile(filepath.Join(root, "runecontext", "changes", changeID, "status.yaml"))
+	if err != nil {
+		t.Fatalf("read rewritten status: %v", err)
+	}
+	text := strings.ReplaceAll(string(statusData), "\r\n", "\n")
+	if strings.Contains(text, "<nil>") {
+		t.Fatalf("expected rewritten status to avoid <nil> placeholders, got:\n%s", text)
+	}
+	if strings.Contains(text, "created_at:") {
+		t.Fatalf("expected missing created_at to stay omitted, got:\n%s", text)
+	}
+	if strings.Contains(text, "size:") {
+		t.Fatalf("expected missing size to stay omitted, got:\n%s", text)
+	}
+	if !strings.Contains(text, "closed_at: \"2026-03-20\"") {
+		t.Fatalf("expected closed_at to be written, got:\n%s", text)
+	}
+}
+
 func copyChangeWorkflowTemplate(t *testing.T) string {
 	t.Helper()
 	src := fixturePath(t, "change-workflow", "template-project")
 	dst := t.TempDir()
 	copyDirTree(t, src, dst)
 	return dst
+}
+
+func writeExistingChangeWithoutOptionalFields(t *testing.T, root string) string {
+	t.Helper()
+	changeID := "CHG-2026-001-a3f2-auth-gateway"
+	changeDir := filepath.Join(root, "runecontext", "changes", changeID)
+	if err := os.MkdirAll(changeDir, 0o755); err != nil {
+		t.Fatalf("mkdir change dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(changeDir, "status.yaml"), []byte(strings.Join([]string{
+		"schema_version: 1",
+		"id: CHG-2026-001-a3f2-auth-gateway",
+		"title: Add auth gateway",
+		"status: implemented",
+		"type: feature",
+		"verification_status: pending",
+		"context_bundles:",
+		"  - base",
+		"related_specs: []",
+		"related_decisions: []",
+		"related_changes: []",
+		"depends_on: []",
+		"informed_by: []",
+		"supersedes: []",
+		"superseded_by: []",
+		"closed_at: null",
+		"promotion_assessment:",
+		"  status: pending",
+		"  suggested_targets: []",
+		"",
+	}, "\n")), 0o644); err != nil {
+		t.Fatalf("write status: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(changeDir, "proposal.md"), []byte(strings.Join([]string{
+		"## Summary",
+		"Add auth gateway",
+		"",
+		"## Problem",
+		"The repository needs a durable auth gateway change record.",
+		"",
+		"## Proposed Change",
+		"Close the existing auth gateway change cleanly.",
+		"",
+		"## Why Now",
+		"This regression test exercises missing optional status fields.",
+		"",
+		"## Assumptions",
+		"N/A",
+		"",
+		"## Out of Scope",
+		"Any auth implementation work.",
+		"",
+		"## Impact",
+		"The rewritten status should remain schema-valid without placeholder strings.",
+		"",
+	}, "\n")), 0o644); err != nil {
+		t.Fatalf("write proposal: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(changeDir, "standards.md"), []byte(strings.Join([]string{
+		"## Applicable Standards",
+		"- `standards/global/base.md`: Selected from the current context bundles.",
+		"",
+		"## Resolution Notes",
+		"This change keeps standards linkage valid while exercising missing optional metadata.",
+		"",
+	}, "\n")), 0o644); err != nil {
+		t.Fatalf("write standards: %v", err)
+	}
+	return changeID
 }
 
 func requireFileContent(t *testing.T, path, want string) {

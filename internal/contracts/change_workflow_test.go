@@ -150,6 +150,36 @@ func TestCloneTopLevelValueClonesTypedCollections(t *testing.T) {
 	}
 }
 
+func TestBuildChangeRecordUsesEmptyStringForMissingOptionalFields(t *testing.T) {
+	changeDir := filepath.Join(t.TempDir(), "CHG-2026-001-a3f2-auth-gateway")
+	statusPath := filepath.Join(changeDir, "status.yaml")
+	record, err := buildChangeRecord(changeDir, statusPath, map[string]any{
+		"id":                  "CHG-2026-001-a3f2-auth-gateway",
+		"title":               "Add auth gateway",
+		"status":              "proposed",
+		"type":                "feature",
+		"verification_status": "pending",
+		"context_bundles":     []any{"base"},
+		"related_specs":       []any{},
+		"related_decisions":   []any{},
+		"related_changes":     []any{},
+		"depends_on":          []any{},
+		"informed_by":         []any{},
+		"supersedes":          []any{},
+		"superseded_by":       []any{},
+		"closed_at":           nil,
+	})
+	if err != nil {
+		t.Fatalf("build change record: %v", err)
+	}
+	if got := record.Size; got != "" {
+		t.Fatalf("expected missing size to remain empty, got %q", got)
+	}
+	if got := record.Title; got != "Add auth gateway" {
+		t.Fatalf("expected title to be preserved, got %q", got)
+	}
+}
+
 func TestValidateLifecycleTransition(t *testing.T) {
 	if err := ValidateLifecycleTransition("planned", "verified"); err != nil {
 		t.Fatalf("expected forward transition to succeed: %v", err)

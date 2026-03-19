@@ -728,12 +728,12 @@ func renderStatusYAML(raw map[string]any) ([]byte, error) {
 func statusDocumentFromMap(raw map[string]any) (statusDocument, error) {
 	doc := statusDocument{
 		SchemaVersion:      intValue(raw["schema_version"], 1),
-		ID:                 fmt.Sprint(raw["id"]),
-		Title:              fmt.Sprint(raw["title"]),
-		Status:             fmt.Sprint(raw["status"]),
-		Type:               fmt.Sprint(raw["type"]),
-		Size:               fmt.Sprint(raw["size"]),
-		VerificationStatus: fmt.Sprint(raw["verification_status"]),
+		ID:                 requiredStringValue(raw["id"]),
+		Title:              requiredStringValue(raw["title"]),
+		Status:             requiredStringValue(raw["status"]),
+		Type:               requiredStringValue(raw["type"]),
+		Size:               optionalStringValue(raw["size"]),
+		VerificationStatus: requiredStringValue(raw["verification_status"]),
 		ContextBundles:     nonNilStrings(extractStringList(raw["context_bundles"])),
 		RelatedSpecs:       nonNilStrings(extractStringList(raw["related_specs"])),
 		RelatedDecisions:   nonNilStrings(extractStringList(raw["related_decisions"])),
@@ -742,7 +742,7 @@ func statusDocumentFromMap(raw map[string]any) (statusDocument, error) {
 		InformedBy:         nonNilStrings(extractStringList(raw["informed_by"])),
 		Supersedes:         nonNilStrings(extractStringList(raw["supersedes"])),
 		SupersededBy:       nonNilStrings(extractStringList(raw["superseded_by"])),
-		CreatedAt:          fmt.Sprint(raw["created_at"]),
+		CreatedAt:          optionalStringValue(raw["created_at"]),
 		ClosedAt:           raw["closed_at"],
 		PromotionAssessment: promotionAssessmentDocument{
 			Status:           "pending",
