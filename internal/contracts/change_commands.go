@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -173,6 +174,7 @@ var (
 	writeFilePath                      = os.WriteFile
 	chmodPath                          = os.Chmod
 	lstatPath                          = os.Lstat
+	atomicReplaceNeedsFallback         = runtime.GOOS == "windows"
 	validateProjectAfterChangeMutation = func(v *Validator, projectRoot string) (*ProjectIndex, error) {
 		return v.ValidateProjectWithOptions(projectRoot, ResolveOptions{
 			ConfigDiscovery: ConfigDiscoveryExplicitRoot,
@@ -647,10 +649,54 @@ func writeFileAtomically(path string, data []byte, perm fs.FileMode) error {
 	if err := chmodPath(tempPath, perm); err != nil {
 		return err
 	}
-	if err := renamePath(tempPath, path); err != nil {
+	if err := replacePathAtomically(tempPath, path); err != nil {
 		return err
 	}
 	cleanup = false
+	return nil
+}
+
+func replacePathAtomically(tempPath, targetPath string) error {
+	err := renamePath(tempPath, targetPath)
+	if err == nil {
+		return nil
+	}
+	if !atomicReplaceNeedsFallback {
+		return err
+	}
+	if fallbackErr := ensurePathAndParentAreNotSymlinks(targetPath); fallbackErr != nil {
+		return fallbackErr
+	}
+	if _, statErr := os.Stat(targetPath); statErr != nil {
+		return err
+	}
+	backupFile, backupErr := createTempFilePath(filepath.Dir(targetPath), ".replace-backup-*")
+	if backupErr != nil {
+		return err
+	}
+	backupPath := backupFile.Name()
+	if closeErr := backupFile.Close(); closeErr != nil {
+		_ = removeAllPath(backupPath)
+		return closeErr
+	}
+	if removeErr := removeAllPath(backupPath); removeErr != nil {
+		return removeErr
+	}
+	cleanupBackup := true
+	defer func() {
+		if cleanupBackup {
+			_ = removeAllPath(backupPath)
+		}
+	}()
+	if renameBackupErr := renamePath(targetPath, backupPath); renameBackupErr != nil {
+		return err
+	}
+	if renameTempErr := renamePath(tempPath, targetPath); renameTempErr != nil {
+		rollbackErr := renamePath(backupPath, targetPath)
+		return combineFileRewriteRollbackError(renameTempErr, rollbackErr)
+	}
+	cleanupBackup = false
+	_ = removeAllPath(backupPath)
 	return nil
 }
 
@@ -695,12 +741,17 @@ func ReallocateChange(v *Validator, loaded *LoadedProject, changeID string, opti
 	changesRoot := filepath.Join(writableRoot, "changes")
 	oldChangeDir := filepath.Join(changesRoot, changeID)
 	newChangeDir := filepath.Join(changesRoot, newID)
+	backupDir := filepath.Join(writableRoot, ".reallocate-"+changeID+"-backup")
+	for _, path := range []string{changesRoot, oldChangeDir, newChangeDir, backupDir} {
+		if err := ensurePathAndParentAreNotSymlinks(path); err != nil {
+			return nil, err
+		}
+	}
 	if _, err := os.Stat(newChangeDir); err == nil {
 		return nil, fmt.Errorf("reallocated change path %q already exists", runeContextRelativePath(writableRoot, newChangeDir))
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
-	backupDir := filepath.Join(writableRoot, ".reallocate-"+changeID+"-backup")
 	if _, err := os.Lstat(backupDir); err == nil {
 		return nil, fmt.Errorf("cannot reallocate change %q because backup path %q already exists; inspect or remove the leftover backup before retrying", changeID, runeContextRelativePath(writableRoot, backupDir))
 	} else if !os.IsNotExist(err) {
@@ -708,6 +759,10 @@ func ReallocateChange(v *Validator, loaded *LoadedProject, changeID string, opti
 	}
 	stagedDir, err := mkdirTempDir(writableRoot, ".reallocate-"+newID+"-stage-")
 	if err != nil {
+		return nil, err
+	}
+	if err := ensurePathAndParentAreNotSymlinks(stagedDir); err != nil {
+		_ = removeAllPath(stagedDir)
 		return nil, err
 	}
 	changedFiles, rewrittenRefs, err := stageReallocatedChange(oldChangeDir, stagedDir, changeID, newID)
@@ -721,6 +776,11 @@ func ReallocateChange(v *Validator, loaded *LoadedProject, changeID string, opti
 			_ = removeAllPath(stagedDir)
 		}
 	}()
+	for _, path := range []string{changesRoot, oldChangeDir, backupDir, stagedDir, newChangeDir} {
+		if err := ensurePathAndParentAreNotSymlinks(path); err != nil {
+			return nil, err
+		}
+	}
 	if err := renamePath(oldChangeDir, backupDir); err != nil {
 		return nil, err
 	}

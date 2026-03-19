@@ -156,8 +156,10 @@
   warning instead of a misleading hard failure after success.
 - [x] Failed alpha.3 lifecycle mutations do not leave partial on-disk state:
   rejected closes restore prior status files, failed creates clean up transient
-  change directories, mutation paths reject symlinked targets, and successful
-  transactional rewrites preserve the original file permissions.
+  change directories, mutation paths reject symlinked targets, reallocate also
+  rejects symlinked rename roots, successful transactional rewrites preserve the
+  original file permissions, and atomic file replacement works even when the
+  destination already exists on Windows.
 
 ## 4. Context Packs, Promotion, And Indexes
 

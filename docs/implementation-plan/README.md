@@ -104,9 +104,11 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   to `change close` and `change new`: failed close operations roll back status
   rewrites instead of leaving partial history mutations behind, failed creates
   clean up their transient change directories, mutation paths reject symlinked
-  targets across create/close/reallocate, transactional rewrites preserve file
-  permissions, and successful markdown path rewrites keep the original file
-  newline style.
+  targets across create/close/reallocate, reallocate also rejects symlinked
+  rename roots before directory swaps, transactional rewrites preserve file
+  permissions, successful markdown path rewrites keep the original file newline
+  style, and atomic file replacement now has a Windows-safe fallback when the
+  destination already exists.
 - The same hardening pass also requires optional change-status string fields to
   stay omitted when absent rather than being rewritten as placeholder strings
   such as `<nil>` in summaries or rewritten `status.yaml` files.

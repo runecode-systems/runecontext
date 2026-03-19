@@ -595,6 +595,41 @@ func TestCloseChangeRejectsSymlinkedStatusTarget(t *testing.T) {
 	assertFileBytesEqual(t, statusPath, original)
 }
 
+func TestWriteFileAtomicallyFallsBackWhenDestinationRenameCannotReplace(t *testing.T) {
+	dir := t.TempDir()
+	targetPath := filepath.Join(dir, "status.yaml")
+	if err := os.WriteFile(targetPath, []byte("old\n"), 0o600); err != nil {
+		t.Fatalf("write original target: %v", err)
+	}
+	originalRename := renamePath
+	originalFallback := atomicReplaceNeedsFallback
+	t.Cleanup(func() {
+		renamePath = originalRename
+		atomicReplaceNeedsFallback = originalFallback
+	})
+	atomicReplaceNeedsFallback = true
+	renameAttempts := 0
+	renamePath = func(oldPath, newPath string) error {
+		if filepath.Clean(newPath) == filepath.Clean(targetPath) && renameAttempts == 0 {
+			renameAttempts++
+			return fmt.Errorf("simulated windows rename collision")
+		}
+		renameAttempts++
+		return os.Rename(oldPath, newPath)
+	}
+	if err := writeFileAtomically(targetPath, []byte("new\n"), 0o600); err != nil {
+		t.Fatalf("write file atomically with fallback: %v", err)
+	}
+	assertFileBytesEqual(t, targetPath, []byte("new\n"))
+	info, err := os.Stat(targetPath)
+	if err != nil {
+		t.Fatalf("stat replaced target: %v", err)
+	}
+	if got, want := info.Mode().Perm(), os.FileMode(0o600); got != want {
+		t.Fatalf("expected fallback replace to preserve perms %o, got %o", want, got)
+	}
+}
+
 func TestCloseChangeRollsBackWhenLaterWriteFails(t *testing.T) {
 	root := copyTraceabilityFixtureProject(t, "valid-project")
 	v := NewValidator(schemaRoot(t))
@@ -1065,6 +1100,47 @@ func TestReallocateChangeRejectsSymlinkedDirectoryInChangeTree(t *testing.T) {
 	_, err = ReallocateChange(v, loaded, result.ID, ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xcc, 0xdd})})
 	if err == nil || !strings.Contains(err.Error(), "does not support symlinks") {
 		t.Fatalf("expected symlinked-directory rejection, got %v", err)
+	}
+}
+
+func TestReallocateChangeRejectsSymlinkedRenameTargets(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v := NewValidator(schemaRoot(t))
+	loaded, err := v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	result, err := CreateChange(v, loaded, ChangeCreateOptions{
+		Title:          "Add cache invalidation",
+		Type:           "feature",
+		Size:           "small",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        bytes.NewReader([]byte{0xaa, 0xbb}),
+	})
+	loaded.Close()
+	if err != nil {
+		t.Fatalf("create change: %v", err)
+	}
+	changesRoot := filepath.Clean(filepath.Join(root, "runecontext", "changes"))
+	originalLstat := lstatPath
+	t.Cleanup(func() {
+		lstatPath = originalLstat
+	})
+	lstatPath = func(path string) (os.FileInfo, error) {
+		if filepath.Clean(path) == changesRoot {
+			return fakeFileInfo{name: filepath.Base(path), mode: os.ModeSymlink}, nil
+		}
+		return os.Lstat(path)
+	}
+	loaded, err = v.LoadProject(root, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("reload project: %v", err)
+	}
+	defer loaded.Close()
+	_, err = ReallocateChange(v, loaded, result.ID, ChangeReallocateOptions{Entropy: bytes.NewReader([]byte{0xcc, 0xdd})})
+	if err == nil || !strings.Contains(err.Error(), "symlinked targets") {
+		t.Fatalf("expected rename-target symlink rejection, got %v", err)
 	}
 }
 

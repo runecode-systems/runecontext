@@ -522,7 +522,9 @@ Post-review clarifications:
     unchanged markdown bytes, preserve original line endings on successful
     rewrites, keep rewrite token boundaries UTF-8-safe, make close/create
     failure paths roll back or clean up instead of leaving partial state behind,
-    preserve file permissions across transactional rewrites, and surface
+    preserve file permissions across transactional rewrites, reject symlinked
+    reallocate rename roots before directory swaps, use a Windows-safe fallback
+    when atomic file replacement targets already exist, and surface
     backup-cleanup as a warning rather than an ambiguous command failure.
 
 ### Cross-Cutting Workflow Tests and Fixtures
