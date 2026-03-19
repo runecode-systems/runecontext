@@ -19,6 +19,10 @@ jobs:
     name: Nix (${{ matrix.runner }} - ${{ matrix.system }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    env:
+      NIX_CONFIG: |
+        substituters = https://cache.nixos.org
+        trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
     strategy:
       fail-fast: false
       matrix:
@@ -38,9 +42,10 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v21
-
-      - name: Cache Nix store
-        uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39 # v13
+        with:
+          # Keep PR CI on upstream Nix + cache.nixos.org to avoid flaky
+          # third-party cache fetches during routine branch validation.
+          determinate: false
 
       - name: Verify flake.lock preflight
         run: git diff --exit-code -- flake.lock
