@@ -1,10 +1,17 @@
+golangci_lint := "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8"
+
 default:
   @just --list
 
 fmt:
+  go run ./tools/gofmtcheck --write
   nixfmt flake.nix $(fd --extension nix --type f . nix)
 
 lint:
+  go run ./tools/gofmtcheck
+  go run {{golangci_lint}} run
+  go vet ./...
+  go run ./tools/checksourcequality
   just layout-check
 
 test:
