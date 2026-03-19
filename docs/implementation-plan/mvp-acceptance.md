@@ -149,6 +149,9 @@
   cycles while still allowing external prerequisite change IDs in `depends_on`.
 - [x] `superseded` works as a terminal successor state distinct from `closed`
   and preserves reciprocal supersession links.
+- [x] Terminal lifecycle states that represent completed work in alpha.3 do not
+  leave `verification_status` at `pending`; both `closed` and `superseded`
+  require a completed verification outcome.
 - [x] Lifecycle helpers enforce forward-only progression and do not provide a
   built-in reopen/downgrade path in alpha.3.
 - [x] Closed changes remain directly accessible at stable paths.
@@ -164,6 +167,9 @@
   rejects symlinked rename roots, successful transactional rewrites preserve the
   original file permissions, and atomic file replacement works even when the
   destination already exists on Windows.
+- [x] Missing spec/decision reciprocity diagnostics clearly identify that the
+  reciprocal `related_specs` or `related_decisions` entry belongs on the
+  referenced change `status.yaml`.
 
 ## 4. Context Packs, Promotion, And Indexes
 

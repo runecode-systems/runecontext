@@ -429,8 +429,8 @@ func validateChangeLifecycleConsistency(index *ProjectIndex) error {
 		if record.Status == StatusVerified && record.VerificationStatus == "pending" {
 			return &ValidationError{Path: record.StatusPath, Message: "verified changes must record a completed verification_status"}
 		}
-		if record.Status == StatusClosed && record.VerificationStatus == "pending" {
-			return &ValidationError{Path: record.StatusPath, Message: "closed changes must not leave verification_status pending"}
+		if isTerminalLifecycleStatus(record.Status) && record.VerificationStatus == "pending" {
+			return &ValidationError{Path: record.StatusPath, Message: fmt.Sprintf("%s changes must not leave verification_status pending", record.Status)}
 		}
 	}
 	return nil
@@ -510,7 +510,7 @@ func validateArtifactTraceabilityConsistency(index *ProjectIndex) error {
 				continue
 			}
 			if !containsString(change.RelatedSpecs, spec.Path) {
-				return &ValidationError{Path: spec.Path, Message: fmt.Sprintf("spec change reference %q must be mirrored by a related_specs entry on %q", changeID, changeID)}
+				return &ValidationError{Path: change.StatusPath, Message: fmt.Sprintf("spec %q references change %q, but related_specs on the referenced change's status.yaml is missing %q", spec.Path, changeID, spec.Path)}
 			}
 		}
 	}
@@ -522,7 +522,7 @@ func validateArtifactTraceabilityConsistency(index *ProjectIndex) error {
 				continue
 			}
 			if !containsString(change.RelatedDecisions, decision.Path) {
-				return &ValidationError{Path: decision.Path, Message: fmt.Sprintf("decision change reference %q must be mirrored by a related_decisions entry on %q", changeID, changeID)}
+				return &ValidationError{Path: change.StatusPath, Message: fmt.Sprintf("decision %q references change %q, but related_decisions on the referenced change's status.yaml is missing %q", decision.Path, changeID, decision.Path)}
 			}
 		}
 	}

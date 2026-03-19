@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -498,6 +499,22 @@ func TestValidateProjectRejectsInvalidTerminalMetadata(t *testing.T) {
 			t.Fatalf("expected pending verification failure, got %v", err)
 		}
 	})
+
+	t.Run("superseded must not keep pending verification", func(t *testing.T) {
+		root := copyTraceabilityFixtureProject(t, "valid-project")
+		statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
+		rewriteFile(t, statusPath, func(text string) string {
+			text = strings.Replace(text, "status: proposed", "status: superseded", 1)
+			text = strings.Replace(text, "closed_at: null", "closed_at: \"2026-03-18\"", 1)
+			text = strings.Replace(text, "superseded_by: []", "superseded_by:\n  - CHG-2026-002-b4c3-auth-revision", 1)
+			return text
+		})
+		v := NewValidator(schemaRoot(t))
+		_, err := v.ValidateProject(root)
+		if err == nil || !strings.Contains(err.Error(), "superseded changes must not leave verification_status pending") {
+			t.Fatalf("expected superseded pending verification failure, got %v", err)
+		}
+	})
 }
 
 func TestValidateProjectRejectsUnmirroredArtifactTraceability(t *testing.T) {
@@ -508,8 +525,35 @@ func TestValidateProjectRejectsUnmirroredArtifactTraceability(t *testing.T) {
 	})
 	v := NewValidator(schemaRoot(t))
 	_, err := v.ValidateProject(root)
-	if err == nil || !strings.Contains(err.Error(), "related_specs entry") {
+	if err == nil || !strings.Contains(err.Error(), "related_specs") || !strings.Contains(err.Error(), "status.yaml") {
 		t.Fatalf("expected artifact traceability failure, got %v", err)
+	}
+	var validationErr *ValidationError
+	if !errors.As(err, &validationErr) {
+		t.Fatalf("expected validation error, got %T", err)
+	}
+	if got, want := filepath.ToSlash(validationErr.Path), filepath.ToSlash(filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "status.yaml")); got != want {
+		t.Fatalf("expected path %q, got %q", want, got)
+	}
+}
+
+func TestValidateProjectRejectsUnmirroredDecisionTraceability(t *testing.T) {
+	root := copyTraceabilityFixtureProject(t, "valid-project")
+	decisionPath := filepath.Join(root, "runecontext", "decisions", "DEC-0001-trust-boundary-model.md")
+	rewriteFile(t, decisionPath, func(text string) string {
+		return strings.Replace(text, "related_changes:\n  - CHG-2026-002-b4c3-auth-revision", "related_changes: []", 1)
+	})
+	v := NewValidator(schemaRoot(t))
+	_, err := v.ValidateProject(root)
+	if err == nil || !strings.Contains(err.Error(), "related_decisions") || !strings.Contains(err.Error(), "status.yaml") {
+		t.Fatalf("expected decision traceability failure, got %v", err)
+	}
+	var validationErr *ValidationError
+	if !errors.As(err, &validationErr) {
+		t.Fatalf("expected validation error, got %T", err)
+	}
+	if got, want := filepath.ToSlash(validationErr.Path), filepath.ToSlash(filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "status.yaml")); got != want {
+		t.Fatalf("expected path %q, got %q", want, got)
 	}
 }
 

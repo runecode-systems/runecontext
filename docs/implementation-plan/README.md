@@ -120,6 +120,11 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   punctuation such as smart quotes terminates local ref tokens cleanly instead
   of producing false missing-artifact errors, while machine-readable heading
   fragments remain ASCII-bounded even when adjacent prose is non-ASCII.
+- The same alpha.3 hardening pass also aligns terminal lifecycle validation with
+  close-time behavior: both `closed` and `superseded` changes must carry a
+  completed `verification_status`, and missing spec/decision reciprocity now
+  points reviewers back to the referenced change `status.yaml` instead of
+  repeating the same change ID twice.
 - `alpha.4` is the planned point where this repository should be able to use
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment

@@ -340,7 +340,8 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
 - `superseded` should be treated as a terminal state distinct from `closed`:
   the work was replaced by successor change(s), must carry `superseded_by`,
   must remain bidirectionally consistent with successor `supersedes` links, and
-  should still preserve stable-path readability. If repairing a missing
+  should still preserve stable-path readability, and must not leave
+  `verification_status` at `pending`. If repairing a missing
   reciprocal supersession link would require mutating a terminal successor,
   tooling should fail closed instead.
 - Structured traceability should remain artifact-first in machine-readable files
@@ -371,6 +372,8 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
   artifact-level: `related_specs` and `related_decisions` must mirror a real
   change reference on the target artifact, but they do not yet encode a stricter
   machine distinction between "originating" versus "revision" linkage.
+  Validation errors should still clearly point reviewers back to the change
+  `status.yaml` that needs the reciprocal artifact reference.
 - Lifecycle helpers remain forward-only in alpha.3: tooling validates monotonic
   progress and terminal immutability rather than offering an explicit reopen or
   downgrade workflow.
