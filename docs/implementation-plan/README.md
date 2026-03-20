@@ -181,6 +181,9 @@ and coverage stay in one place.
   field zeros remain meaningful once any field is set, and rebuild stability is
   evaluated against the loaded project snapshot rather than hot-reloading bundle
   definitions from disk mid-attempt.
+- The advisory-threshold defaults themselves should also be exposed as copy-
+  returning values rather than mutable exported global structs so tests and
+  callers cannot silently rewrite process-wide defaults.
 - The recommended alpha.4 review order is pack engine and determinism fixtures,
   then pack explanation and limits, then promotion assessment, and finally
   generated indexes/manifests.

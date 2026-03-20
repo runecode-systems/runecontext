@@ -754,6 +754,8 @@ RuneCode integration.
 - [ ] Issue: document and test the threshold API semantics so a fully zero-valued
   threshold struct means "use defaults", explicit zero fields remain valid once
   any field is set, and negative values opt back into per-field defaults.
+- [ ] Issue: expose advisory-threshold defaults through copy-returning APIs or
+  equivalent immutable contracts rather than mutable exported global structs.
 - [ ] Issue: keep pack-only construction and enriched report construction as
   separable flows even when they share the same rebuild/fail-closed engine.
 - [ ] Issue: implement fail/rebuild behavior when files change between

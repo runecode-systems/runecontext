@@ -216,6 +216,8 @@
   enriched report serialization logic when they only need the pack artifact.
 - [ ] Advisory-threshold API semantics are documented and tested for default,
   explicit-zero, and negative-fallback cases.
+- [ ] Advisory-threshold defaults are exposed without mutable process-wide
+  global state so callers cannot silently rewrite default warning behavior.
 - [ ] Fail-closed rebuild checks surface non-transient digest/read errors
   directly instead of collapsing them into a generic changed-input retry.
 - [ ] Fail-closed rebuild semantics are documented as operating against the

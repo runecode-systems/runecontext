@@ -60,14 +60,16 @@ func TestBuildContextPackReportWarnsWhenSelectedFilesExceedDefault(t *testing.T)
 	if err != nil {
 		t.Fatalf("build context pack report: %v", err)
 	}
-	assertContextPackWarningPresent(t, report.Warnings, "selected_files_threshold_exceeded", int64(DefaultContextPackAdvisoryThresholds.SelectedFiles))
+	defaults := DefaultContextPackAdvisoryThresholds()
+	assertContextPackWarningPresent(t, report.Warnings, "selected_files_threshold_exceeded", int64(defaults.SelectedFiles))
 	assertContextPackReportValidAgainstSchema(t, NewValidator(schemaRoot(t)), report)
 }
 
 func TestBuildContextPackReportWarnsWhenReferencedBytesExceedDefault(t *testing.T) {
 	index := loadModifiedContextPackProject(t, func(root string) {
 		rewriteBaseBundleForProjectGlob(t, root)
-		big := strings.Repeat("a", int(DefaultContextPackAdvisoryThresholds.ReferencedContentBytes)+1)
+		defaults := DefaultContextPackAdvisoryThresholds()
+		big := strings.Repeat("a", int(defaults.ReferencedContentBytes)+1)
 		path := filepath.Join(root, "runecontext", "project", "big.md")
 		if err := os.WriteFile(path, []byte(big), 0o644); err != nil {
 			t.Fatalf("write large project file: %v", err)
@@ -78,7 +80,7 @@ func TestBuildContextPackReportWarnsWhenReferencedBytesExceedDefault(t *testing.
 	if err != nil {
 		t.Fatalf("build context pack report: %v", err)
 	}
-	assertContextPackWarningPresent(t, report.Warnings, "referenced_content_bytes_threshold_exceeded", DefaultContextPackAdvisoryThresholds.ReferencedContentBytes)
+	assertContextPackWarningPresent(t, report.Warnings, "referenced_content_bytes_threshold_exceeded", DefaultContextPackAdvisoryThresholds().ReferencedContentBytes)
 }
 
 func TestBuildContextPackReportWarningOutputRoundTrip(t *testing.T) {
@@ -109,7 +111,7 @@ func TestBuildContextPackReportWarningOutputRoundTrip(t *testing.T) {
 	if decoded.ReportSchemaVersion != contextPackReportSchemaVersion {
 		t.Fatalf("expected report schema version %d, got %d", contextPackReportSchemaVersion, decoded.ReportSchemaVersion)
 	}
-	assertContextPackWarningPresent(t, decoded.Warnings, "selected_files_threshold_exceeded", int64(DefaultContextPackAdvisoryThresholds.SelectedFiles))
+	assertContextPackWarningPresent(t, decoded.Warnings, "selected_files_threshold_exceeded", int64(DefaultContextPackAdvisoryThresholds().SelectedFiles))
 }
 
 func TestBuildContextPackReportWarnsWhenProvenanceBytesExceedDefault(t *testing.T) {
@@ -127,7 +129,7 @@ func TestBuildContextPackReportWarnsWhenProvenanceBytesExceedDefault(t *testing.
 	if err != nil {
 		t.Fatalf("build context pack report: %v", err)
 	}
-	assertContextPackWarningPresent(t, report.Warnings, "provenance_bytes_threshold_exceeded", DefaultContextPackAdvisoryThresholds.ProvenanceBytes)
+	assertContextPackWarningPresent(t, report.Warnings, "provenance_bytes_threshold_exceeded", DefaultContextPackAdvisoryThresholds().ProvenanceBytes)
 }
 
 func TestBuildContextPackReportRetriesAfterFileChange(t *testing.T) {
@@ -236,20 +238,21 @@ func TestNormalizeContextPackAdvisoryThresholdsPreservesExplicitZeroValues(t *te
 
 func TestNormalizeContextPackAdvisoryThresholdsUsesDefaultsForZeroStruct(t *testing.T) {
 	thresholds := normalizeContextPackAdvisoryThresholds(ContextPackAdvisoryThresholds{})
-	if thresholds != DefaultContextPackAdvisoryThresholds {
+	if thresholds != DefaultContextPackAdvisoryThresholds() {
 		t.Fatalf("expected zero struct to use defaults, got %#v", thresholds)
 	}
 }
 
 func TestNormalizeContextPackAdvisoryThresholdsUsesDefaultsForNegativeFields(t *testing.T) {
 	thresholds := normalizeContextPackAdvisoryThresholds(ContextPackAdvisoryThresholds{SelectedFiles: -1, ReferencedContentBytes: 5, ProvenanceBytes: -1})
-	if thresholds.SelectedFiles != DefaultContextPackAdvisoryThresholds.SelectedFiles {
+	defaults := DefaultContextPackAdvisoryThresholds()
+	if thresholds.SelectedFiles != defaults.SelectedFiles {
 		t.Fatalf("expected negative selected files to fall back to default, got %#v", thresholds)
 	}
 	if thresholds.ReferencedContentBytes != 5 {
 		t.Fatalf("expected explicit referenced content value 5, got %#v", thresholds)
 	}
-	if thresholds.ProvenanceBytes != DefaultContextPackAdvisoryThresholds.ProvenanceBytes {
+	if thresholds.ProvenanceBytes != defaults.ProvenanceBytes {
 		t.Fatalf("expected negative provenance bytes to fall back to default, got %#v", thresholds)
 	}
 }

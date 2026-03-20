@@ -166,6 +166,9 @@ plan so it is clear that the planning documents capture the full design.
   "use defaults", while explicit field zeros remain meaningful once any field is
   set and negative values opt back into per-field defaults.
   - Planned capture: `alpha.4`
+- Decision: advisory-threshold defaults should be exposed as immutable or copy-
+  returning values rather than mutable exported globals.
+  - Planned capture: `alpha.4`
 - Decision: rebuild stability checks operate against the loaded project snapshot
   and selected-file content rather than reloading bundle-definition files from
   disk mid-attempt.

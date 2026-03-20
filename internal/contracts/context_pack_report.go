@@ -22,10 +22,14 @@ type ContextPackAdvisoryThresholds struct {
 	ProvenanceBytes        int64 `json:"provenance_bytes" yaml:"provenance_bytes"`
 }
 
-var DefaultContextPackAdvisoryThresholds = ContextPackAdvisoryThresholds{
+var defaultContextPackAdvisoryThresholds = ContextPackAdvisoryThresholds{
 	SelectedFiles:          256,
 	ReferencedContentBytes: 1 << 20,
 	ProvenanceBytes:        256 << 10,
+}
+
+func DefaultContextPackAdvisoryThresholds() ContextPackAdvisoryThresholds {
+	return defaultContextPackAdvisoryThresholds
 }
 
 type ContextPackReport struct {
@@ -131,16 +135,16 @@ func normalizeContextPackAdvisoryThresholds(thresholds ContextPackAdvisoryThresh
 	// is set explicitly, zero is treated as an intentional threshold value and
 	// negative values opt back into the default for that field.
 	if thresholds == (ContextPackAdvisoryThresholds{}) {
-		return DefaultContextPackAdvisoryThresholds
+		return DefaultContextPackAdvisoryThresholds()
 	}
 	if thresholds.SelectedFiles < 0 {
-		thresholds.SelectedFiles = DefaultContextPackAdvisoryThresholds.SelectedFiles
+		thresholds.SelectedFiles = DefaultContextPackAdvisoryThresholds().SelectedFiles
 	}
 	if thresholds.ReferencedContentBytes < 0 {
-		thresholds.ReferencedContentBytes = DefaultContextPackAdvisoryThresholds.ReferencedContentBytes
+		thresholds.ReferencedContentBytes = DefaultContextPackAdvisoryThresholds().ReferencedContentBytes
 	}
 	if thresholds.ProvenanceBytes < 0 {
-		thresholds.ProvenanceBytes = DefaultContextPackAdvisoryThresholds.ProvenanceBytes
+		thresholds.ProvenanceBytes = DefaultContextPackAdvisoryThresholds().ProvenanceBytes
 	}
 	return thresholds
 }
