@@ -292,8 +292,8 @@ func contextPackRuleReference(item BundleRuleReference) ContextPackRuleReference
 }
 
 func hashContextPackFile(contentRoot, relativePath string) (string, error) {
-	path := filepath.Join(contentRoot, filepath.FromSlash(relativePath))
-	data, err := contextPackReadProjectFile(contentRoot, path)
+	fullPath := filepath.Join(contentRoot, filepath.FromSlash(relativePath))
+	data, err := contextPackReadProjectFile(contentRoot, fullPath)
 	if err != nil {
 		return "", fmt.Errorf("hash context-pack file %q: %w", relativePath, err)
 	}

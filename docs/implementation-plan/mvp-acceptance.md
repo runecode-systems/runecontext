@@ -199,6 +199,8 @@
 - [ ] Context packs can preserve ordered multi-bundle requests separately from
   resolved bundle linearization without forcing authored workflows away from one
   top-level bundle or authored composite bundles.
+- [ ] Generated context-pack `id` and `requested_bundle_ids` values enforce the
+  same fail-closed bundle-ID grammar as authored bundle contracts.
 - [ ] Context-pack semantics do not embed deployment-specific evidence-service
   locator, endpoint, auth, or tenancy metadata.
 - [ ] Size and provenance threshold warnings exist with the default advisory

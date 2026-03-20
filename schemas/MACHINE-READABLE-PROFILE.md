@@ -110,7 +110,7 @@ SHA256 hash: a1b2c3d4... (64 hex chars)
 - `generated_at` remains a required emitted field for context packs, but it is excluded from the canonical hash input so identical resolved content hashes the same across regenerations.
 - The canonical hash input is the full context-pack object containing exactly these top-level fields when present: `schema_version`, `canonicalization`, `pack_hash_alg`, `id`, `requested_bundle_ids`, `resolved_from`, `selected`, and `excluded`.
 - `selected` must always serialize with all four aspect keys: `project`, `standards`, `specs`, and `decisions`, using empty arrays when an aspect selects no files.
-- `excluded`, when present, must also serialize with the same four aspect keys and use empty arrays for aspects with no excluded files.
+- `excluded` must always be present and serialize with the same four aspect keys, using empty arrays for aspects with no excluded files.
 - `resolved_from`, `selected`, and `excluded` contribute their full nested content exactly as stored in the pack.
 - `generated_at` must be supplied explicitly to the core builder as a whole-second UTC timestamp; builders must reject sub-second values instead of silently truncating them.
 - For selected-file `sha256` values, UTF-8 text files are normalized to LF line endings before hashing; non-UTF-8 or binary files are hashed as raw bytes.

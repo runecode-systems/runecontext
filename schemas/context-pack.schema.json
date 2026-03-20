@@ -39,6 +39,7 @@
     },
     "id": {
       "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
       "description": "Primary requested context bundle ID for this pack. When multiple top-level bundles are requested, this is the first requested ID."
     },
     "requested_bundle_ids": {
@@ -47,7 +48,7 @@
       "items": {
         "type": "string",
         "minLength": 1,
-        "pattern": "^\\S(?:.*\\S)?$"
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
       },
       "minItems": 1,
       "description": "Ordered list of top-level bundle IDs originally requested for this pack before parent linearization."
@@ -286,7 +287,7 @@
         "specs",
         "decisions"
       ],
-      "description": "Excluded files by aspect family. When present, all four aspect keys must appear, using empty arrays where nothing was excluded.",
+      "description": "Excluded files by aspect family. All four aspect keys must appear, using empty arrays where nothing was excluded.",
       "properties": {
         "project": {
           "type": "array",

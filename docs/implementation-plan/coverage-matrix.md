@@ -144,6 +144,9 @@ plan so it is clear that the planning documents capture the full design.
   while generated packs may record ordered `requested_bundle_ids` separately
   from resolved bundle linearization.
   - Planned capture: `alpha.4`
+- Decision: generated context-pack bundle identifiers should use the same
+  fail-closed ID grammar as authored bundle contracts.
+  - Planned capture: `alpha.4`
 - Decision: RuneCode isolate delivery uses typed transport and hash-addressed
   artifacts.
   - Planned capture: RuneCode companion track from `alpha.4` onward

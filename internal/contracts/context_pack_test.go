@@ -420,6 +420,14 @@ func TestContextPackSchemaConstantsMatchMachineContracts(t *testing.T) {
 	if unique, ok := requestedBundles["uniqueItems"].(bool); !ok || !unique {
 		t.Fatalf("expected requested_bundle_ids to require unique items, got %#v", requestedBundles["uniqueItems"])
 	}
+	assertSchemaPatternValue(t, properties, "id", `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
+	items, ok := requestedBundles["items"].(map[string]any)
+	if !ok {
+		t.Fatal("expected requested_bundle_ids items schema")
+	}
+	if pattern, ok := items["pattern"].(string); !ok || pattern != `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$` {
+		t.Fatalf("expected requested_bundle_ids item pattern to match bundle ID grammar, got %#v", items["pattern"])
+	}
 }
 
 func assertContextPackValidAgainstSchema(t *testing.T, v *Validator, pack *ContextPack) {
@@ -551,6 +559,21 @@ func assertSchemaConstValue(t *testing.T, properties map[string]any, field, want
 	}
 	if got != want {
 		t.Fatalf("expected schema property %q const %q, got %q", field, want, got)
+	}
+}
+
+func assertSchemaPatternValue(t *testing.T, properties map[string]any, field, want string) {
+	t.Helper()
+	property, ok := properties[field].(map[string]any)
+	if !ok {
+		t.Fatalf("expected schema property %q", field)
+	}
+	got, ok := property["pattern"].(string)
+	if !ok {
+		t.Fatalf("expected schema property %q to define string pattern", field)
+	}
+	if got != want {
+		t.Fatalf("expected schema property %q pattern %q, got %q", field, want, got)
 	}
 }
 

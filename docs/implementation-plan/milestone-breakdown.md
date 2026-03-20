@@ -674,6 +674,9 @@ RuneCode integration.
 - Portable path-source `source_ref` values should reject absolute, UNC,
   drive-qualified, and traversal-like path forms so persisted packs keep a clear
   cross-machine contract.
+- Generated context-pack bundle identifiers should fail closed against the same
+  lowercase-alphanumeric-plus-hyphen ID grammar used by authored bundle
+  contracts, rather than accepting arbitrary non-whitespace strings.
 - Generated indexes should standardize on `runecontext/manifest.yaml`,
   `runecontext/indexes/changes-by-status.yaml`, and
   `runecontext/indexes/bundles.yaml`, each using a closed schema, stable
@@ -713,6 +716,9 @@ RuneCode integration.
   pack output survives LF/CRLF checkout differences.
 - [ ] Issue: reject sub-second `generated_at` inputs and non-portable local
   `source_ref` traversal forms at the core pack-builder boundary.
+- [ ] Issue: align generated context-pack bundle-ID validation with the authored
+  bundle-ID grammar, and keep reject fixtures specific enough that unknown-field
+  failures are not masked by unrelated missing required fields.
 - [ ] Issue: implement stable ordering rules for all generated pack content.
 - [ ] Issue: add golden fixtures for resolved context packs, selected/excluded
   provenance, and top-level pack hashes.
