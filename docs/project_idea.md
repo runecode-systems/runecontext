@@ -1638,11 +1638,13 @@ canonicalization: rfc8785-jcs
 pack_hash_alg: sha256
 pack_hash: <hash-of-canonical-pack>
 id: go-control-plane
+requested_bundle_ids:
+  - go-control-plane
 resolved_from:
-  source_mode: embedded
-  source_ref: main
+  source_mode: git
+  source_ref: refs/tags/v0.1.0-alpha.1
   source_commit: 0123456789abcdef0123456789abcdef01234567
-  source_verification: verified_git_commit
+  source_verification: verified_signed_tag
   context_bundle_ids:
     - base
     - go-control-plane
@@ -1654,6 +1656,8 @@ selected:
         - bundle: base
           aspect: project
           rule: include
+          pattern: project/mission.md
+          kind: exact
   standards:
     - path: standards/global/deterministic-check-write-tools.md
       sha256: <hash>
@@ -1661,15 +1665,21 @@ selected:
         - bundle: base
           aspect: standards
           rule: include
+          pattern: standards/global/**
+          kind: glob
         - bundle: go-control-plane
           aspect: standards
           rule: include
+          pattern: standards/global/deterministic-check-write-tools.md
+          kind: exact
     - path: standards/security/trust-boundary-interfaces.md
       sha256: <hash>
       selected_by:
         - bundle: go-control-plane
           aspect: standards
           rule: include
+          pattern: standards/security/trust-boundary-interfaces.md
+          kind: exact
   decisions:
     - path: decisions/DEC-0001-trust-boundary-model.md
       sha256: <hash>
@@ -1677,6 +1687,8 @@ selected:
         - bundle: go-control-plane
           aspect: decisions
           rule: include
+          pattern: decisions/DEC-0001-trust-boundary-model.md
+          kind: exact
 excluded:
   standards:
     - path: standards/frontend/example.md
@@ -1684,6 +1696,8 @@ excluded:
         bundle: go-control-plane
         aspect: standards
         rule: exclude
+        pattern: standards/frontend/example.md
+        kind: exact
 generated_at: 2026-03-15T00:00:00Z
 ```
 
@@ -1700,7 +1714,13 @@ Canonicalization and integrity rules:
 
 - the context pack must have a canonical serialization for hashing; RuneContext should use RFC 8785 JCS over the normalized JSON representation of the pack
 - `pack_hash` must be computed over the canonicalized pack payload
+- `generated_at` should remain a required emitted field for auditability, but it should stay outside the canonical `pack_hash` input so identical resolved content hashes the same across regenerations
 - RuneCode should bind and/or sign `pack_hash` in audit/provenance flows
+
+Request-identity rule:
+
+- the normal authored workflow should still prefer one top-level bundle or an authored composite bundle
+- when a caller supplies more than one top-level bundle, the generated pack should preserve the ordered request separately from the resolved bundle linearization so tool/runtime consumers do not need a schema refactor later
 
 Size and portability rules:
 
@@ -1837,6 +1857,9 @@ Recommended behavior:
   - a promotion assessment should always run
   - if no durable knowledge should be promoted, record that explicitly
   - if durable knowledge should be promoted, propose target updates in `specs/`, `standards/`, and/or `decisions/`
+  - the close-time status should settle to `none` or `suggested`; later explicit
+    promotion workflows may advance reviewable promotions to `accepted` and
+    `completed`
 
 This keeps the burden low while still preserving important project knowledge.
 
@@ -2289,9 +2312,9 @@ Recommended generated outputs:
 - overall `manifest.yaml`
   - inventory of standards, bundles, changes, specs, decisions
 - optional change index
-  - grouped by status
+  - `indexes/changes-by-status.yaml`
 - optional bundle inventory
-  - resolved parents and referenced patterns
+  - `indexes/bundles.yaml` with resolved parents and referenced patterns
 
 Deferred for later:
 
@@ -2304,6 +2327,8 @@ Important rule:
 - no manual-only index should become the only authoritative inventory that must be edited by hand for correctness
 - generated indexes/manifests should use stable ordering and merge-friendly formatting to reduce multi-branch conflicts
 - `manifest.yaml` should be treated as optional and regenerable; implementations should not require it to be committed for correctness
+- generated index artifacts should use closed schemas so RuneCode and other
+  tooling can validate them without treating them as source-of-truth files
 
 ## Standards Referencing Rule
 

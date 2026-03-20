@@ -175,17 +175,27 @@
 
 - [ ] Context packs contain deterministic selected/excluded inventories.
 - [ ] Context packs record per-file hashes and a top-level canonical pack hash.
+- [ ] Context packs keep required `generated_at` metadata while excluding it
+  from the canonical `pack_hash` input so identical resolved content hashes the
+  same across regenerations.
 - [ ] Context packs record the resolved source revision and verification posture.
-- [ ] Context packs retain compact deterministic provenance and leave room for
-  fuller provenance receipts in Verified mode.
+- [ ] Context packs retain compact deterministic provenance, including enough
+  selector detail to explain include/exclude outcomes, and leave room for fuller
+  provenance receipts in Verified mode.
 - [ ] Persisted context-pack fields use portable stable identifiers and path
   forms rather than host-specific absolute paths.
+- [ ] Context packs can preserve ordered multi-bundle requests separately from
+  resolved bundle linearization without forcing authored workflows away from one
+  top-level bundle or authored composite bundles.
 - [ ] Context-pack semantics do not embed deployment-specific evidence-service
   locator, endpoint, auth, or tenancy metadata.
 - [ ] Size and provenance threshold warnings exist with the default advisory
   thresholds from the design document.
-- [ ] Promotion assessment is structured and reviewable.
-- [ ] Generated indexes/manifests exist but remain optional and regenerable.
+- [ ] Change close deterministically records promotion assessment as `none` or
+  `suggested`, while later workflows may advance reviewable promotions to
+  `accepted` and `completed`.
+- [ ] Generated indexes/manifests exist at standard optional paths and remain
+  regenerable rather than becoming the source of truth.
 
 ## 5. Assurance
 

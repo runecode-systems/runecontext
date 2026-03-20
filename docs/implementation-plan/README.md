@@ -56,7 +56,7 @@ contracts RuneCode needs in order to integrate cleanly.
 | `v0.1.0-alpha.1` | Core model, naming, file contracts, schemas, canonical data rules, and validation foundation |
 | `v0.1.0-alpha.2` | Source resolution, explicit trust/integrity handling, monorepo support, and deterministic bundle semantics |
 | `v0.1.0-alpha.3` | Change workflow, standards linkage, traceability, history preservation, and thin change/status commands |
-| `v0.1.0-alpha.4` | Deterministic context packs, generated indexes, and promotion assessment |
+| `v0.1.0-alpha.4` | Deterministic context packs, stable generated indexes, and reviewable promotion assessment |
 | `v0.1.0-alpha.5` | Plain/Verified assurance, baselines, receipts, and backfill |
 | `v0.1.0-alpha.6` | Broadened CLI, validation, doctoring, and machine-facing command contracts |
 | `v0.1.0-alpha.7` | Generic and tool-specific adapters plus adapter-pack UX |
@@ -140,6 +140,16 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment
   complete the basic flow from planned work to durable project knowledge.
+- The latest alpha.4 planning pass also locks in five implementation details to
+  avoid later refactors: required `generated_at` stays outside canonical
+  `pack_hash` input, persisted pack provenance retains `pattern` and `kind`,
+  context-pack request identity uses a hybrid authored-composite plus ordered
+  `requested_bundle_ids` model, generated indexes land at fixed optional paths
+  with closed schemas, and close-time promotion assessment writes only `none` or
+  `suggested` while explicit later workflows own `accepted` and `completed`.
+- The recommended alpha.4 review order is pack engine and determinism fixtures,
+  then pack explanation and limits, then promotion assessment, and finally
+  generated indexes/manifests.
 - `docs/implementation-plan/` should still remain the home for release-train,
   acceptance, and coverage-accounting documents even after repo-local
   RuneContext dogfooding begins; the goal is not a literal 1:1 migration of
@@ -161,9 +171,15 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - Keep the on-disk model, schemas, and resolution semantics canonical.
 - Treat adapters as UX layers, not alternate sources of truth.
 - Keep generated artifacts derived and reviewable.
+- Keep deterministic hashes tied to canonical resolved content rather than
+  regeneration-only metadata such as `generated_at` timestamps.
 - Keep portable generated artifacts free of host-specific absolute paths;
   persisted path fields should use stable RuneContext-relative or equivalently
   portable identifiers.
+- Keep the normal authored context-selection model centered on one top-level
+  bundle or authored composite bundles, while still leaving generated pack
+  metadata room to record ordered runtime bundle requests for RuneCode and other
+  automation consumers.
 - Keep one core authored workflow across `plain` and `verified`; higher
   assurance adds evidence rather than alternate source-of-truth files.
 - Keep repositories self-sufficient for mixed standalone RuneContext and
@@ -209,6 +225,9 @@ until the end.
 - Add golden fixtures for deterministic outputs: resolved bundles, context
   packs, pack hashes, manifests, baselines, receipts, and machine-readable CLI
   output.
+- When a generated artifact carries both deterministic content and emitted audit
+  metadata, test hash stability against the canonical content contract rather
+  than assuming every persisted field belongs in the canonical hash input.
 - Add parser and project fixtures for markdown contracts and traceability rules,
   including `proposal.md`, `standards.md`, `specs/*.md`, and `decisions/*.md`.
 - Add parser and project fixtures for machine-validated heading-fragment refs so

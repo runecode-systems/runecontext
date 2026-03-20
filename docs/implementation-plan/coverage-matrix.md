@@ -112,6 +112,19 @@ plan so it is clear that the planning documents capture the full design.
   - Planned capture: `alpha.3`
 - Decision: context packs must include a top-level canonical hash.
   - Planned capture: `alpha.4`
+- Decision: context packs keep required `generated_at` metadata, but canonical
+  `pack_hash` inputs exclude regeneration-only timestamps so identical resolved
+  content hashes the same across regenerations.
+  - Planned capture: `alpha.4`
+- Decision: persisted context-pack provenance keeps `bundle`, `aspect`, `rule`,
+  `pattern`, and `kind` so explanation and later receipts do not need a format
+  refactor.
+  - Planned capture: `alpha.4`
+- Decision: context-pack request identity uses a hybrid model: authored
+  workflows still prefer one top-level bundle or authored composite bundles,
+  while generated packs may record ordered `requested_bundle_ids` separately
+  from resolved bundle linearization.
+  - Planned capture: `alpha.4`
 - Decision: RuneCode isolate delivery uses typed transport and hash-addressed
   artifacts.
   - Planned capture: RuneCode companion track from `alpha.4` onward
@@ -175,12 +188,20 @@ plan so it is clear that the planning documents capture the full design.
   - Planned capture: `alpha.3`
 - Decision: promotion is selective and reviewable, not silent auto-promotion.
   - Planned capture: `alpha.4`
+- Decision: alpha.4 close-time promotion assessment records only `none` or
+  `suggested`; explicit later workflows own `accepted` and `completed`.
+  - Planned capture: `alpha.4`, `alpha.6`
 - Decision: users must be able to use embedded or dedicated-repo storage.
   - Planned capture: `alpha.2`, `alpha.8`
 - Decision: bundle rules and generated inventories use consistent
   RuneContext-root-relative paths, while the aspect key constrains the allowed
   subtree and mismatches fail closed.
   - Planned capture: `alpha.2`, `alpha.4`
+- Decision: generated inventories should live at standard optional paths
+  (`runecontext/manifest.yaml`, `runecontext/indexes/changes-by-status.yaml`,
+  `runecontext/indexes/bundles.yaml`) and use closed schemas without becoming
+  the source of truth.
+  - Planned capture: `alpha.4`
 - Decision: `type: path` remote/CI invalidity should be controlled by explicit
   caller mode rather than environment inference.
   - Planned capture: `alpha.2`
