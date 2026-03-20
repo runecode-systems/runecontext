@@ -53,10 +53,10 @@ Rather than allowing arbitrary unknown fields (which creates security/audit risk
 
 #### context-pack.schema.json
 - **Scope**: Generated deterministic runtime artifact (output of bundle resolution).
-- **Key Fields**: `schema_version` (const 1), `canonicalization` (const rfc8785-jcs), `pack_hash_alg` (const sha256), `pack_hash` (SHA256 hex), `id`, `resolved_from` (metadata), `selected`/`excluded` (file inventories).
+- **Key Fields**: `schema_version` (const 1), `canonicalization` (const `runecontext-canonical-json-v1`), `pack_hash_alg` (const sha256), `pack_hash` (SHA256 hex), `id`, `resolved_from` (metadata), `selected`/`excluded` (file inventories).
 - **Resolved Metadata**: source_mode, source_ref, source_verification (enum: pinned_commit|verified_signed_tag|unverified_mutable_ref|unverified_local_source|embedded), context_bundle_ids, and `source_commit` only when `source_mode` is `git`.
 - **Source Consistency**: `embedded` sources must use `source_verification: embedded`; `path` sources must use `source_verification: unverified_local_source`; only `git` sources may carry `source_commit`.
-- **Hashing**: `pack_hash` is SHA256 over the RFC 8785 JCS serialization of the complete pack minus the `pack_hash` field itself, ensuring no circular inputs.
+- **Hashing**: `pack_hash` is SHA256 over the restricted `runecontext-canonical-json-v1` serialization of the complete pack minus `pack_hash` and `generated_at`, ensuring no circular or wall-clock-only inputs.
 - **File Inventory**: Path, SHA256 hash, selected_by (ordered rules showing last-matching-rule-wins).
 - **Canonical Shape**: `selected` always contains `project`, `standards`, `specs`, and `decisions`; `excluded` uses the same four-key layout whenever present so equivalent packs hash identically.
 - **Alpha Refinement**: This canonical shape rule is treated as an alpha.1 contract refinement before a stable v1 release, so generators and fixtures must align before downstream consumers rely on pack hashes.
@@ -249,13 +249,13 @@ product decision rather than a narrow review fix.
 - ✅ Closed schemas prevent hidden semantics from untrusted sources.
 - ✅ Namespaced extension keys reduce prompt-injection surface.
 - ✅ Unknown schema_version fails closed; no speculative permissiveness.
-- ✅ Deterministic hashing (RFC 8785 JCS) prevents semantic drift across implementations.
+- ✅ Deterministic hashing prevents semantic drift across implementations; alpha.4 context packs now pin an explicit RuneContext-owned canonicalization token instead of overstating full JCS parity.
 
 ### Auditability
 - ✅ All authoritative files (bundles, status, proposals) are schema-versioned and machine-readable.
 - ✅ Generated artifacts (context packs, baselines, receipts) are fully closed in v1; no hidden fields.
 - ✅ Extensions require explicit opt-in with visible warnings; audit trail is clear.
-- ✅ JCS canonical hashing ensures bit-for-bit reproducibility across implementations.
+- ✅ Canonical hashing rules remain explicit and reproducible across implementations, with artifact-specific profile tokens where the implementation is intentionally narrower than full JCS.
 
 ---
 
@@ -266,7 +266,7 @@ product decision rather than a narrow review fix.
 - Unknown versions fail closed; RuneCode refuses to proceed if RuneContext version is out of supported range.
 
 ### Context Pack Hashing and Binding
-- Context packs carry top-level `pack_hash` (SHA256 over RFC 8785 JCS of the full pack minus `pack_hash`).
+- Context packs carry top-level `pack_hash` (SHA256 over `runecontext-canonical-json-v1` of the full pack minus `pack_hash` and `generated_at`).
 - RuneCode can bind and sign this hash in audit/provenance flows.
 - Deterministic hashing ensures local/remote parity.
 - Because canonical empty-aspect encoding is now explicit, any generator that previously omitted empty aspect keys must be updated before comparing or persisting alpha.1 pack hashes.
@@ -312,7 +312,7 @@ product decision rather than a narrow review fix.
 
 ### Parity Tests
 1. **Local/Remote**: Same bundles and status files validated identically in Go and TypeScript implementations.
-2. **Hashing**: Same context packs produce identical SHA256 hashes across implementations using RFC 8785 JCS.
+2. **Hashing**: Same context packs produce identical SHA256 hashes across implementations using the documented `runecontext-canonical-json-v1` profile and line-ending normalization rules.
 3. **Markdown Parsing**: proposal.md and standards.md parsed identically by tools.
 
 ### Integration Tests
@@ -364,7 +364,7 @@ The following are explicitly deferred to later alphas:
 
 1. **Alpha.2**: Implement source resolution logic using the frozen `runecontext.schema.json` and `source_verification` enum.
 2. **Alpha.3**: Implement change ID allocation and lifecycle management using frozen `change-status.schema.json`.
-3. **Alpha.4**: Implement context pack generation and RFC 8785 JCS hashing using frozen `context-pack.schema.json`.
+3. **Alpha.4**: Implement context pack generation and the frozen `runecontext-canonical-json-v1` hashing profile using `context-pack.schema.json`.
 4. **RuneCode Companion Track**: Begin fixture-based validation of policy-neutrality and version-gating using these schemas and fixtures.
 
 ---
@@ -389,7 +389,7 @@ The following are explicitly deferred to later alphas:
 
 - [x] JSON schemas authored for all core machine-readable files.
 - [x] Restricted YAML profile frozen (no anchors, UTF-8, normalized formatting, etc.).
-- [x] RFC 8785 JCS canonicalization and SHA256 hashing defined.
+- [x] Canonicalization and SHA256 hashing profiles defined, including the later alpha.4 context-pack-specific `runecontext-canonical-json-v1` refinement.
 - [x] Unknown-field behavior frozen (closed by default, opt-in extensions with namespacing).
 - [x] Markdown structure contracts frozen (proposal.md section ordering, standards.md auto-maintenance).
 - [x] All source_verification enum values defined and documented.

@@ -147,6 +147,11 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   `requested_bundle_ids` model, generated indexes land at fixed optional paths
   with closed schemas, and close-time promotion assessment writes only `none` or
   `suggested` while explicit later workflows own `accepted` and `completed`.
+- Branch Cut 1 hardening also clarifies that the core pack builder requires an
+  explicit whole-second `generated_at`, path-mode `source_ref` values must stay
+  portable, LF/CRLF text checkouts hash identically, and the emitted pack
+  canonicalization token is RuneContext-owned rather than an overclaimed full
+  RFC 8785 label.
 - The recommended alpha.4 review order is pack engine and determinism fixtures,
   then pack explanation and limits, then promotion assessment, and finally
   generated indexes/manifests.

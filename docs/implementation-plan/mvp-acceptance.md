@@ -178,12 +178,24 @@
 - [ ] Context packs keep required `generated_at` metadata while excluding it
   from the canonical `pack_hash` input so identical resolved content hashes the
   same across regenerations.
+- [ ] Core context-pack generation requires an explicit `generated_at` input and
+  does not silently inject wall-clock timestamps inside the canonical pack
+  builder.
+- [ ] Core context-pack generation rejects sub-second `generated_at` inputs
+  rather than silently truncating them.
 - [ ] Context packs record the resolved source revision and verification posture.
 - [ ] Context packs retain compact deterministic provenance, including enough
   selector detail to explain include/exclude outcomes, and leave room for fuller
   provenance receipts in Verified mode.
 - [ ] Persisted context-pack fields use portable stable identifiers and path
   forms rather than host-specific absolute paths.
+- [ ] Path-source `resolved_from.source_ref` values remain portable forward-slash
+  relative paths without drive-qualified, UNC, or traversal-style segments.
+- [ ] Deterministic context-pack hashes remain stable across LF/CRLF checkout
+  differences for the same logical text content.
+- [ ] Context packs use an explicit RuneContext-owned canonicalization token for
+  their restricted emitted-shape serializer rather than overstating full RFC
+  8785 interoperability.
 - [ ] Context packs can preserve ordered multi-bundle requests separately from
   resolved bundle linearization without forcing authored workflows away from one
   top-level bundle or authored composite bundles.

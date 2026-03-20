@@ -1,0 +1,97 @@
+schema_version: 1
+canonicalization: runecontext-canonical-json-v1
+pack_hash_alg: sha256
+pack_hash: d01c749f40f726ac4607e0dcedc22e834176c8daabe59bc980f7c5e44f603a87
+id: left
+requested_bundle_ids:
+  - left
+  - right
+resolved_from:
+  source_mode: embedded
+  source_ref: embedded
+  source_verification: embedded
+  context_bundle_ids:
+    - base
+    - left
+    - right
+selected:
+  project:
+    - path: project/mission.md
+      sha256: 17cbda4993815af882d3bc01220de1c25dcd7f579af053555fa2f39728d27ab0
+      selected_by:
+        - bundle: base
+          aspect: project
+          rule: include
+          pattern: project/mission.md
+          kind: exact
+    - path: project/plan.md
+      sha256: 445ad56cc697b592164446c37feac02ef9ed0543b57d1251200388e1c602bd7d
+      selected_by:
+        - bundle: right
+          aspect: project
+          rule: include
+          pattern: project/plan.md
+          kind: exact
+  standards:
+    - path: standards/global/base.md
+      sha256: 1bc99f1b018d41d2401b1a519edbe705fbe881ccba77f1c7b4e3e7eaf6cdd513
+      selected_by:
+        - bundle: base
+          aspect: standards
+          rule: include
+          pattern: standards/global/**
+          kind: glob
+    - path: standards/global/guide.md
+      sha256: d6b3863d8b3b9929136e140ddd16c7dbd3d4596eea2ae14e3051367c9e6cb4f4
+      selected_by:
+        - bundle: base
+          aspect: standards
+          rule: include
+          pattern: standards/global/**
+          kind: glob
+    - path: standards/security/light-audit.md
+      sha256: 7185b19f923b1153063e0f315fc7c93ee0d7b7cbcc337b1447ce6e8c9fa7d601
+      selected_by:
+        - bundle: left
+          aspect: standards
+          rule: include
+          pattern: standards/security/**
+          kind: glob
+  specs:
+    - path: specs/auth-gateway.md
+      sha256: 882983681542e7bd2d38580fb0474fd7aedaf42b67b4cc64f5b4a378391d5519
+      selected_by:
+        - bundle: base
+          aspect: specs
+          rule: include
+          pattern: specs/auth-gateway.md
+          kind: exact
+  decisions:
+    - path: decisions/DEC-0001-trust-boundary-model.md
+      sha256: 163efa8f5a9c7aad52885fadfb7a63af2a5f2d686bc96346b05f3e47e2824569
+      selected_by:
+        - bundle: base
+          aspect: decisions
+          rule: include
+          pattern: decisions/DEC-0001-trust-boundary-model.md
+          kind: exact
+excluded:
+  project: []
+  standards:
+    - path: standards/global/legacy.md
+      last_rule:
+        bundle: base
+        aspect: standards
+        rule: exclude
+        pattern: standards/global/legacy.md
+        kind: exact
+    - path: standards/security/heavy-audit.md
+      last_rule:
+        bundle: right
+        aspect: standards
+        rule: exclude
+        pattern: standards/security/heavy-audit.md
+        kind: exact
+  specs: []
+  decisions: []
+generated_at: "2026-03-20T12:00:00Z"

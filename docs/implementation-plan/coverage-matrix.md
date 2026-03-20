@@ -116,6 +116,25 @@ plan so it is clear that the planning documents capture the full design.
   `pack_hash` inputs exclude regeneration-only timestamps so identical resolved
   content hashes the same across regenerations.
   - Planned capture: `alpha.4`
+- Decision: core context-pack builders require explicit `generated_at` input;
+  command surfaces may supply defaults later, but the canonical engine should
+  not hide wall-clock time injection.
+  - Planned capture: `alpha.4`
+- Decision: core context-pack builders reject sub-second `generated_at` values
+  so timestamp precision changes are explicit instead of silently truncated.
+  - Planned capture: `alpha.4`
+- Decision: selected-file hashing should normalize text line endings so LF and
+  CRLF checkouts of the same logical content still produce portable deterministic
+  pack hashes.
+  - Planned capture: `alpha.4`
+- Decision: path-source `source_ref` values persisted into context packs must be
+  portable forward-slash relative paths without drive-qualified, UNC, or
+  traversal segments.
+  - Planned capture: `alpha.4`
+- Decision: alpha.4 context packs should use an explicit RuneContext-owned
+  canonicalization token for their restricted emitted-shape serializer rather
+  than claiming full RFC 8785 JCS interoperability prematurely.
+  - Planned capture: `alpha.4`
 - Decision: persisted context-pack provenance keeps `bundle`, `aspect`, `rule`,
   `pattern`, and `kind` so explanation and later receipts do not need a format
   refactor.

@@ -14,6 +14,16 @@ func (c *BundleCatalog) linearize(id string) ([]*bundleDefinition, error) {
 	return state.ordered, nil
 }
 
+func (c *BundleCatalog) linearizeRequest(bundleIDs []string) ([]*bundleDefinition, error) {
+	state := newBundleLinearizationState()
+	for _, bundleID := range bundleIDs {
+		if err := c.visitBundleLinearization(bundleID, 1, state); err != nil {
+			return nil, err
+		}
+	}
+	return state.ordered, nil
+}
+
 type bundleLinearizationState struct {
 	ordered    []*bundleDefinition
 	emitted    map[string]struct{}
