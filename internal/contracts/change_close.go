@@ -77,7 +77,7 @@ func applyClosePromotionAssessment(updated map[string]any, record *ChangeRecord)
 	if preservePromotionAssessmentState(updated["promotion_assessment"]) {
 		return
 	}
-	targets := closePromotionTargets(updated, record)
+	targets := closePromotionTargets(record)
 	status := "none"
 	if len(targets) > 0 {
 		status = "suggested"
@@ -97,7 +97,7 @@ func preservePromotionAssessmentState(raw any) bool {
 	return status == "accepted" || status == "completed"
 }
 
-func closePromotionTargets(updated map[string]any, record *ChangeRecord) []any {
+func closePromotionTargets(record *ChangeRecord) []any {
 	// Specs and decisions are sourced from normalized traceability refs on the
 	// change record, while standards suggestions come from standards.md refs.
 	targets := make([]any, 0)
