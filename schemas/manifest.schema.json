@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://runecodesystems.com/schemas/manifest.schema.json",
+  "$id": "https://runecode.org/schemas/manifest.schema.json",
   "title": "RuneContext Generated Manifest",
   "type": "object",
   "additionalProperties": false,

@@ -3,9 +3,20 @@
 This folder turns `docs/project_idea.md` into a concrete delivery plan for the
 `runecontext` repository.
 
-`docs/project_idea.md` remains the reference document and source of truth. The
-documents in this folder are implementation planning artifacts only and must not
-replace or rewrite the original idea document.
+`docs/project_idea.md` remains the original design baseline and product
+rationale. It is historical by default and should not be edited during normal
+feature work.
+
+When implementation details evolve (for example, hardening changes across alpha
+cuts), treat the following as the current normative contract surfaces:
+
+- `core/` and `schemas/` for machine-readable semantics
+- `docs/implementation-plan/` for milestone-scoped implementation decisions
+- tests and fixtures in `internal/` and `fixtures/` for executable behavior
+
+If a narrowly scoped historical correction to `docs/project_idea.md` is ever
+needed, record the rationale in this file so reviewers can distinguish
+historical cleanup from new feature design work.
 
 ## Planning Boundaries
 
@@ -23,6 +34,15 @@ replace or rewrite the original idea document.
   in Go.
 - The planning documents remain language-neutral where possible, but release,
   test, and integration planning assume a Go implementation in this repository.
+
+## Historical Corrections Log
+
+- 2026-03-20: Added explicit guidance that `docs/project_idea.md` is a
+  historical baseline and that alpha-stage contract refinements should be
+  captured in `core/`, `schemas/`, and implementation-plan docs instead of
+  rewriting historical idea text. This addresses review feedback where legacy
+  examples (for example, earlier canonicalization labels) may diverge from the
+  current alpha.4 contract.
 
 ## MVP Definition
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.runecode.io/runecontext/context-pack-report.schema.json",
+  "$id": "https://runecode.org/schemas/context-pack-report.schema.json",
   "title": "RuneContext Context Pack Report",
   "description": "Machine-readable advisory/explain envelope for context-pack generation. Consumers should validate the embedded `pack` object against context-pack.schema.json separately unless they intentionally only need envelope-level checks.",
   "type": "object",

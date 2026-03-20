@@ -3,6 +3,11 @@
 This document maps the contents of `docs/project_idea.md` into the milestone
 plan so it is clear that the planning documents capture the full design.
 
+`docs/project_idea.md` is treated as a historical baseline in this repository.
+When legacy wording or examples diverge from hardened alpha contracts, current
+normative behavior is defined by `core/`, `schemas/`, implementation-plan
+milestones, and executable fixtures/tests.
+
 ## Section-To-Milestone Map
 
 | Source section in `docs/project_idea.md` | Planned capture | Primary milestone(s) | RuneCode companion track |
@@ -154,6 +159,10 @@ plan so it is clear that the planning documents capture the full design.
 - Decision: machine-readable context-pack reports should carry an explicit
   schema version and standalone schema so report consumers can validate that
   envelope independently of the embedded pack schema.
+  - Planned capture: `alpha.4`
+- Decision: newly introduced alpha.4 schema `$id` values should use the same
+  repository-owned domain pattern as the other generated-artifact schemas to
+  avoid consumer ambiguity.
   - Planned capture: `alpha.4`
 - Decision: report-envelope validation and embedded-pack validation remain
   distinct contracts; consumers that need full guarantees must validate both.

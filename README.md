@@ -167,7 +167,7 @@ If you copied or vendored RuneContext files into another repository from a relea
 
 ## Docs
 
-- `docs/project_idea.md` - the original design idea and product rationale. READ ONLY AND FOR HISTORICAL PURPOSES ONLY
+- `docs/project_idea.md` - the original design idea and historical product rationale baseline; do not edit during normal feature work.
 - `docs/implementation-plan/README.md` - the alpha-by-alpha implementation plan.
 - `core/README.md` - the entrypoint for normative core contracts.
 - `schemas/README.md` - schema inventory and contract notes.
