@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runecodesystems.com/schemas/manifest.schema.json",
+  "title": "RuneContext Generated Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "indexes",
+    "counts",
+    "standards",
+    "bundles",
+    "changes",
+    "specs",
+    "decisions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "indexes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changes_by_status",
+        "bundles"
+      ],
+      "properties": {
+        "changes_by_status": {
+          "type": "string",
+          "const": "indexes/changes-by-status.yaml"
+        },
+        "bundles": {
+          "type": "string",
+          "const": "indexes/bundles.yaml"
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standards",
+        "bundles",
+        "changes",
+        "specs",
+        "decisions"
+      ],
+      "properties": {
+        "standards": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bundles": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "specs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decisions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "standards": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^standards/(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?/)*[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\\.md$"
+      },
+      "uniqueItems": true
+    },
+    "bundles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+      },
+      "uniqueItems": true
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^CHG-\\d{4}-\\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "specs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^specs/(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?/)*[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\\.md$"
+      },
+      "uniqueItems": true
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^decisions/(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?/)*[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\\.md$"
+      },
+      "uniqueItems": true
+    }
+  }
+}

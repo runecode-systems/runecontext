@@ -17,12 +17,15 @@ This directory holds the repository-wide fixture taxonomy for RuneContext contra
 - `change-workflow/`
   - alpha.3 project fixtures and golden outputs for change creation, shaping,
     closing, supersession, and rewrite-safe history preservation
+- `context-packs/`
+  - alpha.4 context-pack and report goldens for deterministic output coverage
+- `generated-indexes/`
+  - alpha.4 manifest and generated index golden outputs
 
 ## Reserved Future Fixture Families
 
 These directories are reserved by convention for later alphas so tests and tooling can grow without reshuffling the tree:
 
-- `context-packs/`
 - `assurance/`
 - `cli-json/`
 - `adapters/`
