@@ -10,23 +10,25 @@ import (
 	"unicode/utf8"
 )
 
-func buildContextPackInventories(contentRoot string, resolution *BundleResolution) (ContextPackAspectSet, ContextPackExcludedAspectSet, error) {
+func buildContextPackInventories(contentRoot string, resolution *BundleResolution) (ContextPackAspectSet, ContextPackExcludedAspectSet, []contextPackFileDigest, error) {
 	selected := newContextPackAspectSet()
 	excluded := newContextPackExcludedAspectSet()
+	digests := make([]contextPackFileDigest, 0)
 	if resolution == nil {
-		return selected, excluded, fmt.Errorf("bundle resolution is required")
+		return selected, excluded, digests, fmt.Errorf("bundle resolution is required")
 	}
 	for _, aspect := range bundleAspects {
 		aspectResolution := resolution.Aspects[aspect]
-		selectedItems, err := buildContextPackSelectedFiles(contentRoot, aspectResolution.Selected)
+		selectedItems, selectedDigests, err := buildContextPackSelectedFiles(contentRoot, aspectResolution.Selected)
 		if err != nil {
-			return ContextPackAspectSet{}, ContextPackExcludedAspectSet{}, err
+			return ContextPackAspectSet{}, ContextPackExcludedAspectSet{}, nil, err
 		}
 		excludedItems := buildContextPackExcludedFiles(aspectResolution.Excluded)
 		assignContextPackSelectedAspect(&selected, aspect, selectedItems)
 		assignContextPackExcludedAspect(&excluded, aspect, excludedItems)
+		digests = append(digests, selectedDigests...)
 	}
-	return selected, excluded, nil
+	return selected, excluded, digests, nil
 }
 
 func newContextPackAspectSet() ContextPackAspectSet {
@@ -73,23 +75,25 @@ func assignContextPackExcludedAspect(target *ContextPackExcludedAspectSet, aspec
 	}
 }
 
-func buildContextPackSelectedFiles(contentRoot string, entries []BundleInventoryEntry) ([]ContextPackSelectedFile, error) {
+func buildContextPackSelectedFiles(contentRoot string, entries []BundleInventoryEntry) ([]ContextPackSelectedFile, []contextPackFileDigest, error) {
 	result := make([]ContextPackSelectedFile, 0, len(entries))
+	digests := make([]contextPackFileDigest, 0, len(entries))
 	for _, entry := range entries {
 		if len(entry.MatchedBy) == 0 {
-			return nil, fmt.Errorf("selected context-pack file %q is missing selector provenance", entry.Path)
+			return nil, nil, fmt.Errorf("selected context-pack file %q is missing selector provenance", entry.Path)
 		}
-		hash, err := hashContextPackFile(contentRoot, entry.Path)
+		digest, err := digestContextPackFile(contentRoot, entry.Path)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		result = append(result, ContextPackSelectedFile{
 			Path:       entry.Path,
-			SHA256:     hash,
+			SHA256:     digest.SHA256,
 			SelectedBy: contextPackRuleReferences(entry.MatchedBy),
 		})
+		digests = append(digests, digest)
 	}
-	return result, nil
+	return result, digests, nil
 }
 
 func buildContextPackExcludedFiles(entries []BundleInventoryEntry) []ContextPackExcludedFile {
@@ -121,15 +125,15 @@ func contextPackRuleReference(item BundleRuleReference) ContextPackRuleReference
 	}
 }
 
-func hashContextPackFile(contentRoot, relativePath string) (string, error) {
+func digestContextPackFile(contentRoot, relativePath string) (contextPackFileDigest, error) {
 	fullPath := filepath.Join(contentRoot, filepath.FromSlash(relativePath))
-	data, err := contextPackReadProjectFile(contentRoot, fullPath)
+	data, err := readContextPackProjectFile(contentRoot, fullPath)
 	if err != nil {
-		return "", fmt.Errorf("hash context-pack file %q: %w", relativePath, err)
+		return contextPackFileDigest{}, fmt.Errorf("hash context-pack file %q: %w", relativePath, err)
 	}
 	data = normalizeContextPackFileContent(data)
 	sum := sha256.Sum256(data)
-	return fmt.Sprintf("%x", sum[:]), nil
+	return contextPackFileDigest{Path: relativePath, SHA256: fmt.Sprintf("%x", sum[:]), ReferencedBytes: int64(len(data))}, nil
 }
 
 func isPortableLocalSourceRef(value string) bool {

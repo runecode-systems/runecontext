@@ -151,6 +151,25 @@ plan so it is clear that the planning documents capture the full design.
 - Decision: generated context-pack bundle identifiers should use the same
   fail-closed ID grammar as authored bundle contracts.
   - Planned capture: `alpha.4`
+- Decision: machine-readable context-pack reports should carry an explicit
+  schema version and standalone schema so report consumers can validate that
+  envelope independently of the embedded pack schema.
+  - Planned capture: `alpha.4`
+- Decision: report-envelope validation and embedded-pack validation remain
+  distinct contracts; consumers that need full guarantees must validate both.
+  - Planned capture: `alpha.4`
+- Decision: fail-closed rebuild checks should retry only on genuinely transient
+  file-instability signals; non-transient digest/read failures must surface as
+  direct errors.
+  - Planned capture: `alpha.4`
+- Decision: advisory-threshold configuration treats a fully zero-valued struct as
+  "use defaults", while explicit field zeros remain meaningful once any field is
+  set and negative values opt back into per-field defaults.
+  - Planned capture: `alpha.4`
+- Decision: rebuild stability checks operate against the loaded project snapshot
+  and selected-file content rather than reloading bundle-definition files from
+  disk mid-attempt.
+  - Planned capture: `alpha.4`
 - Decision: RuneCode isolate delivery uses typed transport and hash-addressed
   artifacts.
   - Planned capture: RuneCode companion track from `alpha.4` onward

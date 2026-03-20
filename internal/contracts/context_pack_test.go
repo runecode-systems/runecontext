@@ -239,7 +239,7 @@ func rewriteMissionFilesForLineEndingParityTest(t *testing.T, rootA, missionPath
 }
 
 func TestBuildContextPackRejectsSelectedEntriesWithoutProvenance(t *testing.T) {
-	_, err := buildContextPackSelectedFiles(filepath.Join(fixturePath(t, "bundle-resolution", "valid-project"), "runecontext"), []BundleInventoryEntry{{Path: "project/mission.md"}})
+	_, _, err := buildContextPackSelectedFiles(filepath.Join(fixturePath(t, "bundle-resolution", "valid-project"), "runecontext"), []BundleInventoryEntry{{Path: "project/mission.md"}})
 	if err == nil || !strings.Contains(err.Error(), "missing selector provenance") {
 		t.Fatalf("expected selector provenance error, got %v", err)
 	}
@@ -291,14 +291,14 @@ func TestBuildContextPackReportsMissingSelectedFilePath(t *testing.T) {
 		t.Fatalf("validate fixture project: %v", err)
 	}
 	defer index.Close()
-	original := contextPackReadProjectFile
-	contextPackReadProjectFile = func(boundaryPath, path string) ([]byte, error) {
+	original := currentContextPackReadProjectFile()
+	restore := setContextPackReadProjectFileHookForTest(func(boundaryPath, path string) ([]byte, error) {
 		if strings.HasSuffix(filepath.ToSlash(path), "project/mission.md") {
 			return nil, fmt.Errorf("synthetic read failure")
 		}
 		return original(boundaryPath, path)
-	}
-	defer func() { contextPackReadProjectFile = original }()
+	})
+	defer restore()
 	_, err = index.BuildContextPack(ContextPackOptions{BundleIDs: []string{"child-reinclude"}, GeneratedAt: time.Date(2026, time.March, 20, 12, 0, 0, 0, time.UTC)})
 	if err == nil || !strings.Contains(err.Error(), `hash context-pack file "project/mission.md"`) {
 		t.Fatalf("expected wrapped hashing error, got %v", err)

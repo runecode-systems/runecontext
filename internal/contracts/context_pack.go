@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -13,7 +14,10 @@ const (
 	contextPackHashAlgorithm    = "sha256"
 )
 
-var contextPackReadProjectFile = readProjectFile
+var (
+	contextPackReadProjectFileMu sync.RWMutex
+	contextPackReadProjectFile   = readProjectFile
+)
 
 type ContextPack struct {
 	SchemaVersion      int                          `json:"schema_version" yaml:"schema_version"`
@@ -77,19 +81,10 @@ type ContextPackOptions struct {
 }
 
 func (p *ProjectIndex) BuildContextPack(options ContextPackOptions) (*ContextPack, error) {
-	inputs, err := p.buildContextPackInputs(options)
+	pack, _, err := p.buildStableContextPack(options)
 	if err != nil {
 		return nil, err
 	}
-	pack := newContextPack(inputs)
-	if err := validateContextPackIdentity(pack); err != nil {
-		return nil, err
-	}
-	packHash, err := pack.computePackHash()
-	if err != nil {
-		return nil, err
-	}
-	pack.PackHash = packHash
 	return pack, nil
 }
 
@@ -99,39 +94,6 @@ type contextPackInputs struct {
 	selected    ContextPackAspectSet
 	excluded    ContextPackExcludedAspectSet
 	generatedAt string
-}
-
-func (p *ProjectIndex) buildContextPackInputs(options ContextPackOptions) (contextPackInputs, error) {
-	if err := validateContextPackProjectIndex(p); err != nil {
-		return contextPackInputs{}, err
-	}
-	requested, err := normalizeContextPackBundleIDs(options.BundleIDs)
-	if err != nil {
-		return contextPackInputs{}, err
-	}
-	resolution, err := p.Bundles.ResolveRequest(requested)
-	if err != nil {
-		return contextPackInputs{}, err
-	}
-	resolved, err := buildContextPackResolvedFrom(p.Resolution, resolution.Linearization)
-	if err != nil {
-		return contextPackInputs{}, err
-	}
-	generatedAt, err := formatContextPackGeneratedAt(options.GeneratedAt)
-	if err != nil {
-		return contextPackInputs{}, err
-	}
-	selected, excluded, err := buildContextPackInventories(p.ContentRoot, resolution)
-	if err != nil {
-		return contextPackInputs{}, err
-	}
-	return contextPackInputs{
-		requested:   requested,
-		resolved:    resolved,
-		selected:    selected,
-		excluded:    excluded,
-		generatedAt: generatedAt,
-	}, nil
 }
 
 func validateContextPackProjectIndex(index *ProjectIndex) error {
@@ -166,6 +128,29 @@ func validateContextPackIdentity(pack *ContextPack) error {
 		return fmt.Errorf("context-pack id %q must match first requested bundle ID %q", pack.ID, pack.RequestedBundleIDs[0])
 	}
 	return nil
+}
+
+func readContextPackProjectFile(boundaryPath, path string) ([]byte, error) {
+	return currentContextPackReadProjectFile()(boundaryPath, path)
+}
+
+func currentContextPackReadProjectFile() func(boundaryPath, path string) ([]byte, error) {
+	contextPackReadProjectFileMu.RLock()
+	reader := contextPackReadProjectFile
+	contextPackReadProjectFileMu.RUnlock()
+	return reader
+}
+
+func setContextPackReadProjectFileHookForTest(hook func(boundaryPath, path string) ([]byte, error)) func() {
+	contextPackReadProjectFileMu.Lock()
+	previous := contextPackReadProjectFile
+	contextPackReadProjectFile = hook
+	contextPackReadProjectFileMu.Unlock()
+	return func() {
+		contextPackReadProjectFileMu.Lock()
+		contextPackReadProjectFile = previous
+		contextPackReadProjectFileMu.Unlock()
+	}
 }
 
 func normalizeContextPackBundleIDs(bundleIDs []string) ([]string, error) {

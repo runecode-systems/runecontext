@@ -738,15 +738,37 @@ RuneCode integration.
 ### Recommended Branch Cut 2: Pack explanation, thresholds, and fail-closed rebuild behavior
 
 - [ ] Issue: implement human-readable and machine-readable pack output modes.
+- [ ] Issue: give machine-readable pack reports an explicit schema version and
+  standalone schema contract so RuneCode and other automation consumers can
+  validate them independently of the embedded pack schema.
+- [ ] Issue: document that the report schema validates the envelope while the
+  embedded `pack` payload still requires separate validation against
+  `context-pack.schema.json` when consumers need full contract enforcement.
 - [ ] Issue: implement `--explain`-style provenance output for include/exclude
   decisions using the persisted selector detail from Branch Cut 1.
+- [ ] Issue: compare rebuild stability using canonicalized explanation content
+  rather than brittle in-memory deep-struct comparison.
 - [ ] Issue: implement advisory warnings using the design defaults of `256`
   selected files, `1 MiB` referenced content bytes, and `256 KiB` provenance
   metadata.
+- [ ] Issue: document and test the threshold API semantics so a fully zero-valued
+  threshold struct means "use defaults", explicit zero fields remain valid once
+  any field is set, and negative values opt back into per-field defaults.
+- [ ] Issue: keep pack-only construction and enriched report construction as
+  separable flows even when they share the same rebuild/fail-closed engine.
 - [ ] Issue: implement fail/rebuild behavior when files change between
   enumeration, hashing, and delivery preparation.
+- [ ] Issue: propagate non-transient digest/read failures during rebuild
+  stability checks instead of collapsing them into a generic "inputs changed"
+  retry outcome.
+- [ ] Issue: document that rebuild stability is evaluated against the loaded
+  project snapshot and selected-file content; bundle-definition reloads are not
+  performed mid-build unless a later milestone explicitly broadens that scope.
 - [ ] Issue: add regression tests for advisory-size and provenance-threshold
   warnings using the documented default values.
+- [ ] Issue: add regression tests for unsupported canonical scalar types and
+  machine-report schema validation so the restricted hashing/output contracts
+  fail closed when future type drift appears.
 - [ ] Issue: add tests for changed-file fail-closed behavior between
   enumeration, hashing, and delivery preparation.
 
