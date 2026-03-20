@@ -789,6 +789,11 @@ RuneCode integration.
 - [ ] Issue: implement reviewable suggested promotion targets for `specs/`,
   `standards/`, and `decisions/`.
 - [ ] Issue: implement explicit "no promotion needed" recording on close.
+- [ ] Issue: preserve explicitly advanced promotion lifecycle states
+  (`accepted`, `completed`) if they already exist, so close-time reassessment
+  does not regress later explicit promotion workflow outcomes.
+- [ ] Issue: lock in deterministic promotion-assessment behavior for both
+  `closed` and `superseded` terminal lifecycle outcomes.
 - [ ] Issue: add tests for close-time promotion assessment determinism,
   explicit `none` outcomes, and stable suggested-target formatting.
 

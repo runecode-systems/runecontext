@@ -31,7 +31,7 @@ func assertClosedResultMetadata(t *testing.T, result *ChangeOperationResult) {
 
 func assertClosedStatusFile(t *testing.T, root, changeID string) {
 	t.Helper()
-	requireFileContent(t, filepath.Join(root, "runecontext", "changes", changeID, "status.yaml"), strings.Join([]string{"schema_version: 1", "id: CHG-2026-001-aabb-add-cache-invalidation", "title: Add cache invalidation", "status: closed", "type: feature", "size: small", "verification_status: passed", "context_bundles:", "  - base", "related_specs: []", "related_decisions: []", "related_changes: []", "depends_on: []", "informed_by: []", "supersedes: []", "superseded_by: []", "created_at: \"2026-03-18\"", "closed_at: \"2026-03-20\"", "promotion_assessment:", "  status: pending", "  suggested_targets: []", ""}, "\n"))
+	requireFileContent(t, filepath.Join(root, "runecontext", "changes", changeID, "status.yaml"), strings.Join([]string{"schema_version: 1", "id: CHG-2026-001-aabb-add-cache-invalidation", "title: Add cache invalidation", "status: closed", "type: feature", "size: small", "verification_status: passed", "context_bundles:", "  - base", "related_specs: []", "related_decisions: []", "related_changes: []", "depends_on: []", "informed_by: []", "supersedes: []", "superseded_by: []", "created_at: \"2026-03-18\"", "closed_at: \"2026-03-20\"", "promotion_assessment:", "  status: none", "  suggested_targets: []", ""}, "\n"))
 }
 
 func TestCloseChangeWritesSupersededStatusAndReciprocalLink(t *testing.T) {
@@ -48,9 +48,12 @@ func TestCloseChangeWritesSupersededStatusAndReciprocalLink(t *testing.T) {
 func assertSupersededStatusContents(t *testing.T, root string) {
 	t.Helper()
 	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
-	text := string(mustReadBytes(t, statusPath))
+	text := strings.ReplaceAll(string(mustReadBytes(t, statusPath)), "\r\n", "\n")
 	if !strings.Contains(text, "status: superseded") || !strings.Contains(text, "closed_at: \"2026-03-18\"") {
 		t.Fatalf("unexpected superseded status contents:\n%s", text)
+	}
+	if !strings.Contains(text, "promotion_assessment:\n  status: suggested") {
+		t.Fatalf("expected superseded close to record deterministic promotion suggestions, got:\n%s", text)
 	}
 }
 
@@ -235,7 +238,7 @@ func assertOptionalFieldsOmitted(t *testing.T, path string) {
 	}
 }
 
-func TestCloseChangePreservesDefaultPromotionAssessmentStatusWhenEmpty(t *testing.T) {
+func TestCloseChangeNormalizesEmptyPromotionAssessmentToNoneOnClose(t *testing.T) {
 	root := copyChangeWorkflowTemplate(t)
 	changeID := writeExistingChangeWithEmptyPromotionAssessment(t, root)
 	v, loaded := mustLoadWorkflowProject(t, root)
@@ -244,7 +247,109 @@ func TestCloseChangePreservesDefaultPromotionAssessmentStatusWhenEmpty(t *testin
 		t.Fatalf("close change: %v", err)
 	}
 	text := strings.ReplaceAll(string(mustReadBytes(t, filepath.Join(root, "runecontext", "changes", changeID, "status.yaml"))), "\r\n", "\n")
-	if strings.Contains(text, "<nil>") || !strings.Contains(text, "promotion_assessment:\n  status: pending\n  suggested_targets: []") {
-		t.Fatalf("expected empty promotion assessment to preserve pending default, got:\n%s", text)
+	if strings.Contains(text, "<nil>") || !strings.Contains(text, "promotion_assessment:\n  status: none\n  suggested_targets: []") {
+		t.Fatalf("expected close to replace empty promotion assessment with deterministic none state, got:\n%s", text)
 	}
+}
+
+func TestCloseChangeRecordsPromotionAssessmentNoneWhenNoTargets(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	changeID := writeExistingChangeWithoutOptionalFields(t, root)
+	v, loaded := mustLoadWorkflowProject(t, root)
+	defer loaded.Close()
+	if _, err := CloseChange(v, loaded, changeID, ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("close change: %v", err)
+	}
+	text := strings.ReplaceAll(string(mustReadBytes(t, filepath.Join(root, "runecontext", "changes", changeID, "status.yaml"))), "\r\n", "\n")
+	if !strings.Contains(text, "promotion_assessment:\n  status: none\n  suggested_targets: []") {
+		t.Fatalf("expected explicit none promotion assessment, got:\n%s", text)
+	}
+}
+
+func TestCloseChangePromotionTargetsUseStableFormatting(t *testing.T) {
+	root := copyTraceabilityFixtureProject(t, "valid-project")
+	v, loaded := mustLoadWorkflowProject(t, root)
+	defer loaded.Close()
+	if _, err := CloseChange(v, loaded, "CHG-2026-001-a3f2-auth-gateway", ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 21, 0, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("close change: %v", err)
+	}
+	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
+	text := strings.ReplaceAll(string(mustReadBytes(t, statusPath)), "\r\n", "\n")
+	needle := strings.Join([]string{
+		"promotion_assessment:",
+		"  status: suggested",
+		"  suggested_targets:",
+		"    - target_type: spec",
+		"      target_path: specs/auth-gateway.md",
+		"      summary: Review and promote durable spec updates from this change.",
+		"    - target_type: decision",
+		"      target_path: decisions/DEC-0001-trust-boundary-model.md",
+		"      summary: Review and promote durable decision updates from this change.",
+	}, "\n")
+	if !strings.Contains(text, needle) {
+		t.Fatalf("expected stable promotion target formatting, got:\n%s", text)
+	}
+	if strings.Contains(text, "target_type: standard") {
+		t.Fatalf("expected non-standard change to avoid standard promotion targets, got:\n%s", text)
+	}
+}
+
+func TestCloseChangeSuggestsStandardsTargetsForStandardChanges(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, created := mustCreateChange(t, root, ChangeCreateOptions{
+		Title:          "Refine base standard wording",
+		Type:           "standard",
+		ContextBundles: []string{"base"},
+		Now:            time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC),
+		Entropy:        strings.NewReader("abcd"),
+	})
+	closeResult := mustCloseChange(t, v, root, created.ID, ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC)})
+	if closeResult.Status != "closed" {
+		t.Fatalf("expected closed status, got %q", closeResult.Status)
+	}
+	statusPath := filepath.Join(root, "runecontext", "changes", created.ID, "status.yaml")
+	text := strings.ReplaceAll(string(mustReadBytes(t, statusPath)), "\r\n", "\n")
+	if !strings.Contains(text, "promotion_assessment:\n  status: suggested") {
+		t.Fatalf("expected suggested promotion status for standard change, got:\n%s", text)
+	}
+	if !strings.Contains(text, "target_type: standard") || !strings.Contains(text, "target_path: standards/global/base.md") {
+		t.Fatalf("expected standard promotion target, got:\n%s", text)
+	}
+}
+
+func TestCloseChangePreservesAcceptedPromotionAssessment(t *testing.T) {
+	root := copyTraceabilityFixtureProject(t, "valid-project")
+	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
+	rewritePromotionAssessmentStatus(t, statusPath, "accepted")
+	v, loaded := mustLoadWorkflowProject(t, root)
+	defer loaded.Close()
+	if _, err := CloseChange(v, loaded, "CHG-2026-001-a3f2-auth-gateway", ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 21, 0, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("close change: %v", err)
+	}
+	text := strings.ReplaceAll(string(mustReadBytes(t, statusPath)), "\r\n", "\n")
+	if !strings.Contains(text, "promotion_assessment:\n  status: accepted\n  suggested_targets: []") {
+		t.Fatalf("expected accepted promotion state to be preserved, got:\n%s", text)
+	}
+}
+
+func TestCloseChangePreservesCompletedPromotionAssessment(t *testing.T) {
+	root := copyTraceabilityFixtureProject(t, "valid-project")
+	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
+	rewritePromotionAssessmentStatus(t, statusPath, "completed")
+	v, loaded := mustLoadWorkflowProject(t, root)
+	defer loaded.Close()
+	if _, err := CloseChange(v, loaded, "CHG-2026-001-a3f2-auth-gateway", ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 21, 0, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("close change: %v", err)
+	}
+	text := strings.ReplaceAll(string(mustReadBytes(t, statusPath)), "\r\n", "\n")
+	if !strings.Contains(text, "promotion_assessment:\n  status: completed\n  suggested_targets: []") {
+		t.Fatalf("expected completed promotion state to be preserved, got:\n%s", text)
+	}
+}
+
+func rewritePromotionAssessmentStatus(t *testing.T, statusPath, status string) {
+	t.Helper()
+	rewriteFile(t, statusPath, func(text string) string {
+		return strings.Replace(text, "promotion_assessment:\n  status: pending\n  suggested_targets: []", "promotion_assessment:\n  status: "+status+"\n  suggested_targets: []", 1)
+	})
 }
