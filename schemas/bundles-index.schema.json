@@ -30,10 +30,10 @@
             "type": "string",
             "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
           },
-          "path": {
-            "type": "string",
-            "pattern": "^bundles/[A-Za-z0-9._/-]+\\.yaml$"
-          },
+ "path": {
+          "type": "string",
+          "pattern": "^bundles/(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.yaml$"
+        },
           "extends": {
             "type": "array",
             "items": {

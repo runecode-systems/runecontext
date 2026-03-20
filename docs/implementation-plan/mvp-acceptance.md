@@ -236,6 +236,8 @@
 - [x] Generated index builders fail closed when emitted artifact paths would
   escape the RuneContext content root or when a change lifecycle status falls
   outside the supported generated-index grouping contract.
+- [x] Manifest and bundle-index path patterns reject traversal, hidden, and
+  empty segments so external validation fails closed on unsafe paths.
 
 ## 5. CLI And Machine Interface
 

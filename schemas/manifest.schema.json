@@ -74,7 +74,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^standards/[A-Za-z0-9._/-]+\\.md$"
+        "pattern": "^standards/(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?/)*[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\\.md$"
       },
       "uniqueItems": true
     },
@@ -98,7 +98,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^specs/[A-Za-z0-9._/-]+\\.md$"
+        "pattern": "^specs/(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?/)*[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\\.md$"
       },
       "uniqueItems": true
     },
@@ -106,7 +106,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^decisions/[A-Za-z0-9._/-]+\\.md$"
+        "pattern": "^decisions/(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?/)*[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\\.md$"
       },
       "uniqueItems": true
     }

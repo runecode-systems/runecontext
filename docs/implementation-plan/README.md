@@ -172,6 +172,10 @@ and coverage stay in one place.
   root, requires unknown lifecycle statuses to fail loudly during
   `changes-by-status` generation, and locks bundle-index determinism plus
   closed-schema unknown-field rejection under dedicated tests.
+- The same Branch Cut 4 hardening also tightens manifest and bundle-index path
+  patterns to reject traversal (`..`), hidden (`.`-prefixed), and empty
+  segments so external tooling can validate generated artifacts against a
+  stricter fail-closed path contract.
 - Branch Cut 3 follow-up hardening further specifies that close-time promotion
   assessment must not regress existing `accepted`/`completed` states, and that
   close behavior for both `closed` and `superseded` lifecycle outcomes remains

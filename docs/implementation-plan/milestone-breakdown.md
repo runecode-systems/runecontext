@@ -818,6 +818,9 @@ RuneCode integration.
 - [x] Issue: harden generated index builders to fail closed when artifact paths
   escape the RuneContext content root or when a change carries an unsupported
   lifecycle status.
+- [x] Issue: tighten manifest and bundle-index path patterns to reject
+  traversal, hidden, and empty path segments so external tooling can
+  validate generated artifacts against a fail-closed path contract.
 
 ### Exit Criteria
 
