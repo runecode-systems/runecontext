@@ -131,9 +131,10 @@ and coverage stay in one place.
 - The same hardening pass also requires optional change-status string fields to
   stay omitted when absent rather than being rewritten as placeholder strings
   such as `<nil>` in summaries or rewritten `status.yaml` files.
-- That same rewrite safety rule also preserves the default
-  `promotion_assessment.status` of `pending` when the promotion assessment block
-  is present but omits an explicit status.
+- That same rewrite safety rule now normalizes close-time promotion assessment
+  outcomes to `none` or `suggested` when the promotion block is missing or
+  empty, while preserving explicitly advanced promotion states (`accepted`,
+  `completed`) for later dedicated promotion workflows.
 - The latest alpha.3 traceability hardening pass also requires markdown deep-ref
   tokenization to stay UTF-8-safe during validation, so surrounding Unicode
   punctuation such as smart quotes terminates local ref tokens cleanly instead
@@ -166,6 +167,14 @@ and coverage stay in one place.
   `requested_bundle_ids` model, generated indexes land at fixed optional paths
   with closed schemas, and close-time promotion assessment writes only `none` or
   `suggested` while explicit later workflows own `accepted` and `completed`.
+- Branch Cut 3 follow-up hardening further specifies that close-time promotion
+  assessment must not regress existing `accepted`/`completed` states, and that
+  close behavior for both `closed` and `superseded` lifecycle outcomes remains
+  deterministic and reviewable.
+- The same Branch Cut 3 hardening also requires close-time suggested
+  `target_path` values to be emitted from already-normalized traceability
+  records, so platform-specific separators cannot leak into
+  `promotion_assessment.suggested_targets` output.
 - Branch Cut 1 hardening also clarifies that the core pack builder requires an
   explicit whole-second `generated_at`, path-mode `source_ref` values must stay
   portable, LF/CRLF text checkouts hash identically, and the emitted pack

@@ -65,8 +65,88 @@ func buildClosedStatusMap(index *ProjectIndex, record *ChangeRecord, options Cha
 	if strings.TrimSpace(options.VerificationStatus) != "" {
 		updated["verification_status"] = strings.TrimSpace(options.VerificationStatus)
 	}
-	return CloseChangeStatus(updated, CloseChangeOptions{ClosedAt: options.ClosedAt, SupersededBy: options.SupersededBy})
+	closed, err := CloseChangeStatus(updated, CloseChangeOptions{ClosedAt: options.ClosedAt, SupersededBy: options.SupersededBy})
+	if err != nil {
+		return nil, err
+	}
+	applyClosePromotionAssessment(closed, record)
+	return closed, nil
 }
+
+func applyClosePromotionAssessment(updated map[string]any, record *ChangeRecord) {
+	if preservePromotionAssessmentState(updated["promotion_assessment"]) {
+		return
+	}
+	targets := closePromotionTargets(record)
+	status := "none"
+	if len(targets) > 0 {
+		status = "suggested"
+	}
+	updated["promotion_assessment"] = map[string]any{
+		"status":            status,
+		"suggested_targets": targets,
+	}
+}
+
+func preservePromotionAssessmentState(raw any) bool {
+	promotionRaw, ok := raw.(map[string]any)
+	if !ok {
+		return false
+	}
+	status := strings.TrimSpace(fmt.Sprint(promotionRaw["status"]))
+	return status == "accepted" || status == "completed"
+}
+
+func closePromotionTargets(record *ChangeRecord) []any {
+	// Specs and decisions are sourced from normalized traceability refs on the
+	// change record, while standards suggestions come from standards.md refs.
+	targets := make([]any, 0)
+	for _, path := range sortedUniqueStrings(record.RelatedSpecs) {
+		targets = append(targets, map[string]any{
+			"target_type": "spec",
+			"target_path": path,
+			"summary":     promotionSummarySpec,
+		})
+	}
+	if record.Type == "standard" {
+		for _, path := range sortedUniqueStrings(record.StandardRefs) {
+			targets = append(targets, map[string]any{
+				"target_type": "standard",
+				"target_path": path,
+				"summary":     promotionSummaryStandard,
+			})
+		}
+	}
+	for _, path := range sortedUniqueStrings(record.RelatedDecisions) {
+		targets = append(targets, map[string]any{
+			"target_type": "decision",
+			"target_path": path,
+			"summary":     promotionSummaryDecision,
+		})
+	}
+	return targets
+}
+
+func sortedUniqueStrings(items []string) []string {
+	clean := make([]string, 0, len(items))
+	for _, item := range items {
+		trimmed := strings.TrimSpace(item)
+		if trimmed == "" {
+			continue
+		}
+		clean = append(clean, trimmed)
+	}
+	if len(clean) == 0 {
+		return []string{}
+	}
+	return uniqueSortedStrings(clean)
+}
+
+const (
+	promotionSummarySpec     = "Review and promote durable spec updates from this change."
+	promotionSummaryStandard = "Review and promote durable standards updates from this change."
+	promotionSummaryDecision = "Review and promote durable decision updates from this change."
+)
 
 func buildCloseStatusWrites(v *Validator, index *ProjectIndex, writableRoot string, record *ChangeRecord, changeID string, updated map[string]any, successorIDs []string) ([]fileRewrite, []FileMutation, error) {
 	mainWrite, changedFiles, err := buildPrimaryCloseStatusWrite(v, writableRoot, record, updated)
