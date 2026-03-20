@@ -104,12 +104,19 @@ SHA256 hash: a1b2c3d4... (64 hex chars)
 
 ### Context Pack Hash Input
 
+- Context packs currently use the explicit canonicalization token `runecontext-canonical-json-v1` rather than claiming full RFC 8785 JCS interoperability.
+- `runecontext-canonical-json-v1` is a restricted canonical JSON profile for the value shapes emitted by alpha.4 context packs: sorted object keys, compact arrays/objects, standard JSON string escaping without HTML escaping, and integral numeric values only. Other value shapes must fail closed rather than being serialized approximately.
+- Strings participating in `runecontext-canonical-json-v1` must be valid UTF-8; canonicalization must fail closed on invalid UTF-8 instead of silently replacing bytes with U+FFFD or another normalization artifact.
 - Context packs must exclude the `pack_hash` field itself before canonicalizing the remaining object for hashing.
-- The canonical hash input is the full context-pack object containing exactly these top-level fields when present: `schema_version`, `canonicalization`, `pack_hash_alg`, `id`, `resolved_from`, `selected`, `excluded`, and `generated_at`.
+- `generated_at` remains a required emitted field for context packs, but it is excluded from the canonical hash input so identical resolved content hashes the same across regenerations.
+- The canonical hash input is the full context-pack object containing exactly these top-level fields when present: `schema_version`, `canonicalization`, `pack_hash_alg`, `id`, `requested_bundle_ids`, `resolved_from`, `selected`, and `excluded`.
 - `selected` must always serialize with all four aspect keys: `project`, `standards`, `specs`, and `decisions`, using empty arrays when an aspect selects no files.
-- `excluded`, when present, must also serialize with the same four aspect keys and use empty arrays for aspects with no excluded files.
+- `excluded` must always be present and serialize with the same four aspect keys, using empty arrays for aspects with no excluded files.
 - `resolved_from`, `selected`, and `excluded` contribute their full nested content exactly as stored in the pack.
-- Run RFC 8785 JCS over that truncated object, then compute SHA256 over the UTF-8 bytes; the resulting 64-character hex string becomes the value stored in `pack_hash`.
+- `generated_at` must be supplied explicitly to the core builder as a whole-second UTC timestamp; builders must reject sub-second values instead of silently truncating them.
+- For selected-file `sha256` values, UTF-8 text files are normalized to LF line endings before hashing; non-UTF-8 or binary files are hashed as raw bytes.
+- When `resolved_from.source_mode` is `path`, `source_ref` must be a portable forward-slash relative path with no drive-qualified, UNC, `.` or `..` segments.
+- Run `runecontext-canonical-json-v1` over that truncated object, then compute SHA256 over the UTF-8 bytes; the resulting 64-character hex string becomes the value stored in `pack_hash`.
 
 ## Unknown-Field Behavior
 
@@ -156,6 +163,6 @@ Hand-authored files (`runecontext.yaml`, `bundles/*.yaml`, `changes/*/status.yam
 To ensure local and remote resolution produce identical results:
 
 1. **Use this profile for all authoritative YAML/JSON files**.
-2. **Use RFC 8785 JCS for all canonical hashing**.
+2. **Use the documented canonicalization profile for each artifact family**: RFC 8785 JCS remains the default profile, while alpha.4 context packs explicitly use `runecontext-canonical-json-v1` until a broader full-JCS implementation is shipped for that artifact.
 3. **Test parity fixtures across implementations** (Go, TypeScript, etc.), including project-level validation that checks bundle/status extensions against the root opt-in flag.
 4. **Document any deviations** from this profile in implementation release notes.

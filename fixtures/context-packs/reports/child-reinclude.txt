@@ -1,0 +1,44 @@
+context pack child-reinclude
+  pack hash: d92c385caf655776f90d82cede7b6de55e1e84f7e9ae0a71b875eea00cc73649
+  requested bundles: child-reinclude
+  resolved bundles: base, child-reinclude
+  selected files: 7
+  excluded files: 0
+  referenced content bytes: 1179
+  provenance bytes: 1562
+  generated_at: 2026-03-20T12:00:00Z
+
+warnings:
+  none
+
+selected:
+  [project]
+    project/mission.md
+      - include bundle=base pattern=project/mission.md kind=exact
+    project/plan.md
+      - include bundle=child-reinclude pattern=project/plan.md kind=exact
+  [standards]
+    standards/global/base.md
+      - include bundle=base pattern=standards/global/** kind=glob
+    standards/global/guide.md
+      - include bundle=base pattern=standards/global/** kind=glob
+    standards/global/legacy.md
+      - include bundle=base pattern=standards/global/** kind=glob
+      - exclude bundle=base pattern=standards/global/legacy.md kind=exact
+      - include bundle=child-reinclude pattern=standards/global/legacy.md kind=exact
+  [specs]
+    specs/auth-gateway.md
+      - include bundle=base pattern=specs/auth-gateway.md kind=exact
+  [decisions]
+    decisions/DEC-0001-trust-boundary-model.md
+      - include bundle=base pattern=decisions/DEC-0001-trust-boundary-model.md kind=exact
+
+excluded:
+  [project]
+    none
+  [standards]
+    none
+  [specs]
+    none
+  [decisions]
+    none

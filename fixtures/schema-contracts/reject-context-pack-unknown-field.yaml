@@ -1,8 +1,10 @@
 schema_version: 1
-canonicalization: rfc8785-jcs
+canonicalization: runecontext-canonical-json-v1
 pack_hash_alg: sha256
 pack_hash: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f60789
 id: go-control-plane
+requested_bundle_ids:
+  - go-control-plane
 resolved_from:
   source_mode: embedded
   source_ref: embedded

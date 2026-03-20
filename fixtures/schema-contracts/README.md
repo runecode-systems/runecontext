@@ -16,7 +16,7 @@ The current fixture set contains 15 YAML fixtures:
 - `valid-change-status.yaml`: change status with standard lifecycle fields.
 - `valid-custom-type.yaml`: change status using an `x-` custom type.
 - `valid-superseded-change.yaml`: superseded change that includes `superseded_by`.
-- `valid-context-pack.yaml`: generated context pack with git provenance and valid 64-character hashes.
+- `valid-context-pack.yaml`: generated context pack with ordered `requested_bundle_ids`, git provenance, persisted selector `pattern`/`kind`, the `runecontext-canonical-json-v1` canonicalization token, and valid 64-character hashes.
 
 ### Reject standalone-schema fixtures
 
@@ -51,8 +51,9 @@ The current fixture set contains 15 YAML fixtures:
 
 - Extension keys follow the enforced ownership pattern `owner.name.more`, allowing lowercase alphanumerics plus `_` and `-` within each non-empty segment while reserving `.` strictly as the namespace separator.
 - Context-pack fixtures reflect the current provenance rules: only `git` sources may include `source_commit`; `embedded` and `path` sources must use their matching verification posture.
-- Context-pack fixtures use the canonical artifact shape: `selected` always contains all four aspect keys, and `excluded` uses the same four-key layout whenever present.
-- Context-pack hashes shown here are shape-valid placeholders for schema tests. Hash correctness against canonical JCS input should be covered by dedicated hashing tests in implementation code.
+- Context-pack fixtures use the canonical artifact shape: `selected` and `excluded` always contain all four aspect keys, and generated packs keep ordered `requested_bundle_ids` outside the resolved linearization.
+- Context-pack fixtures also encode the alpha.4 hashing rules: core builders require explicit whole-second `generated_at` input, selected UTF-8 text files normalize CRLF/CR to LF before hashing, and path-mode `source_ref` values must remain portable forward-slash relative paths.
+- Context-pack hashes shown here are shape-valid placeholders for schema tests. Hash correctness under the `runecontext-canonical-json-v1` profile should be covered by dedicated hashing tests in implementation code.
 
 ## Usage
 

@@ -3,6 +3,11 @@
 This document maps the contents of `docs/project_idea.md` into the milestone
 plan so it is clear that the planning documents capture the full design.
 
+`docs/project_idea.md` is treated as a historical baseline in this repository.
+When legacy wording or examples diverge from hardened alpha contracts, current
+normative behavior is defined by `core/`, `schemas/`, implementation-plan
+milestones, and executable fixtures/tests.
+
 ## Section-To-Milestone Map
 
 | Source section in `docs/project_idea.md` | Planned capture | Primary milestone(s) | RuneCode companion track |
@@ -112,6 +117,77 @@ plan so it is clear that the planning documents capture the full design.
   - Planned capture: `alpha.3`
 - Decision: context packs must include a top-level canonical hash.
   - Planned capture: `alpha.4`
+- Decision: context packs keep required `generated_at` metadata, but canonical
+  `pack_hash` inputs exclude regeneration-only timestamps so identical resolved
+  content hashes the same across regenerations.
+  - Planned capture: `alpha.4`
+- Decision: core context-pack builders require explicit `generated_at` input;
+  command surfaces may supply defaults later, but the canonical engine should
+  not hide wall-clock time injection.
+  - Planned capture: `alpha.4`
+- Decision: core context-pack builders reject sub-second `generated_at` values
+  so timestamp precision changes are explicit instead of silently truncated.
+  - Planned capture: `alpha.4`
+- Decision: selected-file hashing should normalize text line endings so LF and
+  CRLF checkouts of the same logical content still produce portable deterministic
+  pack hashes.
+  - Planned capture: `alpha.4`
+- Decision: path-source `source_ref` values persisted into context packs must be
+  portable forward-slash relative paths without drive-qualified, UNC, or
+  traversal segments.
+  - Planned capture: `alpha.4`
+- Decision: alpha.4 context packs should use an explicit RuneContext-owned
+  canonicalization token for their restricted emitted-shape serializer rather
+  than claiming full RFC 8785 JCS interoperability prematurely.
+  - Planned capture: `alpha.4`
+- Decision: the restricted context-pack canonicalization profile must reject
+  invalid UTF-8 string content rather than silently normalizing malformed bytes
+  during hashing.
+  - Planned capture: `alpha.4`
+- Decision: persisted context-pack provenance keeps `bundle`, `aspect`, `rule`,
+  `pattern`, and `kind` so explanation and later receipts do not need a format
+  refactor.
+  - Planned capture: `alpha.4`
+- Decision: context-pack request identity uses a hybrid model: authored
+  workflows still prefer one top-level bundle or authored composite bundles,
+  while generated packs may record ordered `requested_bundle_ids` separately
+  from resolved bundle linearization.
+  - Planned capture: `alpha.4`
+- Decision: generated context-pack bundle identifiers should use the same
+  fail-closed ID grammar as authored bundle contracts.
+  - Planned capture: `alpha.4`
+- Decision: machine-readable context-pack reports should carry an explicit
+  schema version and standalone schema so report consumers can validate that
+  envelope independently of the embedded pack schema.
+  - Planned capture: `alpha.4`
+- Decision: newly introduced alpha.4 schema `$id` values should use the same
+  repository-owned domain pattern as the other generated-artifact schemas to
+  avoid consumer ambiguity.
+  - Planned capture: `alpha.4`
+- Decision: report-envelope validation and embedded-pack validation remain
+  distinct contracts; consumers that need full guarantees must validate both.
+  - Planned capture: `alpha.4`
+- Decision: report advisory warning counters should be non-negative in schema
+  contracts (`value`, `threshold`) to reject impossible machine payloads.
+  - Planned capture: `alpha.4`
+- Decision: fail-closed rebuild checks should retry only on genuinely transient
+  file-instability signals; non-transient digest/read failures must surface as
+  direct errors.
+  - Planned capture: `alpha.4`
+- Decision: advisory-threshold configuration treats a fully zero-valued struct as
+  "use defaults", while explicit field zeros remain meaningful once any field is
+  set and negative values opt back into per-field defaults.
+  - Planned capture: `alpha.4`
+- Decision: advisory-threshold defaults should be exposed as immutable or copy-
+  returning values rather than mutable exported globals.
+  - Planned capture: `alpha.4`
+- Decision: rebuild stability checks operate against the loaded project snapshot
+  and selected-file content rather than reloading bundle-definition files from
+  disk mid-attempt.
+  - Planned capture: `alpha.4`
+- Decision: test-only context-pack read-hook helpers should fail safe by falling
+  back to the real file reader when unset instead of panicking.
+  - Planned capture: `alpha.4`
 - Decision: RuneCode isolate delivery uses typed transport and hash-addressed
   artifacts.
   - Planned capture: RuneCode companion track from `alpha.4` onward
@@ -175,12 +251,28 @@ plan so it is clear that the planning documents capture the full design.
   - Planned capture: `alpha.3`
 - Decision: promotion is selective and reviewable, not silent auto-promotion.
   - Planned capture: `alpha.4`
+- Decision: alpha.4 close-time promotion assessment records only `none` or
+  `suggested`; explicit later workflows own `accepted` and `completed`.
+  - Planned capture: `alpha.4`, `alpha.6`
+- Decision: close-time promotion reassessment must preserve already-advanced
+  promotion states (`accepted`, `completed`) and remain deterministic across
+  both `closed` and `superseded` terminal change outcomes.
+  - Planned capture: `alpha.4`
+- Decision: close-time suggested promotion target paths are sourced from
+  normalized traceability records so `target_path` values remain canonical and
+  platform-independent.
+  - Planned capture: `alpha.4`
 - Decision: users must be able to use embedded or dedicated-repo storage.
   - Planned capture: `alpha.2`, `alpha.8`
 - Decision: bundle rules and generated inventories use consistent
   RuneContext-root-relative paths, while the aspect key constrains the allowed
   subtree and mismatches fail closed.
   - Planned capture: `alpha.2`, `alpha.4`
+- Decision: generated inventories should live at standard optional paths
+  (`runecontext/manifest.yaml`, `runecontext/indexes/changes-by-status.yaml`,
+  `runecontext/indexes/bundles.yaml`) and use closed schemas without becoming
+  the source of truth.
+  - Planned capture: `alpha.4`
 - Decision: `type: path` remote/CI invalidity should be controlled by explicit
   caller mode rather than environment inference.
   - Planned capture: `alpha.2`

@@ -3,9 +3,20 @@
 This folder turns `docs/project_idea.md` into a concrete delivery plan for the
 `runecontext` repository.
 
-`docs/project_idea.md` remains the reference document and source of truth. The
-documents in this folder are implementation planning artifacts only and must not
-replace or rewrite the original idea document.
+`docs/project_idea.md` remains the original design baseline and product
+rationale. It is historical by default and should not be edited during normal
+feature work.
+
+When implementation details evolve (for example, hardening changes across alpha
+cuts), treat the following as the current normative contract surfaces:
+
+- `core/` and `schemas/` for machine-readable semantics
+- `docs/implementation-plan/` for milestone-scoped implementation decisions
+- tests and fixtures in `internal/` and `fixtures/` for executable behavior
+
+If a narrowly scoped historical correction to `docs/project_idea.md` is ever
+needed, record the rationale in this file so reviewers can distinguish
+historical cleanup from new feature design work.
 
 ## Planning Boundaries
 
@@ -23,6 +34,15 @@ replace or rewrite the original idea document.
   in Go.
 - The planning documents remain language-neutral where possible, but release,
   test, and integration planning assume a Go implementation in this repository.
+
+## Historical Corrections Log
+
+- 2026-03-20: Added explicit guidance that `docs/project_idea.md` is a
+  historical baseline and that alpha-stage contract refinements should be
+  captured in `core/`, `schemas/`, and implementation-plan docs instead of
+  rewriting historical idea text. This addresses review feedback where legacy
+  examples (for example, earlier canonicalization labels) may diverge from the
+  current alpha.4 contract.
 
 ## MVP Definition
 
@@ -56,7 +76,7 @@ contracts RuneCode needs in order to integrate cleanly.
 | `v0.1.0-alpha.1` | Core model, naming, file contracts, schemas, canonical data rules, and validation foundation |
 | `v0.1.0-alpha.2` | Source resolution, explicit trust/integrity handling, monorepo support, and deterministic bundle semantics |
 | `v0.1.0-alpha.3` | Change workflow, standards linkage, traceability, history preservation, and thin change/status commands |
-| `v0.1.0-alpha.4` | Deterministic context packs, generated indexes, and promotion assessment |
+| `v0.1.0-alpha.4` | Deterministic context packs, stable generated indexes, and reviewable promotion assessment |
 | `v0.1.0-alpha.5` | Broadened CLI, `init` scaffolding, promotion/resolve flows, validation, doctoring, and machine-facing command contracts |
 | `v0.1.0-alpha.6` | Plain/Verified assurance, baselines, receipts, and backfill |
 | `v0.1.0-alpha.7` | Generic and tool-specific adapters plus adapter-pack UX |
@@ -67,6 +87,25 @@ Signed-tag verification is intentionally part of the MVP and is planned across
 `alpha.2` (resolution/integrity implementation using explicit trusted-signer
 inputs rather than hidden machine-global trust state), `alpha.4` (context-pack
 provenance fields), and `alpha.8` (release/reference-project validation).
+
+## Alpha.1 Foundation Recap
+
+The old one-off Epic 2 implementation summary has been folded back into the main
+plan documents. The enduring alpha.1 baseline is:
+
+- four core machine-readable schemas: `runecontext.yaml`, `bundles/*.yaml`,
+  `changes/*/status.yaml`, and `context-pack.yaml`
+- closed-schema defaults with explicit opt-in `extensions` for authored files
+  and no extensions in generated artifacts
+- JSON Schema Draft 2020-12 as the standard dialect for shipped contracts
+- the restricted machine-readable YAML profile plus markdown structure contracts
+  for `proposal.md` and `standards.md`
+- shipped schema/profile fixtures covering standalone validation,
+  project-level extension policy, and YAML-profile rejection cases
+
+Later review hardening for alpha.2-alpha.4 is also tracked directly in the main
+plan now rather than in per-epic recap files, so milestone history, acceptance,
+and coverage stay in one place.
 
 ## Dogfooding Guidance
 
@@ -112,9 +151,10 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - The same hardening pass also requires optional change-status string fields to
   stay omitted when absent rather than being rewritten as placeholder strings
   such as `<nil>` in summaries or rewritten `status.yaml` files.
-- That same rewrite safety rule also preserves the default
-  `promotion_assessment.status` of `pending` when the promotion assessment block
-  is present but omits an explicit status.
+- That same rewrite safety rule now normalizes close-time promotion assessment
+  outcomes to `none` or `suggested` when the promotion block is missing or
+  empty, while preserving explicitly advanced promotion states (`accepted`,
+  `completed`) for later dedicated promotion workflows.
 - The latest alpha.3 traceability hardening pass also requires markdown deep-ref
   tokenization to stay UTF-8-safe during validation, so surrounding Unicode
   punctuation such as smart quotes terminates local ref tokens cleanly instead
@@ -140,6 +180,60 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment
   complete the basic flow from planned work to durable project knowledge.
+- The latest alpha.4 planning pass also locks in five implementation details to
+  avoid later refactors: required `generated_at` stays outside canonical
+  `pack_hash` input, persisted pack provenance retains `pattern` and `kind`,
+  context-pack request identity uses a hybrid authored-composite plus ordered
+  `requested_bundle_ids` model, generated indexes land at fixed optional paths
+  with closed schemas, and close-time promotion assessment writes only `none` or
+  `suggested` while explicit later workflows own `accepted` and `completed`.
+- A Branch Cut 4 follow-up hardening pass also requires generated-index path
+  emission to fail closed if an artifact path escapes the RuneContext content
+  root, requires unknown lifecycle statuses to fail loudly during
+  `changes-by-status` generation, and locks bundle-index determinism plus
+  closed-schema unknown-field rejection under dedicated tests.
+- The same Branch Cut 4 hardening also tightens manifest and bundle-index path
+  patterns to reject traversal (`..`), hidden (`.`-prefixed), and empty
+  segments so external tooling can validate generated artifacts against a
+  stricter fail-closed path contract.
+- That same Branch Cut 4 follow-up keeps the generated `changes-by-status`
+  schema aligned with `change-status.schema.json` so the custom `x-` type
+  allowance stays deterministic with the existing lifecycle semantics.
+- That same follow-up also orders generated writes so the change and bundle
+  indexes land before `manifest.yaml`, preventing partial manifest updates
+  from leaving downstream tooling with inconsistent state.
+- Branch Cut 3 follow-up hardening further specifies that close-time promotion
+  assessment must not regress existing `accepted`/`completed` states, and that
+  close behavior for both `closed` and `superseded` lifecycle outcomes remains
+  deterministic and reviewable.
+- The same Branch Cut 3 hardening also requires close-time suggested
+  `target_path` values to be emitted from already-normalized traceability
+  records, so platform-specific separators cannot leak into
+  `promotion_assessment.suggested_targets` output.
+- Branch Cut 1 hardening also clarifies that the core pack builder requires an
+  explicit whole-second `generated_at`, path-mode `source_ref` values must stay
+  portable, LF/CRLF text checkouts hash identically, and the emitted pack
+  canonicalization token is RuneContext-owned rather than an overclaimed full
+  RFC 8785 label.
+- Branch Cut 2 hardening also clarifies that machine-readable pack reports carry
+  their own explicit schema version and schema file, non-transient stability
+  check read errors must surface directly instead of being masked as generic
+  rebuild noise, and pack-only versus enriched report-building flows should stay
+  separable even when they share the same fail-closed rebuild logic.
+- That same hardening also documents two narrower Branch Cut 2 boundaries: a
+  zero-valued advisory-threshold struct means "use defaults" while explicit
+  field zeros remain meaningful once any field is set, and rebuild stability is
+  evaluated against the loaded project snapshot rather than hot-reloading bundle
+  definitions from disk mid-attempt.
+- The advisory-threshold defaults themselves should also be exposed as copy-
+  returning values rather than mutable exported global structs so tests and
+  callers cannot silently rewrite process-wide defaults.
+- Branch Cut 2 review cleanup additionally tightens report warning schema fields
+  to non-negative counters and keeps test-only read-hook plumbing nil-safe via a
+  fallback to the real file reader.
+- The recommended alpha.4 review order is pack engine and determinism fixtures,
+  then pack explanation and limits, then promotion assessment, and finally
+  generated indexes/manifests.
 - `alpha.5` is the planned point where this repository should be able to
   broaden that dogfooding across additional repositories and automation-heavy
   workflows, because the broader `runectx` CLI surface adds `init`,
@@ -166,9 +260,15 @@ provenance fields), and `alpha.8` (release/reference-project validation).
 - Keep the on-disk model, schemas, and resolution semantics canonical.
 - Treat adapters as UX layers, not alternate sources of truth.
 - Keep generated artifacts derived and reviewable.
+- Keep deterministic hashes tied to canonical resolved content rather than
+  regeneration-only metadata such as `generated_at` timestamps.
 - Keep portable generated artifacts free of host-specific absolute paths;
   persisted path fields should use stable RuneContext-relative or equivalently
   portable identifiers.
+- Keep the normal authored context-selection model centered on one top-level
+  bundle or authored composite bundles, while still leaving generated pack
+  metadata room to record ordered runtime bundle requests for RuneCode and other
+  automation consumers.
 - Keep one core authored workflow across `plain` and `verified`; higher
   assurance adds evidence rather than alternate source-of-truth files.
 - Keep repositories self-sufficient for mixed standalone RuneContext and
@@ -214,6 +314,9 @@ until the end.
 - Add golden fixtures for deterministic outputs: resolved bundles, context
   packs, pack hashes, manifests, baselines, receipts, and machine-readable CLI
   output.
+- When a generated artifact carries both deterministic content and emitted audit
+  metadata, test hash stability against the canonical content contract rather
+  than assuming every persisted field belongs in the canonical hash input.
 - Add parser and project fixtures for markdown contracts and traceability rules,
   including `proposal.md`, `standards.md`, `specs/*.md`, and `decisions/*.md`.
 - Add parser and project fixtures for machine-validated heading-fragment refs so

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runecode.org/schemas/changes-by-status-index.schema.json",
+  "title": "RuneContext Changes By Status Index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "statuses"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "statuses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposed",
+        "planned",
+        "implemented",
+        "verified",
+        "closed",
+        "superseded"
+      ],
+      "properties": {
+        "proposed": {
+          "$ref": "#/$defs/entries"
+        },
+        "planned": {
+          "$ref": "#/$defs/entries"
+        },
+        "implemented": {
+          "$ref": "#/$defs/entries"
+        },
+        "verified": {
+          "$ref": "#/$defs/entries"
+        },
+        "closed": {
+          "$ref": "#/$defs/entries"
+        },
+        "superseded": {
+          "$ref": "#/$defs/entries"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "type",
+          "path"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^CHG-\\d{4}-\\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "pattern": "^(project|feature|bug|standard|chore|x-.+)$"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "small",
+              "medium",
+              "large"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^changes/CHG-\\d{4}-\\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(?:-[a-z0-9]+)*/status\\.yaml$"
+          }
+        }
+      }
+    }
+  }
+}

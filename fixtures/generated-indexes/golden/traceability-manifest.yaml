@@ -1,0 +1,21 @@
+schema_version: 1
+indexes:
+  changes_by_status: indexes/changes-by-status.yaml
+  bundles: indexes/bundles.yaml
+counts:
+  standards: 1
+  bundles: 1
+  changes: 2
+  specs: 1
+  decisions: 1
+standards:
+  - standards/global/deterministic-check-write.md
+bundles:
+  - auth-review
+changes:
+  - CHG-2026-001-a3f2-auth-gateway
+  - CHG-2026-002-b4c3-auth-revision
+specs:
+  - specs/auth-gateway.md
+decisions:
+  - decisions/DEC-0001-trust-boundary-model.md

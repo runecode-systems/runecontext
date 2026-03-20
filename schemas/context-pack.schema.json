@@ -9,8 +9,10 @@
     "pack_hash_alg",
     "pack_hash",
     "id",
+    "requested_bundle_ids",
     "resolved_from",
     "selected",
+    "excluded",
     "generated_at"
   ],
   "additionalProperties": false,
@@ -22,8 +24,8 @@
     },
     "canonicalization": {
       "type": "string",
-      "const": "rfc8785-jcs",
-      "description": "Canonical serialization method for hashing."
+      "const": "runecontext-canonical-json-v1",
+      "description": "RuneContext canonical JSON profile for context-pack hashing. This alpha.4 profile is a restricted canonical JSON shape for emitted pack values and is intentionally narrower than full RFC 8785 JCS."
     },
     "pack_hash_alg": {
       "type": "string",
@@ -33,11 +35,23 @@
     "pack_hash": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$",
-      "description": "Canonical SHA256 hash of the resolved pack after removing the `pack_hash` field and applying RFC 8785 JCS to the remaining object."
+      "description": "Canonical SHA256 hash of the resolved pack after removing the `pack_hash` field, excluding `generated_at`, and applying `runecontext-canonical-json-v1` to the remaining object."
     },
     "id": {
       "type": "string",
-      "description": "Primary context bundle ID resolved for this pack."
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "description": "Primary requested context bundle ID for this pack. When multiple top-level bundles are requested, this is the first requested ID."
+    },
+    "requested_bundle_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+      },
+      "minItems": 1,
+      "description": "Ordered list of top-level bundle IDs originally requested for this pack before parent linearization."
     },
     "resolved_from": {
       "type": "object",
@@ -61,7 +75,7 @@
         },
         "source_ref": {
           "type": "string",
-          "description": "Source reference: branch/tag/commit for git, path for local, 'embedded' for embedded mode."
+          "description": "Source reference: branch/tag/commit for git, portable forward-slash relative path for local, 'embedded' for embedded mode."
         },
         "source_commit": {
           "type": "string",
@@ -194,6 +208,38 @@
           },
           "then": {
             "properties": {
+              "source_ref": {
+                "allOf": [
+                  {
+                    "pattern": "^.+$"
+                  },
+                  {
+                    "not": {
+                      "pattern": "^[A-Za-z]:"
+                    }
+                  },
+                  {
+                    "not": {
+                      "pattern": "^/"
+                    }
+                  },
+                  {
+                    "not": {
+                      "pattern": "^//"
+                    }
+                  },
+                  {
+                    "not": {
+                      "pattern": "\\\\"
+                    }
+                  },
+                  {
+                    "not": {
+                      "pattern": "(?:^|/)\\.\\.?($|/)"
+                    }
+                  }
+                ]
+              },
               "source_verification": {
                 "const": "unverified_local_source"
               }
@@ -241,7 +287,7 @@
         "specs",
         "decisions"
       ],
-      "description": "Excluded files by aspect family. When present, all four aspect keys must appear, using empty arrays where nothing was excluded.",
+      "description": "Excluded files by aspect family. All four aspect keys must appear, using empty arrays where nothing was excluded.",
       "properties": {
         "project": {
           "type": "array",
@@ -272,7 +318,7 @@
     "generated_at": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when the pack was generated."
+      "description": "Whole-second UTC RFC 3339 timestamp when the pack was generated. Builders must reject sub-second values instead of silently truncating them."
     }
   },
   "$defs": {
@@ -294,7 +340,7 @@
           "sha256": {
             "type": "string",
             "pattern": "^[a-f0-9]{64}$",
-            "description": "SHA256 hash of the file content."
+            "description": "SHA256 hash of the selected file content after UTF-8 text line-ending normalization (CRLF/CR to LF). Non-UTF-8 or binary content is hashed as raw bytes."
           },
           "selected_by": {
             "type": "array",
@@ -305,7 +351,9 @@
               "required": [
                 "bundle",
                 "aspect",
-                "rule"
+                "rule",
+                "pattern",
+                "kind"
               ],
               "properties": {
                 "bundle": {
@@ -329,6 +377,18 @@
                     "exclude"
                   ],
                   "description": "Rule type: include or exclude."
+                },
+                "pattern": {
+                  "type": "string",
+                  "description": "Normalized bundle rule pattern that matched this file."
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "exact",
+                    "glob"
+                  ],
+                  "description": "Pattern evaluation kind for the matching rule."
                 }
               }
             },
@@ -355,7 +415,9 @@
           "required": [
             "bundle",
             "aspect",
-            "rule"
+            "rule",
+            "pattern",
+            "kind"
           ],
           "properties": {
             "bundle": {
@@ -376,6 +438,18 @@
               "type": "string",
               "const": "exclude",
               "description": "Rule type (always exclude for excluded files)."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Normalized bundle rule pattern that last excluded this file."
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "exact",
+                "glob"
+              ],
+              "description": "Pattern evaluation kind for the excluding rule."
             }
           }
         }

@@ -1,0 +1,191 @@
+schema_version: 1
+bundles:
+  - id: base
+    path: bundles/base.yaml
+    extends: []
+    resolved_parents: []
+    referenced_patterns:
+      project:
+        includes:
+          - pattern: project/mission.md
+            kind: exact
+        excludes: []
+      standards:
+        includes:
+          - pattern: standards/global/**
+            kind: glob
+        excludes:
+          - pattern: standards/global/legacy.md
+            kind: exact
+      specs:
+        includes:
+          - pattern: specs/auth-gateway.md
+            kind: exact
+        excludes: []
+      decisions:
+        includes:
+          - pattern: decisions/DEC-0001-trust-boundary-model.md
+            kind: exact
+        excludes: []
+  - id: child-reinclude
+    path: bundles/child-reinclude.yaml
+    extends:
+      - base
+    resolved_parents:
+      - base
+    referenced_patterns:
+      project:
+        includes:
+          - pattern: project/plan.md
+            kind: exact
+        excludes: []
+      standards:
+        includes:
+          - pattern: standards/global/legacy.md
+            kind: exact
+        excludes: []
+      specs:
+        includes: []
+        excludes: []
+      decisions:
+        includes: []
+        excludes: []
+  - id: diagnostics
+    path: bundles/diagnostics.yaml
+    extends: []
+    resolved_parents: []
+    referenced_patterns:
+      project:
+        includes:
+          - pattern: project/missing.md
+            kind: exact
+          - pattern: project/missing/**
+            kind: glob
+        excludes: []
+      standards:
+        includes:
+          - pattern: standards/missing/**
+            kind: glob
+        excludes: []
+      specs:
+        includes: []
+        excludes: []
+      decisions:
+        includes: []
+        excludes: []
+  - id: diamond
+    path: bundles/diamond.yaml
+    extends:
+      - left
+      - right
+    resolved_parents:
+      - base
+      - left
+      - right
+    referenced_patterns:
+      project:
+        includes: []
+        excludes: []
+      standards:
+        includes:
+          - pattern: standards/global/legacy.md
+            kind: exact
+          - pattern: standards/security/heavy-audit.md
+            kind: exact
+        excludes: []
+      specs:
+        includes: []
+        excludes: []
+      decisions:
+        includes: []
+        excludes: []
+  - id: exact-rules
+    path: bundles/exact-rules.yaml
+    extends: []
+    resolved_parents: []
+    referenced_patterns:
+      project:
+        includes:
+          - pattern: project/mission.md
+            kind: exact
+          - pattern: project/plan.md
+            kind: exact
+        excludes:
+          - pattern: project/plan.md
+            kind: exact
+      standards:
+        includes: []
+        excludes: []
+      specs:
+        includes: []
+        excludes: []
+      decisions:
+        includes: []
+        excludes: []
+  - id: left
+    path: bundles/left.yaml
+    extends:
+      - base
+    resolved_parents:
+      - base
+    referenced_patterns:
+      project:
+        includes: []
+        excludes: []
+      standards:
+        includes:
+          - pattern: standards/security/**
+            kind: glob
+        excludes: []
+      specs:
+        includes: []
+        excludes: []
+      decisions:
+        includes: []
+        excludes: []
+  - id: relative-glob
+    path: bundles/relative-glob.yaml
+    extends: []
+    resolved_parents: []
+    referenced_patterns:
+      project:
+        includes:
+          - pattern: project/mission.md
+            kind: exact
+        excludes: []
+      standards:
+        includes:
+          - pattern: standards/security/**
+            kind: glob
+        excludes:
+          - pattern: standards/security/heavy-audit.md
+            kind: exact
+      specs:
+        includes: []
+        excludes: []
+      decisions:
+        includes: []
+        excludes: []
+  - id: right
+    path: bundles/right.yaml
+    extends:
+      - base
+    resolved_parents:
+      - base
+    referenced_patterns:
+      project:
+        includes:
+          - pattern: project/plan.md
+            kind: exact
+        excludes: []
+      standards:
+        includes: []
+        excludes:
+          - pattern: standards/security/heavy-audit.md
+            kind: exact
+      specs:
+        includes: []
+        excludes: []
+      decisions:
+        includes: []
+        excludes: []

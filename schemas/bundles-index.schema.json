@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runecode.org/schemas/bundles-index.schema.json",
+  "title": "RuneContext Bundle Inventory Index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "bundles"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "bundles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "path",
+          "extends",
+          "resolved_parents",
+          "referenced_patterns"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+          },
+ "path": {
+          "type": "string",
+          "pattern": "^bundles/(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.yaml$"
+        },
+          "extends": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+            },
+            "uniqueItems": true
+          },
+          "resolved_parents": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+            },
+            "uniqueItems": true
+          },
+          "referenced_patterns": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "project",
+              "standards",
+              "specs",
+              "decisions"
+            ],
+            "properties": {
+              "project": {
+                "$ref": "#/$defs/aspect_patterns"
+              },
+              "standards": {
+                "$ref": "#/$defs/aspect_patterns"
+              },
+              "specs": {
+                "$ref": "#/$defs/aspect_patterns"
+              },
+              "decisions": {
+                "$ref": "#/$defs/aspect_patterns"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "aspect_patterns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "includes",
+        "excludes"
+      ],
+      "properties": {
+        "includes": {
+          "$ref": "#/$defs/pattern_rules"
+        },
+        "excludes": {
+          "$ref": "#/$defs/pattern_rules"
+        }
+      }
+    },
+    "pattern_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pattern",
+          "kind"
+        ],
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "glob"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

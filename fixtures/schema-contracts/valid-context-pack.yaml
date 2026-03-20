@@ -1,8 +1,10 @@
 schema_version: 1
-canonicalization: rfc8785-jcs
+canonicalization: runecontext-canonical-json-v1
 pack_hash_alg: sha256
 pack_hash: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f60789
 id: go-control-plane
+requested_bundle_ids:
+  - go-control-plane
 resolved_from:
   source_mode: git
   source_ref: refs/tags/v0.1.0-alpha.1
@@ -21,6 +23,8 @@ selected:
         - bundle: base
           aspect: project
           rule: include
+          pattern: project/mission.md
+          kind: exact
   standards:
     - path: standards/global/deterministic-check-write.md
       sha256: abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
@@ -28,6 +32,8 @@ selected:
         - bundle: base
           aspect: standards
           rule: include
+          pattern: standards/global/deterministic-check-write.md
+          kind: exact
   specs: []
   decisions: []
 excluded:

@@ -175,17 +175,69 @@
 
 - [ ] Context packs contain deterministic selected/excluded inventories.
 - [ ] Context packs record per-file hashes and a top-level canonical pack hash.
+- [ ] Context packs keep required `generated_at` metadata while excluding it
+  from the canonical `pack_hash` input so identical resolved content hashes the
+  same across regenerations.
+- [ ] Core context-pack generation requires an explicit `generated_at` input and
+  does not silently inject wall-clock timestamps inside the canonical pack
+  builder.
+- [ ] Core context-pack generation rejects sub-second `generated_at` inputs
+  rather than silently truncating them.
 - [ ] Context packs record the resolved source revision and verification posture.
-- [ ] Context packs retain compact deterministic provenance and leave room for
-  fuller provenance receipts in Verified mode.
+- [ ] Context packs retain compact deterministic provenance, including enough
+  selector detail to explain include/exclude outcomes, and leave room for fuller
+  provenance receipts in Verified mode.
 - [ ] Persisted context-pack fields use portable stable identifiers and path
   forms rather than host-specific absolute paths.
+- [ ] Path-source `resolved_from.source_ref` values remain portable forward-slash
+  relative paths without drive-qualified, UNC, or traversal-style segments.
+- [ ] Deterministic context-pack hashes remain stable across LF/CRLF checkout
+  differences for the same logical text content.
+- [ ] Context packs use an explicit RuneContext-owned canonicalization token for
+  their restricted emitted-shape serializer rather than overstating full RFC
+  8785 interoperability.
+- [ ] Context-pack canonicalization fails closed on invalid UTF-8 strings rather
+  than silently replacing malformed bytes during hash preparation.
+- [ ] Context packs can preserve ordered multi-bundle requests separately from
+  resolved bundle linearization without forcing authored workflows away from one
+  top-level bundle or authored composite bundles.
+- [ ] Generated context-pack `id` and `requested_bundle_ids` values enforce the
+  same fail-closed bundle-ID grammar as authored bundle contracts.
 - [ ] Context-pack semantics do not embed deployment-specific evidence-service
   locator, endpoint, auth, or tenancy metadata.
 - [ ] Size and provenance threshold warnings exist with the default advisory
   thresholds from the design document.
-- [ ] Promotion assessment is structured and reviewable.
-- [ ] Generated indexes/manifests exist but remain optional and regenerable.
+- [ ] Machine-readable context-pack reports carry an explicit schema version and
+  validate against a dedicated report schema.
+- [ ] The dedicated report schema clearly documents that the embedded `pack`
+  still requires separate context-pack schema validation when consumers need
+  full contract enforcement.
+- [ ] Report advisory warning fields are constrained as non-negative counters in
+  schema contracts (`value`, `threshold`) so impossible warning payloads fail
+  validation.
+- [ ] Pack-only generation remains available without forcing callers to pay for
+  enriched report serialization logic when they only need the pack artifact.
+- [ ] Advisory-threshold API semantics are documented and tested for default,
+  explicit-zero, and negative-fallback cases.
+- [ ] Advisory-threshold defaults are exposed without mutable process-wide
+  global state so callers cannot silently rewrite default warning behavior.
+- [ ] Fail-closed rebuild checks surface non-transient digest/read errors
+  directly instead of collapsing them into a generic changed-input retry.
+- [ ] Test-only context-pack read-hook helpers are nil-safe and fall back to the
+  real file reader rather than panicking when hooks are unset.
+- [ ] Fail-closed rebuild semantics are documented as operating against the
+  loaded project snapshot and selected-file content, not hot-reloading bundle
+  definitions from disk mid-attempt.
+- [ ] Change close deterministically records promotion assessment as `none` or
+  `suggested`, while later workflows may advance reviewable promotions to
+  `accepted` and `completed`.
+- [x] Generated indexes/manifests exist at standard optional paths and remain
+  regenerable rather than becoming the source of truth.
+- [x] Generated index builders fail closed when emitted artifact paths would
+  escape the RuneContext content root or when a change lifecycle status falls
+  outside the supported generated-index grouping contract.
+- [x] Manifest and bundle-index path patterns reject traversal, hidden, and
+  empty segments so external validation fails closed on unsafe paths.
 
 ## 5. CLI And Machine Interface
 

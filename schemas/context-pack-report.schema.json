@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runecode.org/schemas/context-pack-report.schema.json",
+  "title": "RuneContext Context Pack Report",
+  "description": "Machine-readable advisory/explain envelope for context-pack generation. Consumers should validate the embedded `pack` object against context-pack.schema.json separately unless they intentionally only need envelope-level checks.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_schema_version",
+    "pack",
+    "summary",
+    "warnings"
+  ],
+  "properties": {
+    "report_schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version for the machine-readable context-pack report envelope."
+    },
+    "pack": {
+      "type": "object",
+      "description": "Embedded context pack. Validate this object against context-pack.schema.json separately for full contract enforcement."
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_files",
+        "excluded_files",
+        "referenced_content_bytes",
+        "provenance_bytes"
+      ],
+      "properties": {
+        "selected_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "referenced_content_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "provenance_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "value",
+          "threshold"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "threshold": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "explain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_bundle_ids",
+        "resolved_bundle_ids",
+        "selected",
+        "excluded"
+      ],
+      "properties": {
+        "requested_bundle_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolved_bundle_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "selected": {
+          "$ref": "#/$defs/explainSelected"
+        },
+        "excluded": {
+          "$ref": "#/$defs/explainExcluded"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "explainSelected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project",
+        "standards",
+        "specs",
+        "decisions"
+      ],
+      "properties": {
+        "project": { "$ref": "#/$defs/selectedEntries" },
+        "standards": { "$ref": "#/$defs/selectedEntries" },
+        "specs": { "$ref": "#/$defs/selectedEntries" },
+        "decisions": { "$ref": "#/$defs/selectedEntries" }
+      }
+    },
+    "explainExcluded": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project",
+        "standards",
+        "specs",
+        "decisions"
+      ],
+      "properties": {
+        "project": { "$ref": "#/$defs/excludedEntries" },
+        "standards": { "$ref": "#/$defs/excludedEntries" },
+        "specs": { "$ref": "#/$defs/excludedEntries" },
+        "decisions": { "$ref": "#/$defs/excludedEntries" }
+      }
+    },
+    "selectedEntries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "selected_by"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "selected_by": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/ruleReference" }
+          }
+        }
+      }
+    },
+    "excludedEntries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "last_rule"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "last_rule": { "$ref": "#/$defs/ruleReference" }
+        }
+      }
+    },
+    "ruleReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundle",
+        "aspect",
+        "rule",
+        "pattern",
+        "kind"
+      ],
+      "properties": {
+        "bundle": { "type": "string" },
+        "aspect": { "type": "string" },
+        "rule": { "type": "string" },
+        "pattern": { "type": "string" },
+        "kind": { "type": "string" }
+      }
+    }
+  }
+}

@@ -3,6 +3,9 @@ golangci_lint := "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8"
 default:
   @just --list
 
+build:
+  bash tools/build-local.sh
+
 fmt:
   go run ./tools/gofmtcheck --write
   nixfmt flake.nix $(fd --extension nix --type f . nix)

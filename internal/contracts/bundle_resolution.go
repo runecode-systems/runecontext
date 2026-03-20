@@ -149,6 +149,27 @@ func (c *BundleCatalog) Resolve(id string) (*BundleResolution, error) {
 	return cloneBundleResolution(resolution), nil
 }
 
+func (c *BundleCatalog) ResolveRequest(bundleIDs []string) (*BundleResolution, error) {
+	if c == nil {
+		return nil, fmt.Errorf("bundle catalog is unavailable")
+	}
+	if len(bundleIDs) == 0 {
+		return nil, fmt.Errorf("at least one requested bundle ID is required")
+	}
+	if len(bundleIDs) == 1 {
+		return c.Resolve(bundleIDs[0])
+	}
+	ordered, err := c.linearizeRequest(bundleIDs)
+	if err != nil {
+		return nil, err
+	}
+	resolution, err := c.buildResolution(bundleIDs[0], ordered)
+	if err != nil {
+		return nil, err
+	}
+	return cloneBundleResolution(resolution), nil
+}
+
 func (c *BundleCatalog) buildResolution(id string, ordered []*bundleDefinition) (*BundleResolution, error) {
 	resolution := &BundleResolution{ID: id, Linearization: bundleLinearization(ordered), Aspects: map[BundleAspect]BundleAspectResolution{}}
 	for _, aspect := range bundleAspects {
