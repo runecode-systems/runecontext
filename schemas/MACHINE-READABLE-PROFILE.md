@@ -106,6 +106,7 @@ SHA256 hash: a1b2c3d4... (64 hex chars)
 
 - Context packs currently use the explicit canonicalization token `runecontext-canonical-json-v1` rather than claiming full RFC 8785 JCS interoperability.
 - `runecontext-canonical-json-v1` is a restricted canonical JSON profile for the value shapes emitted by alpha.4 context packs: sorted object keys, compact arrays/objects, standard JSON string escaping without HTML escaping, and integral numeric values only. Other value shapes must fail closed rather than being serialized approximately.
+- Strings participating in `runecontext-canonical-json-v1` must be valid UTF-8; canonicalization must fail closed on invalid UTF-8 instead of silently replacing bytes with U+FFFD or another normalization artifact.
 - Context packs must exclude the `pack_hash` field itself before canonicalizing the remaining object for hashing.
 - `generated_at` remains a required emitted field for context packs, but it is excluded from the canonical hash input so identical resolved content hashes the same across regenerations.
 - The canonical hash input is the full context-pack object containing exactly these top-level fields when present: `schema_version`, `canonicalization`, `pack_hash_alg`, `id`, `requested_bundle_ids`, `resolved_from`, `selected`, and `excluded`.

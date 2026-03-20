@@ -196,6 +196,8 @@
 - [ ] Context packs use an explicit RuneContext-owned canonicalization token for
   their restricted emitted-shape serializer rather than overstating full RFC
   8785 interoperability.
+- [ ] Context-pack canonicalization fails closed on invalid UTF-8 strings rather
+  than silently replacing malformed bytes during hash preparation.
 - [ ] Context packs can preserve ordered multi-bundle requests separately from
   resolved bundle linearization without forcing authored workflows away from one
   top-level bundle or authored composite bundles.

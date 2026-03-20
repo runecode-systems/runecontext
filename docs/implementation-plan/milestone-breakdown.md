@@ -12,7 +12,7 @@ decomposes each milestone into epics and issue-sized work items.
 - The milestone sequence assumes core semantics land before CLI/adapter UX and
   release hardening.
 
-## `v0.1.0-alpha.1` - Core Model And Contracts
+## `v0.1.0-alpha.1` - Core Model And Contracts - COMPLETED
 
 Primary outcome: freeze the portable RuneContext source model and the contracts
 that all later CLI, adapters, and RuneCode integration must share.
@@ -175,7 +175,7 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
   granting it runtime authority.
 - RuneCode can begin fixture-based validation of policy-neutrality assumptions.
 
-## `v0.1.0-alpha.2` - Source Resolution And Bundle Engine
+## `v0.1.0-alpha.2` - Source Resolution And Bundle Engine - COMPLETED
 
 Primary outcome: make storage modes and bundle semantics deterministic,
 auditable, and safe for future local/remote parity.
@@ -335,7 +335,7 @@ auditable, and safe for future local/remote parity.
 - RuneCode can confirm local and remote resolution produce the same selected
   file set from the same inputs.
 
-## `v0.1.0-alpha.3` - Change Workflow, Standards, And Traceability
+## `v0.1.0-alpha.3` - Change Workflow, Standards, And Traceability - COMPLETED
 
 Primary outcome: make RuneContext usable as a change-oriented workflow system
 with stable IDs, lightweight shaping, and reviewable standards linkage.
@@ -668,6 +668,8 @@ RuneCode integration.
 - That restricted canonicalization profile should still carry dedicated tests for
   key ordering, control-character escaping, Unicode preservation, and
   HTML-sensitive characters such as `<`, `>`, and `&`.
+- The same profile should also fail closed on invalid UTF-8 string content
+  instead of silently normalizing it during canonicalization.
 - Selected-file hashing should normalize text line endings before hashing so LF
   and CRLF checkouts of the same logical content still yield the same
   deterministic pack output across clean machines and operating systems.
@@ -712,6 +714,9 @@ RuneCode integration.
   key-order behavior for the emitted pack shapes, or else lock the pack schema
   to an explicit RuneContext-owned canonicalization token with matching tests
   and documentation.
+- [ ] Issue: make the restricted canonicalization profile reject invalid UTF-8
+  string content explicitly so pack hashing never silently rewrites malformed
+  machine-readable values during canonicalization.
 - [ ] Issue: normalize text line endings before per-file hashing so deterministic
   pack output survives LF/CRLF checkout differences.
 - [ ] Issue: reject sub-second `generated_at` inputs and non-portable local

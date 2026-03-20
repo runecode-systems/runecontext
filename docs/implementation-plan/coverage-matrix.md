@@ -135,6 +135,10 @@ plan so it is clear that the planning documents capture the full design.
   canonicalization token for their restricted emitted-shape serializer rather
   than claiming full RFC 8785 JCS interoperability prematurely.
   - Planned capture: `alpha.4`
+- Decision: the restricted context-pack canonicalization profile must reject
+  invalid UTF-8 string content rather than silently normalizing malformed bytes
+  during hashing.
+  - Planned capture: `alpha.4`
 - Decision: persisted context-pack provenance keeps `bundle`, `aspect`, `rule`,
   `pattern`, and `kind` so explanation and later receipts do not need a format
   refactor.
