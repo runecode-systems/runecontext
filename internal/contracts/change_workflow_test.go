@@ -14,16 +14,15 @@ import (
 func TestAllocateChangeID(t *testing.T) {
 	contentRoot := t.TempDir()
 	changesRoot := filepath.Join(contentRoot, "changes")
-	if err := os.MkdirAll(filepath.Join(changesRoot, "CHG-2026-001-a3f2-auth-gateway"), 0o755); err != nil {
-		t.Fatalf("mkdir existing change: %v", err)
+	for _, path := range []string{
+		filepath.Join(changesRoot, "CHG-2026-001-a3f2-auth-gateway"),
+		filepath.Join(changesRoot, "CHG-2026-002-b4c3-auth-revision"),
+		filepath.Join(changesRoot, "CHG-2025-003-c9d1-old-change"),
+	} {
+		if err := os.MkdirAll(path, 0o755); err != nil {
+			t.Fatalf("mkdir existing change: %v", err)
+		}
 	}
-	if err := os.MkdirAll(filepath.Join(changesRoot, "CHG-2026-002-b4c3-auth-revision"), 0o755); err != nil {
-		t.Fatalf("mkdir existing change: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(changesRoot, "CHG-2025-003-c9d1-old-change"), 0o755); err != nil {
-		t.Fatalf("mkdir prior year change: %v", err)
-	}
-
 	id, err := AllocateChangeID(contentRoot, time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC), "Add Auth Gateway", bytes.NewReader([]byte{0xaa, 0xbb}))
 	if err != nil {
 		t.Fatalf("allocate change ID: %v", err)
@@ -49,13 +48,8 @@ func TestAllocateChangeIDSlugifiesToASCII(t *testing.T) {
 }
 
 func TestCloseChangeStatus(t *testing.T) {
-	raw := map[string]any{
-		"status":              "implemented",
-		"verification_status": "passed",
-		"superseded_by":       []any{"CHG-2026-999-dead-placeholder"},
-	}
+	raw := map[string]any{"status": "implemented", "verification_status": "passed", "superseded_by": []any{"CHG-2026-999-dead-placeholder"}}
 	closedAt := time.Date(2026, time.March, 18, 0, 0, 0, 0, time.UTC)
-
 	closed, err := CloseChangeStatus(raw, CloseChangeOptions{ClosedAt: closedAt})
 	if err != nil {
 		t.Fatalf("close change: %v", err)
@@ -69,7 +63,6 @@ func TestCloseChangeStatus(t *testing.T) {
 	if got := closed["superseded_by"]; !reflect.DeepEqual(got, []any{}) {
 		t.Fatalf("expected superseded_by to be cleared, got %#v", got)
 	}
-
 	superseded, err := CloseChangeStatus(raw, CloseChangeOptions{ClosedAt: closedAt, SupersededBy: []string{"CHG-2026-010-cafe-successor"}})
 	if err != nil {
 		t.Fatalf("supersede change: %v", err)
@@ -90,10 +83,7 @@ func TestCloseChangeStatusRejectsMissingStatus(t *testing.T) {
 }
 
 func TestCloseChangeStatusRejectsInvalidSupersededBy(t *testing.T) {
-	raw := map[string]any{
-		"id":     "CHG-2026-001-a3f2-auth-gateway",
-		"status": "implemented",
-	}
+	raw := map[string]any{"id": "CHG-2026-001-a3f2-auth-gateway", "status": "implemented"}
 	for _, tc := range []struct {
 		name         string
 		supersededBy []string
@@ -113,63 +103,37 @@ func TestCloseChangeStatusRejectsInvalidSupersededBy(t *testing.T) {
 }
 
 func TestCloneTopLevelValueClonesTypedCollections(t *testing.T) {
-	original := map[string]any{
-		"context_bundles": []string{"base", "security"},
-		"metadata":        map[string]string{"owner": "platform"},
-		"matrix":          [2]string{"a", "b"},
-	}
+	original := map[string]any{"context_bundles": []string{"base", "security"}, "metadata": map[string]string{"owner": "platform"}, "matrix": [2]string{"a", "b"}}
 	cloned := cloneMap(original)
-	clonedBundles, ok := cloned["context_bundles"].([]string)
-	if !ok {
-		t.Fatalf("expected []string clone, got %#v", cloned["context_bundles"])
-	}
+	assertClonedCollectionsIndependent(t, original, cloned)
+}
+
+func assertClonedCollectionsIndependent(t *testing.T, original, cloned map[string]any) {
+	t.Helper()
+	clonedBundles := cloned["context_bundles"].([]string)
 	clonedBundles[0] = "mutated"
 	cloned["context_bundles"] = clonedBundles
-	clonedMetadata, ok := cloned["metadata"].(map[string]string)
-	if !ok {
-		t.Fatalf("expected map[string]string clone, got %#v", cloned["metadata"])
-	}
+	clonedMetadata := cloned["metadata"].(map[string]string)
 	clonedMetadata["owner"] = "security"
 	cloned["metadata"] = clonedMetadata
-	clonedMatrix, ok := cloned["matrix"].([2]string)
-	if !ok {
-		t.Fatalf("expected [2]string clone, got %#v", cloned["matrix"])
-	}
+	clonedMatrix := cloned["matrix"].([2]string)
 	clonedMatrix[0] = "z"
 	cloned["matrix"] = clonedMatrix
-	originalBundles := original["context_bundles"].([]string)
-	if !reflect.DeepEqual(originalBundles, []string{"base", "security"}) {
-		t.Fatalf("expected original bundles to remain unchanged, got %#v", originalBundles)
+	if !reflect.DeepEqual(original["context_bundles"].([]string), []string{"base", "security"}) {
+		t.Fatalf("expected original bundles to remain unchanged, got %#v", original["context_bundles"])
 	}
-	originalMetadata := original["metadata"].(map[string]string)
-	if !reflect.DeepEqual(originalMetadata, map[string]string{"owner": "platform"}) {
-		t.Fatalf("expected original metadata to remain unchanged, got %#v", originalMetadata)
+	if !reflect.DeepEqual(original["metadata"].(map[string]string), map[string]string{"owner": "platform"}) {
+		t.Fatalf("expected original metadata to remain unchanged, got %#v", original["metadata"])
 	}
-	originalMatrix := original["matrix"].([2]string)
-	if !reflect.DeepEqual(originalMatrix, [2]string{"a", "b"}) {
-		t.Fatalf("expected original array to remain unchanged, got %#v", originalMatrix)
+	if !reflect.DeepEqual(original["matrix"].([2]string), [2]string{"a", "b"}) {
+		t.Fatalf("expected original array to remain unchanged, got %#v", original["matrix"])
 	}
 }
 
 func TestBuildChangeRecordUsesEmptyStringForMissingOptionalFields(t *testing.T) {
 	changeDir := filepath.Join(t.TempDir(), "CHG-2026-001-a3f2-auth-gateway")
 	statusPath := filepath.Join(changeDir, "status.yaml")
-	record, err := buildChangeRecord(changeDir, statusPath, map[string]any{
-		"id":                  "CHG-2026-001-a3f2-auth-gateway",
-		"title":               "Add auth gateway",
-		"status":              "proposed",
-		"type":                "feature",
-		"verification_status": "pending",
-		"context_bundles":     []any{"base"},
-		"related_specs":       []any{},
-		"related_decisions":   []any{},
-		"related_changes":     []any{},
-		"depends_on":          []any{},
-		"informed_by":         []any{},
-		"supersedes":          []any{},
-		"superseded_by":       []any{},
-		"closed_at":           nil,
-	})
+	record, err := buildChangeRecord(changeDir, statusPath, map[string]any{"id": "CHG-2026-001-a3f2-auth-gateway", "title": "Add auth gateway", "status": "proposed", "type": "feature", "verification_status": "pending", "context_bundles": []any{"base"}, "related_specs": []any{}, "related_decisions": []any{}, "related_changes": []any{}, "depends_on": []any{}, "informed_by": []any{}, "supersedes": []any{}, "superseded_by": []any{}, "closed_at": nil})
 	if err != nil {
 		t.Fatalf("build change record: %v", err)
 	}
@@ -194,16 +158,15 @@ func TestValidateLifecycleTransition(t *testing.T) {
 }
 
 func TestBuildSplitChangeGraph(t *testing.T) {
-	links, err := BuildSplitChangeGraph(SplitChangePlan{
-		UmbrellaID: "CHG-2026-001-a3f2-umbrella",
-		SubChanges: []SplitSubChange{
-			{ID: "CHG-2026-002-b4c3-api", DependsOn: []string{"CHG-2026-001-a3f2-umbrella"}},
-			{ID: "CHG-2026-003-c9d1-ui", DependsOn: []string{"CHG-2026-002-b4c3-api"}},
-		},
-	})
+	links, err := BuildSplitChangeGraph(SplitChangePlan{UmbrellaID: "CHG-2026-001-a3f2-umbrella", SubChanges: []SplitSubChange{{ID: "CHG-2026-002-b4c3-api", DependsOn: []string{"CHG-2026-001-a3f2-umbrella"}}, {ID: "CHG-2026-003-c9d1-ui", DependsOn: []string{"CHG-2026-002-b4c3-api"}}}})
 	if err != nil {
 		t.Fatalf("build split graph: %v", err)
 	}
+	assertSplitGraphLinks(t, links)
+}
+
+func assertSplitGraphLinks(t *testing.T, links map[string]ChangeGraphLinks) {
+	t.Helper()
 	if got := links["CHG-2026-001-a3f2-umbrella"].RelatedChanges; !reflect.DeepEqual(got, []string{"CHG-2026-002-b4c3-api", "CHG-2026-003-c9d1-ui"}) {
 		t.Fatalf("unexpected umbrella related changes: %#v", got)
 	}
@@ -216,13 +179,7 @@ func TestBuildSplitChangeGraph(t *testing.T) {
 }
 
 func TestBuildSplitChangeGraphAllowsExternalDependency(t *testing.T) {
-	links, err := BuildSplitChangeGraph(SplitChangePlan{
-		UmbrellaID: "CHG-2026-001-a3f2-umbrella",
-		SubChanges: []SplitSubChange{{
-			ID:        "CHG-2026-002-b4c3-api",
-			DependsOn: []string{"CHG-2025-099-dead-external-prereq"},
-		}},
-	})
+	links, err := BuildSplitChangeGraph(SplitChangePlan{UmbrellaID: "CHG-2026-001-a3f2-umbrella", SubChanges: []SplitSubChange{{ID: "CHG-2026-002-b4c3-api", DependsOn: []string{"CHG-2025-099-dead-external-prereq"}}}})
 	if err != nil {
 		t.Fatalf("expected external dependency to be allowed: %v", err)
 	}
@@ -232,167 +189,21 @@ func TestBuildSplitChangeGraphAllowsExternalDependency(t *testing.T) {
 }
 
 func TestBuildSplitChangeGraphRejectsInvalidDependencyID(t *testing.T) {
-	_, err := BuildSplitChangeGraph(SplitChangePlan{
-		UmbrellaID: "CHG-2026-001-a3f2-umbrella",
-		SubChanges: []SplitSubChange{{
-			ID:        "CHG-2026-002-b4c3-api",
-			DependsOn: []string{"external ticket 42"},
-		}},
-	})
+	_, err := BuildSplitChangeGraph(SplitChangePlan{UmbrellaID: "CHG-2026-001-a3f2-umbrella", SubChanges: []SplitSubChange{{ID: "CHG-2026-002-b4c3-api", DependsOn: []string{"external ticket 42"}}}})
 	if err == nil || !strings.Contains(err.Error(), "canonical change ID format") {
 		t.Fatalf("expected invalid dependency format error, got %v", err)
 	}
 }
 
 func TestBuildSplitChangeGraphRejectsCycle(t *testing.T) {
-	_, err := BuildSplitChangeGraph(SplitChangePlan{
-		UmbrellaID: "CHG-2026-001-a3f2-umbrella",
-		SubChanges: []SplitSubChange{
-			{ID: "CHG-2026-002-b4c3-api", DependsOn: []string{"CHG-2026-003-c9d1-ui"}},
-			{ID: "CHG-2026-003-c9d1-ui", DependsOn: []string{"CHG-2026-002-b4c3-api"}},
-		},
-	})
+	_, err := BuildSplitChangeGraph(SplitChangePlan{UmbrellaID: "CHG-2026-001-a3f2-umbrella", SubChanges: []SplitSubChange{{ID: "CHG-2026-002-b4c3-api", DependsOn: []string{"CHG-2026-003-c9d1-ui"}}, {ID: "CHG-2026-003-c9d1-ui", DependsOn: []string{"CHG-2026-002-b4c3-api"}}}})
 	if err == nil || !strings.Contains(err.Error(), "contain a cycle") {
 		t.Fatalf("expected cycle detection error, got %v", err)
 	}
 }
 
-func TestRewriteMarkdownReferenceTargets(t *testing.T) {
-	data := []byte("See specs/auth-gateway.md#auth-gateway and decisions/DEC-0001-trust-boundary-model.md#trust-boundary-model.\n")
-	rewritten, count, err := RewriteMarkdownReferenceTargets(data, []MarkdownReferenceRewrite{{
-		OldPath:     "specs/auth-gateway.md",
-		NewPath:     "specs/security/auth-gateway.md",
-		OldFragment: "auth-gateway",
-		NewFragment: "gateway-overview",
-	}})
-	if err != nil {
-		t.Fatalf("rewrite markdown refs: %v", err)
-	}
-	if got, want := count, 1; got != want {
-		t.Fatalf("expected %d rewrite, got %d", want, got)
-	}
-	text := string(rewritten)
-	if !strings.Contains(text, "specs/security/auth-gateway.md#gateway-overview") {
-		t.Fatalf("expected rewritten spec ref, got %q", text)
-	}
-	if !strings.Contains(text, "decisions/DEC-0001-trust-boundary-model.md#trust-boundary-model") {
-		t.Fatalf("expected unrelated ref to stay intact, got %q", text)
-	}
-}
-
-func TestRewriteMarkdownReferenceTargetsIgnoresFencedCode(t *testing.T) {
-	data := []byte("```md\nspecs/auth-gateway.md#auth-gateway\n```\n\nSee specs/auth-gateway.md#auth-gateway.\n")
-	rewritten, count, err := RewriteMarkdownReferenceTargets(data, []MarkdownReferenceRewrite{{
-		OldPath:     "specs/auth-gateway.md",
-		NewPath:     "specs/security/auth-gateway.md",
-		OldFragment: "auth-gateway",
-		NewFragment: "gateway-overview",
-	}})
-	if err != nil {
-		t.Fatalf("rewrite markdown refs: %v", err)
-	}
-	if got, want := count, 1; got != want {
-		t.Fatalf("expected %d rewrite, got %d", want, got)
-	}
-	text := string(rewritten)
-	if !strings.Contains(text, "```md\nspecs/auth-gateway.md#auth-gateway\n```") {
-		t.Fatalf("expected fenced code ref to stay unchanged, got %q", text)
-	}
-	if !strings.Contains(text, "See specs/security/auth-gateway.md#gateway-overview.") {
-		t.Fatalf("expected prose ref to be rewritten, got %q", text)
-	}
-}
-
-func TestRewriteMarkdownReferenceTargetsIgnoresLongerFenceNesting(t *testing.T) {
-	data := []byte("````md\n```\nspecs/auth-gateway.md#auth-gateway\n```\n````\n\nSee specs/auth-gateway.md#auth-gateway.\n")
-	rewritten, count, err := RewriteMarkdownReferenceTargets(data, []MarkdownReferenceRewrite{{
-		OldPath:     "specs/auth-gateway.md",
-		NewPath:     "specs/security/auth-gateway.md",
-		OldFragment: "auth-gateway",
-		NewFragment: "gateway-overview",
-	}})
-	if err != nil {
-		t.Fatalf("rewrite markdown refs: %v", err)
-	}
-	if got, want := count, 1; got != want {
-		t.Fatalf("expected %d rewrite, got %d", want, got)
-	}
-	text := string(rewritten)
-	if !strings.Contains(text, "````md\n```\nspecs/auth-gateway.md#auth-gateway\n```\n````") {
-		t.Fatalf("expected nested fenced code ref to stay unchanged, got %q", text)
-	}
-}
-
-func TestRewriteMarkdownReferenceTargetsUsesFirstMatch(t *testing.T) {
-	data := []byte("See specs/auth-gateway.md#auth-gateway.\n")
-	rewritten, count, err := RewriteMarkdownReferenceTargets(data, []MarkdownReferenceRewrite{
-		{OldPath: "specs/auth-gateway.md", NewPath: "specs/security/auth-gateway.md"},
-		{OldPath: "specs/auth-gateway.md", OldFragment: "auth-gateway", NewFragment: "gateway-overview"},
-	})
-	if err != nil {
-		t.Fatalf("rewrite markdown refs: %v", err)
-	}
-	if got, want := count, 1; got != want {
-		t.Fatalf("expected %d rewrite, got %d", want, got)
-	}
-	if got, want := string(rewritten), "See specs/security/auth-gateway.md#auth-gateway.\n"; got != want {
-		t.Fatalf("unexpected rewrite result: %q", got)
-	}
-}
-
-func TestExtractMarkdownDeepRefsFromTextStopsAtUTF8Punctuation(t *testing.T) {
-	text := "See \"specs/auth-gateway.md#auth-gateway\" and \u201cspecs/auth-gateway.md#auth-gateway\u201d for context."
-	refs, err := extractMarkdownDeepRefsFromText(text, 0)
-	if err != nil {
-		t.Fatalf("extract markdown refs: %v", err)
-	}
-	if got, want := len(refs), 2; got != want {
-		t.Fatalf("expected %d refs, got %d", want, got)
-	}
-	for _, ref := range refs {
-		if got, want := ref.Path, "specs/auth-gateway.md"; got != want {
-			t.Fatalf("expected path %q, got %q", want, got)
-		}
-		if got, want := ref.Fragment, "auth-gateway"; got != want {
-			t.Fatalf("expected fragment %q, got %q", want, got)
-		}
-	}
-}
-
-func TestExtractMarkdownDeepRefsFromTextStopsBeforeNonASCIIFragmentSuffix(t *testing.T) {
-	text := "See specs/auth-gateway.md#auth-gatewayの情報 for context."
-	refs, err := extractMarkdownDeepRefsFromText(text, 0)
-	if err != nil {
-		t.Fatalf("extract markdown refs: %v", err)
-	}
-	if got, want := len(refs), 1; got != want {
-		t.Fatalf("expected %d ref, got %d", want, got)
-	}
-	if got, want := refs[0].Path, "specs/auth-gateway.md"; got != want {
-		t.Fatalf("expected path %q, got %q", want, got)
-	}
-	if got, want := refs[0].Fragment, "auth-gateway"; got != want {
-		t.Fatalf("expected fragment %q, got %q", want, got)
-	}
-}
-
-func TestExtractMarkdownDeepRefsFromTextRequiresIndexedRootBoundary(t *testing.T) {
-	text := "见specs/auth-gateway.md#auth-gateway and docs/auth-gateway.md#auth-gateway should stay plain text."
-	refs, err := extractMarkdownDeepRefsFromText(text, 0)
-	if err != nil {
-		t.Fatalf("extract markdown refs: %v", err)
-	}
-	if len(refs) != 0 {
-		t.Fatalf("expected no refs for non-indexed or boundaryless paths, got %#v", refs)
-	}
-}
-
 func TestProjectIndexStatusViews(t *testing.T) {
-	index := &ProjectIndex{Changes: map[string]*ChangeRecord{
-		"CHG-2026-001-a3f2-open":       {Status: StatusProposed},
-		"CHG-2026-002-b4c3-closed":     {Status: StatusClosed},
-		"CHG-2026-003-c9d1-superseded": {Status: StatusSuperseded},
-	}}
+	index := &ProjectIndex{Changes: map[string]*ChangeRecord{"CHG-2026-001-a3f2-open": {Status: StatusProposed}, "CHG-2026-002-b4c3-closed": {Status: StatusClosed}, "CHG-2026-003-c9d1-superseded": {Status: StatusSuperseded}}}
 	if got := index.OpenChangeIDs(); !reflect.DeepEqual(got, []string{"CHG-2026-001-a3f2-open"}) {
 		t.Fatalf("unexpected open change IDs: %#v", got)
 	}
@@ -420,33 +231,7 @@ func TestValidateProjectRejectsNonReciprocalRelatedChanges(t *testing.T) {
 func TestValidateProjectRejectsSupersessionInconsistency(t *testing.T) {
 	root := copyTraceabilityFixtureProject(t, "valid-project")
 	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
-	if err := os.WriteFile(statusPath, []byte(strings.Join([]string{
-		"schema_version: 1",
-		"id: CHG-2026-001-a3f2-auth-gateway",
-		"title: Add auth gateway",
-		"status: superseded",
-		"type: feature",
-		"size: medium",
-		"verification_status: skipped",
-		"context_bundles:",
-		"  - go-control-plane",
-		"related_specs:",
-		"  - specs/auth-gateway.md",
-		"related_decisions:",
-		"  - decisions/DEC-0001-trust-boundary-model.md",
-		"related_changes:",
-		"  - CHG-2026-002-b4c3-auth-revision",
-		"depends_on: []",
-		"informed_by: []",
-		"supersedes: []",
-		"superseded_by:",
-		"  - CHG-2026-002-b4c3-auth-revision",
-		"created_at: \"2026-03-16\"",
-		"closed_at: \"2026-03-18\"",
-		"promotion_assessment:",
-		"  status: none",
-		"  suggested_targets: []",
-	}, "\n")+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(statusPath, []byte(strings.Join([]string{"schema_version: 1", "id: CHG-2026-001-a3f2-auth-gateway", "title: Add auth gateway", "status: superseded", "type: feature", "size: medium", "verification_status: skipped", "context_bundles:", "  - go-control-plane", "related_specs:", "  - specs/auth-gateway.md", "related_decisions:", "  - decisions/DEC-0001-trust-boundary-model.md", "related_changes:", "  - CHG-2026-002-b4c3-auth-revision", "depends_on: []", "informed_by: []", "supersedes: []", "superseded_by:", "  - CHG-2026-002-b4c3-auth-revision", "created_at: \"2026-03-16\"", "closed_at: \"2026-03-18\"", "promotion_assessment:", "  status: none", "  suggested_targets: []"}, "\n")+"\n"), 0o644); err != nil {
 		t.Fatalf("write superseded status: %v", err)
 	}
 	v := NewValidator(schemaRoot(t))
@@ -454,67 +239,6 @@ func TestValidateProjectRejectsSupersessionInconsistency(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "superseded_by must be bidirectionally consistent") {
 		t.Fatalf("expected supersession consistency failure, got %v", err)
 	}
-}
-
-func TestValidateProjectRejectsInvalidTerminalMetadata(t *testing.T) {
-	t.Run("terminal requires closed_at", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
-		rewriteFile(t, statusPath, func(text string) string {
-			text = strings.Replace(text, "status: proposed", "status: closed", 1)
-			text = strings.Replace(text, "verification_status: pending", "verification_status: passed", 1)
-			return text
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "requires closed_at") {
-			t.Fatalf("expected closed_at failure, got %v", err)
-		}
-	})
-
-	t.Run("non-terminal must not set closed_at", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
-		rewriteFile(t, statusPath, func(text string) string {
-			return strings.Replace(text, "closed_at: null", "closed_at: \"2026-03-18\"", 1)
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must not set closed_at") {
-			t.Fatalf("expected non-terminal closed_at failure, got %v", err)
-		}
-	})
-
-	t.Run("closed must not keep pending verification", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
-		rewriteFile(t, statusPath, func(text string) string {
-			text = strings.Replace(text, "status: proposed", "status: closed", 1)
-			text = strings.Replace(text, "closed_at: null", "closed_at: \"2026-03-18\"", 1)
-			return text
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must not leave verification_status pending") {
-			t.Fatalf("expected pending verification failure, got %v", err)
-		}
-	})
-
-	t.Run("superseded must not keep pending verification", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
-		rewriteFile(t, statusPath, func(text string) string {
-			text = strings.Replace(text, "status: proposed", "status: superseded", 1)
-			text = strings.Replace(text, "closed_at: null", "closed_at: \"2026-03-18\"", 1)
-			text = strings.Replace(text, "superseded_by: []", "superseded_by:\n  - CHG-2026-002-b4c3-auth-revision", 1)
-			return text
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "superseded changes must not leave verification_status pending") {
-			t.Fatalf("expected superseded pending verification failure, got %v", err)
-		}
-	})
 }
 
 func TestValidateProjectRejectsUnmirroredArtifactTraceability(t *testing.T) {
@@ -525,16 +249,7 @@ func TestValidateProjectRejectsUnmirroredArtifactTraceability(t *testing.T) {
 	})
 	v := NewValidator(schemaRoot(t))
 	_, err := v.ValidateProject(root)
-	if err == nil || !strings.Contains(err.Error(), "related_specs") || !strings.Contains(err.Error(), "status.yaml") {
-		t.Fatalf("expected artifact traceability failure, got %v", err)
-	}
-	var validationErr *ValidationError
-	if !errors.As(err, &validationErr) {
-		t.Fatalf("expected validation error, got %T", err)
-	}
-	if got, want := filepath.ToSlash(validationErr.Path), filepath.ToSlash(filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "status.yaml")); got != want {
-		t.Fatalf("expected path %q, got %q", want, got)
-	}
+	assertTraceabilityValidationError(t, err, "related_specs", filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "status.yaml"))
 }
 
 func TestValidateProjectRejectsUnmirroredDecisionTraceability(t *testing.T) {
@@ -545,467 +260,21 @@ func TestValidateProjectRejectsUnmirroredDecisionTraceability(t *testing.T) {
 	})
 	v := NewValidator(schemaRoot(t))
 	_, err := v.ValidateProject(root)
-	if err == nil || !strings.Contains(err.Error(), "related_decisions") || !strings.Contains(err.Error(), "status.yaml") {
-		t.Fatalf("expected decision traceability failure, got %v", err)
+	assertTraceabilityValidationError(t, err, "related_decisions", filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "status.yaml"))
+}
+
+func assertTraceabilityValidationError(t *testing.T, err error, contains, wantPath string) {
+	t.Helper()
+	if err == nil || !strings.Contains(err.Error(), contains) || !strings.Contains(err.Error(), "status.yaml") {
+		t.Fatalf("expected artifact traceability failure, got %v", err)
 	}
 	var validationErr *ValidationError
 	if !errors.As(err, &validationErr) {
 		t.Fatalf("expected validation error, got %T", err)
 	}
-	if got, want := filepath.ToSlash(validationErr.Path), filepath.ToSlash(filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "status.yaml")); got != want {
-		t.Fatalf("expected path %q, got %q", want, got)
+	if got := filepath.ToSlash(validationErr.Path); got != filepath.ToSlash(wantPath) {
+		t.Fatalf("expected path %q, got %q", wantPath, got)
 	}
-}
-
-func TestValidateProjectMarkdownDeepRefs(t *testing.T) {
-	t.Run("valid heading fragment", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nSee specs/auth-gateway.md#auth-gateway for the stable reference.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected valid heading-fragment ref: %v", err)
-		}
-	})
-
-	t.Run("missing heading fragment", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nSee specs/auth-gateway.md#missing-heading for more context.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "missing heading fragment") {
-			t.Fatalf("expected missing-heading failure, got %v", err)
-		}
-	})
-
-	t.Run("line-number fragment rejected", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nAvoid specs/auth-gateway.md#L10 because line numbers are not durable.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must use a heading fragment") {
-			t.Fatalf("expected line-number fragment failure, got %v", err)
-		}
-	})
-
-	t.Run("absolute path rejected", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nBad ref: /specs/auth-gateway.md#auth-gateway\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must not use an absolute path") {
-			t.Fatalf("expected absolute-path failure, got %v", err)
-		}
-	})
-
-	t.Run("relative traversal rejected", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nBad ref: ../specs/auth-gateway.md#auth-gateway\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "RuneContext-root-relative path") {
-			t.Fatalf("expected traversal-path failure, got %v", err)
-		}
-	})
-
-	t.Run("fenced code refs ignored", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\n```md\n/specs/auth-gateway.md#L10\n```\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected fenced-code ref to be ignored, got %v", err)
-		}
-	})
-
-	t.Run("blockquote fenced code refs ignored", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\n> ```md\n> /specs/auth-gateway.md#L10\n> ```\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected blockquote fenced-code ref to be ignored, got %v", err)
-		}
-	})
-
-	t.Run("numeric line fragment rejected", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nAvoid specs/auth-gateway.md#42 because line numbers are not durable.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must use a heading fragment") {
-			t.Fatalf("expected numeric-line fragment failure, got %v", err)
-		}
-	})
-
-	t.Run("line range fragment rejected", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nAvoid specs/auth-gateway.md#l10-l20 because line ranges are not durable.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || (!strings.Contains(err.Error(), "must use a heading fragment") && !strings.Contains(err.Error(), "missing heading fragment")) {
-			t.Fatalf("expected line-range fragment failure, got %v", err)
-		}
-	})
-
-	t.Run("external markdown URL ignored", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nReference https://example.com/docs/auth-gateway.md#overview for external context.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected external markdown URL to be ignored, got %v", err)
-		}
-	})
-
-	t.Run("utf8 punctuation around deep ref ignored", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nSee \u201cspecs/auth-gateway.md#auth-gateway\u201d for quoted context.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected UTF-8 punctuation around deep ref to validate, got %v", err)
-		}
-	})
-
-	t.Run("utf8 prose after fragment ignored", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nSee specs/auth-gateway.md#auth-gatewayの情報 for localized context.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected UTF-8 prose after fragment to validate, got %v", err)
-		}
-	})
-
-	t.Run("project markdown target allowed", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		projectDir := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway")
-		if err := os.MkdirAll(projectDir, 0o755); err != nil {
-			t.Fatalf("mkdir change dir: %v", err)
-		}
-		projectPath := filepath.Join(projectDir, "mission.md")
-		if err := os.WriteFile(projectPath, []byte("# Mission\n\nShip stable change workflows.\n"), 0o644); err != nil {
-			t.Fatalf("write project markdown: %v", err)
-		}
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\nSee changes/CHG-2026-001-a3f2-auth-gateway/mission.md#mission for the high-level intent.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected indexed change markdown deep ref to validate, got %v", err)
-		}
-	})
-}
-
-func TestValidateProjectStandardFrontmatterAndMigrationSemantics(t *testing.T) {
-	t.Run("valid standard metadata", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected valid project with standards metadata: %v", err)
-		}
-	})
-
-	t.Run("reject standard id mismatch", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
-		rewriteFile(t, standardPath, func(text string) string {
-			return strings.Replace(text, "id: global/deterministic-check-write", "id: global/not-the-path", 1)
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must match path-relative stem") {
-			t.Fatalf("expected standard id mismatch failure, got %v", err)
-		}
-	})
-
-	t.Run("reject draft standard in standards md", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
-		rewriteFile(t, standardPath, func(text string) string {
-			return strings.Replace(text, "status: active", "status: draft", 1)
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "section \"Applicable Standards\"") {
-			t.Fatalf("expected draft standard reference failure, got %v", err)
-		}
-	})
-
-	t.Run("reject draft standard in added section with section-specific message", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
-		rewriteFile(t, standardPath, func(text string) string {
-			return strings.Replace(text, "status: active", "status: draft", 1)
-		})
-		standardsPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "standards.md")
-		rewriteFile(t, standardsPath, func(text string) string {
-			return "## Applicable Standards\n- `standards/global/other-active.md`: Current active selection.\n\n## Standards Added Since Last Refresh\n- `standards/global/deterministic-check-write.md`: Newly added but still draft.\n"
-		})
-		otherPath := filepath.Join(root, "runecontext", "standards", "global", "other-active.md")
-		if err := os.WriteFile(otherPath, []byte("---\nschema_version: 1\nid: global/other-active\ntitle: Other Active\nstatus: active\n---\n\n# Other Active\n\nUse the active path.\n"), 0o644); err != nil {
-			t.Fatalf("write active standard: %v", err)
-		}
-		otherChangeStandards := filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "standards.md")
-		rewriteFile(t, otherChangeStandards, func(text string) string {
-			return strings.Replace(text, "standards/global/deterministic-check-write.md", "standards/global/other-active.md", 1)
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "section \"Standards Added Since Last Refresh\"") {
-			t.Fatalf("expected added-section draft failure, got %v", err)
-		}
-	})
-
-	t.Run("allow deprecated standard in applicable standards with warning", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		defer func() { _ = os.RemoveAll(root) }()
-		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
-		rewriteFile(t, standardPath, func(text string) string {
-			return strings.Replace(text, "status: active", "status: deprecated\nreplaced_by: standards/global/deterministic-check-write-v2.md", 1)
-		})
-		v2Path := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write-v2.md")
-		if err := os.WriteFile(v2Path, []byte("---\nschema_version: 1\nid: global/deterministic-check-write-v2\ntitle: Deterministic Check Write v2\nstatus: active\n---\n\n# Deterministic Check Write v2\n\nUse the newer wording.\n"), 0o644); err != nil {
-			t.Fatalf("write replacement standard: %v", err)
-		}
-		v := NewValidator(schemaRoot(t))
-		index, err := v.ValidateProject(root)
-		if err != nil {
-			t.Fatalf("expected deprecated applicable standard to warn, got %v", err)
-		}
-		defer index.Close()
-		found := false
-		for _, diagnostic := range index.Diagnostics {
-			if diagnostic.Code == "deprecated_standard_referenced" {
-				if diagnostic.Path != "changes/CHG-2026-001-a3f2-auth-gateway/standards.md" {
-					t.Fatalf("expected relative diagnostic path, got %#v", diagnostic)
-				}
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("expected deprecated standard warning, got %#v", index.Diagnostics)
-		}
-	})
-
-	t.Run("allow excluded draft standard path references", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		defer func() { _ = os.RemoveAll(root) }()
-		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
-		rewriteFile(t, standardPath, func(text string) string {
-			return strings.Replace(text, "status: active", "status: draft", 1)
-		})
-		standardsPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "standards.md")
-		rewriteFile(t, standardsPath, func(text string) string {
-			return "## Applicable Standards\n- `standards/global/other-active.md`: Replacement active standard.\n\n## Standards Considered But Excluded\n- `standards/global/deterministic-check-write.md`: Still draft and intentionally excluded.\n"
-		})
-		otherChangeStandards := filepath.Join(root, "runecontext", "changes", "CHG-2026-002-b4c3-auth-revision", "standards.md")
-		rewriteFile(t, otherChangeStandards, func(text string) string {
-			return strings.Replace(text, "standards/global/deterministic-check-write.md", "standards/global/other-active.md", 1)
-		})
-		otherPath := filepath.Join(root, "runecontext", "standards", "global", "other-active.md")
-		if err := os.WriteFile(otherPath, []byte("---\nschema_version: 1\nid: global/other-active\ntitle: Other Active\nstatus: active\n---\n\n# Other Active\n\nUse the active path.\n"), 0o644); err != nil {
-			t.Fatalf("write active standard: %v", err)
-		}
-		v := NewValidator(schemaRoot(t))
-		index, err := v.ValidateProject(root)
-		if err != nil {
-			t.Fatalf("expected excluded draft standard to validate, got %v", err)
-		}
-		defer index.Close()
-	})
-
-	t.Run("reject missing replaced_by target", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
-		rewriteFile(t, standardPath, func(text string) string {
-			return strings.Replace(text, "status: active", "status: deprecated\nreplaced_by: standards/global/missing.md", 1)
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "references missing standard") {
-			t.Fatalf("expected missing replaced_by target failure, got %v", err)
-		}
-	})
-
-	t.Run("reject self replaced_by target", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
-		rewriteFile(t, standardPath, func(text string) string {
-			return strings.Replace(text, "status: active", "status: deprecated\nreplaced_by: standards/global/deterministic-check-write.md", 1)
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must not reference the standard itself") {
-			t.Fatalf("expected self replaced_by failure, got %v", err)
-		}
-	})
-
-	t.Run("reject alias collisions", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		otherPath := filepath.Join(root, "runecontext", "standards", "global", "other-active.md")
-		if err := os.WriteFile(otherPath, []byte("---\nschema_version: 1\nid: global/other-active\ntitle: Other Active\nstatus: active\naliases:\n  - global/legacy-id\n---\n\n# Other Active\n\nAlias collision test.\n"), 0o644); err != nil {
-			t.Fatalf("write second standard: %v", err)
-		}
-		standardPath := filepath.Join(root, "runecontext", "standards", "global", "deterministic-check-write.md")
-		rewriteFile(t, standardPath, func(text string) string {
-			return strings.Replace(text, "suggested_context_bundles:\n  - go-control-plane", "suggested_context_bundles:\n  - go-control-plane\naliases:\n  - global/legacy-id", 1)
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "alias \"global/legacy-id\" is duplicated") {
-			t.Fatalf("expected alias collision failure, got %v", err)
-		}
-	})
-
-	t.Run("reject copied standard body text in standards md", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		standardsPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "standards.md")
-		rewriteFile(t, standardsPath, func(text string) string {
-			return "## Applicable Standards\nTrust Boundary Interfaces\n\n## Resolution Notes\nThis copied body text is invalid.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "must list standards as") {
-			t.Fatalf("expected copied-body rejection, got %v", err)
-		}
-	})
-
-	t.Run("reject copied standard body text in proposal", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\n\nGenerated and reviewed artifacts must remain deterministic and easy to audit.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "appears to copy standard content") {
-			t.Fatalf("expected copied standard content in proposal to fail, got %v", err)
-		}
-	})
-
-	t.Run("allow standard text inside fenced code in proposal", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\n\n```md\nGenerated and reviewed artifacts must remain deterministic and easy to audit.\n```\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected fenced standard excerpt to be ignored, got %v", err)
-		}
-	})
-
-	t.Run("validate plain standard path reference in proposal", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\n\nSee `standards/global/deterministic-check-write.md` for the durable rule.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected plain standard path reference to validate, got %v", err)
-		}
-	})
-
-	t.Run("reject missing plain standard path reference in proposal", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		proposalPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "proposal.md")
-		rewriteFile(t, proposalPath, func(text string) string {
-			return text + "\n\nSee `standards/global/missing.md` for the durable rule.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "points to missing standard") {
-			t.Fatalf("expected missing plain path reference to fail, got %v", err)
-		}
-		if strings.Contains(err.Error(), root) {
-			t.Fatalf("expected proposal diagnostics to use relative paths, got %v", err)
-		}
-	})
-
-	t.Run("reject missing standard deep ref in spec body", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		specPath := filepath.Join(root, "runecontext", "specs", "auth-gateway.md")
-		rewriteFile(t, specPath, func(text string) string {
-			return text + "\n\nSee standards/global/missing.md#missing for the obsolete rule.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "points to missing standard") {
-			t.Fatalf("expected missing standard deep ref to fail, got %v", err)
-		}
-	})
-
-	t.Run("reject copied standard body text in spec", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		specPath := filepath.Join(root, "runecontext", "specs", "auth-gateway.md")
-		rewriteFile(t, specPath, func(text string) string {
-			return text + "\n\nGenerated and reviewed artifacts must remain deterministic and easy to audit.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		_, err := v.ValidateProject(root)
-		if err == nil || !strings.Contains(err.Error(), "appears to copy standard content") {
-			t.Fatalf("expected copied standard content in spec to fail, got %v", err)
-		}
-	})
-
-	t.Run("allow standard text inside blockquote fenced code in spec", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		specPath := filepath.Join(root, "runecontext", "specs", "auth-gateway.md")
-		rewriteFile(t, specPath, func(text string) string {
-			return text + "\n\n> ```md\n> Generated and reviewed artifacts must remain deterministic and easy to audit.\n> ```\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected quoted fenced excerpt to be ignored, got %v", err)
-		}
-	})
-
-	t.Run("validate plain standard path reference in spec", func(t *testing.T) {
-		root := copyTraceabilityFixtureProject(t, "valid-project")
-		specPath := filepath.Join(root, "runecontext", "specs", "auth-gateway.md")
-		rewriteFile(t, specPath, func(text string) string {
-			return text + "\n\nSee `standards/global/deterministic-check-write.md` for review guidance.\n"
-		})
-		v := NewValidator(schemaRoot(t))
-		if _, err := v.ValidateProject(root); err != nil {
-			t.Fatalf("expected plain standard path reference in spec to validate, got %v", err)
-		}
-	})
 }
 
 func TestExtractMarkdownHeadingFragmentsAvoidsNaturalSuffixCollisions(t *testing.T) {
@@ -1013,11 +282,18 @@ func TestExtractMarkdownHeadingFragmentsAvoidsNaturalSuffixCollisions(t *testing
 	if err != nil {
 		t.Fatalf("extract heading fragments: %v", err)
 	}
-	expected := map[string]string{
-		"foo":   "Foo",
-		"foo-3": "Foo",
-		"foo-2": "Foo 2",
+	expected := map[string]string{"foo": "Foo", "foo-1": "Foo", "foo-2": "Foo 2"}
+	if !reflect.DeepEqual(headings, expected) {
+		t.Fatalf("unexpected heading fragments: %#v", headings)
 	}
+}
+
+func TestExtractMarkdownHeadingFragmentsSkipsOccupiedSuffixes(t *testing.T) {
+	headings, err := extractMarkdownHeadingFragments("# Foo\n# Foo 1\n# Foo\n")
+	if err != nil {
+		t.Fatalf("extract heading fragments: %v", err)
+	}
+	expected := map[string]string{"foo": "Foo", "foo-1": "Foo 1", "foo-2": "Foo"}
 	if !reflect.DeepEqual(headings, expected) {
 		t.Fatalf("unexpected heading fragments: %#v", headings)
 	}

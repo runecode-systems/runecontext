@@ -213,6 +213,29 @@ refinements:
   preserving the hardening intent without re-resolving the same path under a
   misleading helper name.
 
+### 9. Additional PR Review Follow-Up
+
+One more review pass surfaced a short set of narrow correctness fixes that are
+now incorporated without changing the broader alpha.1-alpha.3 scope:
+
+- **Markdown duplicate-heading fragments**: automatically derived fragments now
+  use deterministic duplicate numbering (`foo`, `foo-1`, `foo-2`, ...) while
+  still skipping already occupied suffixed forms.
+- **Bundle traversal consistency**: broken or disappearing paths discovered
+  during bundle walking now fail closed consistently instead of being partially
+  normalized into an empty-path sentinel before a later `Stat` failure.
+- **Thin CLI flag parsing**: required string flags now reject another long flag
+  token as a missing value so callers get an immediate usage error instead of a
+  confusing downstream parse failure.
+- **Status YAML rewrite robustness**: YAML encoding now propagates `Close`
+  failures as well as `Encode` failures when rendering rewritten `status.yaml`
+  content.
+
+This follow-up intentionally does not narrow `type: git` to remote-only URLs.
+The current alpha.2 contract still allows local repository paths for testing and
+developer-local workflows, so changing that behavior would be a deliberate
+product decision rather than a narrow review fix.
+
 ---
 
 ## Security and Audit Implications

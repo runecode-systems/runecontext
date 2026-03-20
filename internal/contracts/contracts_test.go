@@ -11,69 +11,9 @@ func TestSchemaFixtures(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	root := fixturePath(t, "schema-contracts")
 	validRootConfig := readFixture(t, filepath.Join(root, "valid-runecontext-with-extensions-optin.yaml"))
-
-	validCases := map[string]string{
-		"valid-runecontext-no-extensions.yaml":         "runecontext.schema.json",
-		"valid-runecontext-with-extensions-optin.yaml": "runecontext.schema.json",
-		"valid-git-source-signed-tag.yaml":             "runecontext.schema.json",
-		"valid-bundle-closed-schema.yaml":              "bundle.schema.json",
-		"valid-bundle-with-extensions.yaml":            "bundle.schema.json",
-		"valid-change-status.yaml":                     "change-status.schema.json",
-		"valid-custom-type.yaml":                       "change-status.schema.json",
-		"valid-superseded-change.yaml":                 "change-status.schema.json",
-		"valid-context-pack.yaml":                      "context-pack.schema.json",
-		"valid-standard-frontmatter.yaml":              "standard.schema.json",
-	}
-	for name, schema := range validCases {
-		t.Run(name, func(t *testing.T) {
-			data := readFixture(t, filepath.Join(root, name))
-			if err := v.ValidateYAMLFile(schema, name, data); err != nil {
-				t.Fatalf("expected fixture to validate: %v", err)
-			}
-			if name == "valid-bundle-with-extensions.yaml" {
-				if err := v.ValidateExtensionOptIn("runecontext.yaml", validRootConfig, name, data); err != nil {
-					t.Fatalf("expected extension opt-in fixture to validate: %v", err)
-				}
-			}
-		})
-	}
-
-	rejectCases := map[string]string{
-		"reject-unknown-field-runecontext.yaml":  "runecontext.schema.json",
-		"reject-unknown-schema-version.yaml":     "runecontext.schema.json",
-		"reject-bad-extension-key.yaml":          "change-status.schema.json",
-		"reject-context-pack-unknown-field.yaml": "context-pack.schema.json",
-		"reject-yaml-anchors-aliases.yaml":       "change-status.schema.json",
-		"reject-yaml-custom-tag.yaml":            "change-status.schema.json",
-		"reject-yaml-flow-style.yaml":            "bundle.schema.json",
-		"reject-yaml-multiline-string.yaml":      "bundle.schema.json",
-	}
-	for name, schema := range rejectCases {
-		t.Run(name, func(t *testing.T) {
-			data := readFixture(t, filepath.Join(root, name))
-			if err := v.ValidateYAMLFile(schema, name, data); err == nil {
-				t.Fatalf("expected fixture to fail validation")
-			}
-		})
-	}
-
-	t.Run("reject-extensions-without-optin.yaml", func(t *testing.T) {
-		rootData := readFixture(t, filepath.Join(root, "valid-runecontext-no-extensions.yaml"))
-		artifactData := readFixture(t, filepath.Join(root, "reject-extensions-without-optin.yaml"))
-		if err := v.ValidateYAMLFile("change-status.schema.json", "reject-extensions-without-optin.yaml", artifactData); err != nil {
-			t.Fatalf("expected standalone schema validation to pass before project-level extension enforcement: %v", err)
-		}
-		if err := v.ValidateExtensionOptIn("runecontext.yaml", rootData, "reject-extensions-without-optin.yaml", artifactData); err == nil {
-			t.Fatalf("expected project-level extension rejection")
-		}
-	})
-
-	t.Run("reject-related-specs-wrong-type.yaml", func(t *testing.T) {
-		data := readFixture(t, filepath.Join(root, "reject-related-specs-wrong-type.yaml"))
-		if err := v.ValidateYAMLFile("change-status.schema.json", "reject-related-specs-wrong-type.yaml", data); err == nil {
-			t.Fatalf("expected wrong-type reference fixture to fail schema validation")
-		}
-	})
+	runValidSchemaCases(t, v, root, validRootConfig)
+	runRejectSchemaCases(t, v, root)
+	runSchemaSpecialCases(t, v, root)
 }
 
 func TestProposalMarkdownFixtures(t *testing.T) {
@@ -99,50 +39,8 @@ func TestStandardsMarkdownFixtures(t *testing.T) {
 	if err := v.ValidateStandardsMarkdown("valid-standards.md", valid); err != nil {
 		t.Fatalf("expected valid standards fixture: %v", err)
 	}
-
-	for _, name := range []string{"reject-standards-missing-applicable.md", "reject-standards-out-of-order.md"} {
-		t.Run(name, func(t *testing.T) {
-			data := readFixture(t, fixturePath(t, "markdown-contracts", name))
-			if err := v.ValidateStandardsMarkdown(name, data); err == nil {
-				t.Fatalf("expected %s to fail", name)
-			}
-		})
-	}
-
-	t.Run("reject standards copied body text", func(t *testing.T) {
-		data := readFixture(t, fixturePath(t, "markdown-contracts", "reject-standards-copied-body.md"))
-		if err := v.ValidateStandardsMarkdown("reject-standards-copied-body.md", data); err == nil {
-			t.Fatal("expected copied standard body text to fail")
-		}
-	})
-
-	t.Run("allow excluded draft standard path reference", func(t *testing.T) {
-		data := readFixture(t, fixturePath(t, "markdown-contracts", "valid-standards-excluded-draft.md"))
-		if err := v.ValidateStandardsMarkdown("valid-standards-excluded-draft.md", data); err != nil {
-			t.Fatalf("expected excluded draft standard reference to parse: %v", err)
-		}
-	})
-
-	t.Run("reject multiple standard refs per bullet", func(t *testing.T) {
-		data := []byte("## Applicable Standards\n- `standards/global/a.md` and `standards/global/b.md`: invalid multi-ref bullet\n")
-		if err := v.ValidateStandardsMarkdown("multi-ref.md", data); err == nil {
-			t.Fatal("expected multiple-ref bullet to fail")
-		}
-	})
-
-	t.Run("allow one standard ref plus other backticked code", func(t *testing.T) {
-		data := []byte("## Applicable Standards\n- `standards/global/a.md`: Applies to `POST /v1/auth` without adding a second standard reference.\n")
-		if err := v.ValidateStandardsMarkdown("single-standard-with-code.md", data); err != nil {
-			t.Fatalf("expected non-standard code spans to be ignored, got %v", err)
-		}
-	})
-
-	t.Run("reject mixed canonical and non-canonical standard refs per bullet", func(t *testing.T) {
-		data := []byte("## Applicable Standards\n- `standards/global/a.md`: supersedes `standards/global/a.md#details` which is non-canonical.\n")
-		if err := v.ValidateStandardsMarkdown("mixed-standard-refs.md", data); err == nil {
-			t.Fatal("expected mixed canonical and non-canonical standard refs to fail")
-		}
-	})
+	runRejectStandardsMarkdownCases(t, v)
+	runSpecialStandardsMarkdownCases(t, v)
 }
 
 func TestSpecAndDecisionFixtures(t *testing.T) {
@@ -207,32 +105,7 @@ func TestTraceabilityProjectFixtures(t *testing.T) {
 func TestValidateProjectRejectsSpecSymlinkEscape(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
 	projectRoot := t.TempDir()
-	contentRoot := filepath.Join(projectRoot, "runecontext")
-	if err := os.MkdirAll(filepath.Join(contentRoot, "changes", "CHG-2026-001-a3f2-auth-gateway"), 0o755); err != nil {
-		t.Fatalf("mkdir change dir: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(contentRoot, "specs"), 0o755); err != nil {
-		t.Fatalf("mkdir specs dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"), 0o644); err != nil {
-		t.Fatalf("write root config: %v", err)
-	}
-	changeDir := filepath.Join(contentRoot, "changes", "CHG-2026-001-a3f2-auth-gateway")
-	if err := os.WriteFile(filepath.Join(changeDir, "status.yaml"), []byte("schema_version: 1\nid: CHG-2026-001-a3f2-auth-gateway\ntitle: Test\nstatus: proposed\ntype: feature\nsize: small\ncontext_bundles: []\nrelated_specs: []\nrelated_decisions: []\nrelated_changes: []\ndepends_on: []\ninformed_by: []\nsupersedes: []\nsuperseded_by: []\ncreated_at: \"2026-03-17\"\nclosed_at: null\nverification_status: pending\npromotion_assessment:\n  status: pending\n  suggested_targets: []\n"), 0o644); err != nil {
-		t.Fatalf("write status: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(changeDir, "proposal.md"), []byte("## Summary\n\nN/A\n\n## Problem\n\nN/A\n\n## Proposed Change\n\nAdd a test.\n\n## Why Now\n\nN/A\n\n## Assumptions\n\nN/A\n\n## Out of Scope\n\nN/A\n\n## Impact\n\nN/A\n"), 0o644); err != nil {
-		t.Fatalf("write proposal: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(changeDir, "standards.md"), []byte("## Applicable Standards\n\n- `standards/global/base.md`\n"), 0o644); err != nil {
-		t.Fatalf("write standards: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(contentRoot, "standards", "global"), 0o755); err != nil {
-		t.Fatalf("mkdir standards dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(contentRoot, "standards", "global", "base.md"), []byte("---\nschema_version: 1\nid: global/base\ntitle: Base\nstatus: active\n---\n\n# Base\n"), 0o644); err != nil {
-		t.Fatalf("write standard: %v", err)
-	}
+	contentRoot := writeSpecSymlinkProject(t, projectRoot)
 	outside := filepath.Join(projectRoot, "outside-spec.md")
 	if err := os.WriteFile(outside, []byte("---\nschema_version: 1\nid: auth-gateway\ntitle: Bad\noriginating_changes: []\nrevised_by_changes: []\n---\n\n# Bad\n"), 0o644); err != nil {
 		t.Fatalf("write outside spec: %v", err)
@@ -247,6 +120,161 @@ func TestValidateProjectRejectsSpecSymlinkEscape(t *testing.T) {
 	_, err := v.ValidateProject(projectRoot)
 	if err == nil || !strings.Contains(err.Error(), "escapes the selected project subtree") {
 		t.Fatalf("expected spec symlink escape to fail, got %v", err)
+	}
+}
+
+func runValidSchemaCases(t *testing.T, v *Validator, root string, validRootConfig []byte) {
+	t.Helper()
+	validCases := map[string]string{
+		"valid-runecontext-no-extensions.yaml":         "runecontext.schema.json",
+		"valid-runecontext-with-extensions-optin.yaml": "runecontext.schema.json",
+		"valid-git-source-signed-tag.yaml":             "runecontext.schema.json",
+		"valid-bundle-closed-schema.yaml":              "bundle.schema.json",
+		"valid-bundle-with-extensions.yaml":            "bundle.schema.json",
+		"valid-change-status.yaml":                     "change-status.schema.json",
+		"valid-custom-type.yaml":                       "change-status.schema.json",
+		"valid-superseded-change.yaml":                 "change-status.schema.json",
+		"valid-context-pack.yaml":                      "context-pack.schema.json",
+		"valid-standard-frontmatter.yaml":              "standard.schema.json",
+	}
+	for name, schema := range validCases {
+		t.Run(name, func(t *testing.T) {
+			data := readFixture(t, filepath.Join(root, name))
+			if err := v.ValidateYAMLFile(schema, name, data); err != nil {
+				t.Fatalf("expected fixture to validate: %v", err)
+			}
+			if requiresExtensionOptInValidation(name) {
+				assertExtensionOptInValidation(t, v, validRootConfig, name, data)
+			}
+		})
+	}
+}
+
+func requiresExtensionOptInValidation(name string) bool {
+	return name == "valid-bundle-with-extensions.yaml"
+}
+
+func assertExtensionOptInValidation(t *testing.T, v *Validator, validRootConfig []byte, name string, data []byte) {
+	t.Helper()
+	if err := v.ValidateExtensionOptIn("runecontext.yaml", validRootConfig, name, data); err != nil {
+		t.Fatalf("expected extension opt-in fixture to validate: %v", err)
+	}
+}
+
+func runRejectSchemaCases(t *testing.T, v *Validator, root string) {
+	t.Helper()
+	rejectCases := map[string]string{
+		"reject-unknown-field-runecontext.yaml":  "runecontext.schema.json",
+		"reject-unknown-schema-version.yaml":     "runecontext.schema.json",
+		"reject-bad-extension-key.yaml":          "change-status.schema.json",
+		"reject-context-pack-unknown-field.yaml": "context-pack.schema.json",
+		"reject-yaml-anchors-aliases.yaml":       "change-status.schema.json",
+		"reject-yaml-custom-tag.yaml":            "change-status.schema.json",
+		"reject-yaml-flow-style.yaml":            "bundle.schema.json",
+		"reject-yaml-multiline-string.yaml":      "bundle.schema.json",
+	}
+	for name, schema := range rejectCases {
+		t.Run(name, func(t *testing.T) {
+			data := readFixture(t, filepath.Join(root, name))
+			if err := v.ValidateYAMLFile(schema, name, data); err == nil {
+				t.Fatalf("expected fixture to fail validation")
+			}
+		})
+	}
+}
+
+func runSchemaSpecialCases(t *testing.T, v *Validator, root string) {
+	t.Helper()
+	t.Run("reject-extensions-without-optin.yaml", func(t *testing.T) {
+		rootData := readFixture(t, filepath.Join(root, "valid-runecontext-no-extensions.yaml"))
+		artifactData := readFixture(t, filepath.Join(root, "reject-extensions-without-optin.yaml"))
+		if err := v.ValidateYAMLFile("change-status.schema.json", "reject-extensions-without-optin.yaml", artifactData); err != nil {
+			t.Fatalf("expected standalone schema validation to pass before project-level extension enforcement: %v", err)
+		}
+		if err := v.ValidateExtensionOptIn("runecontext.yaml", rootData, "reject-extensions-without-optin.yaml", artifactData); err == nil {
+			t.Fatalf("expected project-level extension rejection")
+		}
+	})
+	t.Run("reject-related-specs-wrong-type.yaml", func(t *testing.T) {
+		data := readFixture(t, filepath.Join(root, "reject-related-specs-wrong-type.yaml"))
+		if err := v.ValidateYAMLFile("change-status.schema.json", "reject-related-specs-wrong-type.yaml", data); err == nil {
+			t.Fatalf("expected wrong-type reference fixture to fail schema validation")
+		}
+	})
+}
+
+func runRejectStandardsMarkdownCases(t *testing.T, v *Validator) {
+	t.Helper()
+	for _, name := range []string{"reject-standards-missing-applicable.md", "reject-standards-out-of-order.md"} {
+		t.Run(name, func(t *testing.T) {
+			data := readFixture(t, fixturePath(t, "markdown-contracts", name))
+			if err := v.ValidateStandardsMarkdown(name, data); err == nil {
+				t.Fatalf("expected %s to fail", name)
+			}
+		})
+	}
+}
+
+func runSpecialStandardsMarkdownCases(t *testing.T, v *Validator) {
+	t.Helper()
+	t.Run("reject standards copied body text", func(t *testing.T) {
+		data := readFixture(t, fixturePath(t, "markdown-contracts", "reject-standards-copied-body.md"))
+		if err := v.ValidateStandardsMarkdown("reject-standards-copied-body.md", data); err == nil {
+			t.Fatal("expected copied standard body text to fail")
+		}
+	})
+	t.Run("allow excluded draft standard path reference", func(t *testing.T) {
+		data := readFixture(t, fixturePath(t, "markdown-contracts", "valid-standards-excluded-draft.md"))
+		if err := v.ValidateStandardsMarkdown("valid-standards-excluded-draft.md", data); err != nil {
+			t.Fatalf("expected excluded draft standard reference to parse: %v", err)
+		}
+	})
+	t.Run("reject multiple standard refs per bullet", func(t *testing.T) {
+		data := []byte("## Applicable Standards\n- `standards/global/a.md` and `standards/global/b.md`: invalid multi-ref bullet\n")
+		if err := v.ValidateStandardsMarkdown("multi-ref.md", data); err == nil {
+			t.Fatal("expected multiple-ref bullet to fail")
+		}
+	})
+	t.Run("allow one standard ref plus other backticked code", func(t *testing.T) {
+		data := []byte("## Applicable Standards\n- `standards/global/a.md`: Applies to `POST /v1/auth` without adding a second standard reference.\n")
+		if err := v.ValidateStandardsMarkdown("single-standard-with-code.md", data); err != nil {
+			t.Fatalf("expected non-standard code spans to be ignored, got %v", err)
+		}
+	})
+	t.Run("reject mixed canonical and non-canonical standard refs per bullet", func(t *testing.T) {
+		data := []byte("## Applicable Standards\n- `standards/global/a.md`: supersedes `standards/global/a.md#details` which is non-canonical.\n")
+		if err := v.ValidateStandardsMarkdown("mixed-standard-refs.md", data); err == nil {
+			t.Fatal("expected mixed canonical and non-canonical standard refs to fail")
+		}
+	})
+}
+
+func writeSpecSymlinkProject(t *testing.T, projectRoot string) string {
+	t.Helper()
+	contentRoot := filepath.Join(projectRoot, "runecontext")
+	changeDir := filepath.Join(contentRoot, "changes", "CHG-2026-001-a3f2-auth-gateway")
+	for _, dir := range []string{changeDir, filepath.Join(contentRoot, "specs"), filepath.Join(contentRoot, "standards", "global")} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatalf("mkdir test dir: %v", err)
+		}
+	}
+	writeSpecSymlinkProjectFiles(t, projectRoot, changeDir, contentRoot)
+	return contentRoot
+}
+
+func writeSpecSymlinkProjectFiles(t *testing.T, projectRoot, changeDir, contentRoot string) {
+	t.Helper()
+	files := map[string]string{
+		filepath.Join(projectRoot, "runecontext.yaml"):               "schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n",
+		filepath.Join(changeDir, "status.yaml"):                      "schema_version: 1\nid: CHG-2026-001-a3f2-auth-gateway\ntitle: Test\nstatus: proposed\ntype: feature\nsize: small\ncontext_bundles: []\nrelated_specs: []\nrelated_decisions: []\nrelated_changes: []\ndepends_on: []\ninformed_by: []\nsupersedes: []\nsuperseded_by: []\ncreated_at: \"2026-03-17\"\nclosed_at: null\nverification_status: pending\npromotion_assessment:\n  status: pending\n  suggested_targets: []\n",
+		filepath.Join(changeDir, "proposal.md"):                      "## Summary\n\nN/A\n\n## Problem\n\nN/A\n\n## Proposed Change\n\nAdd a test.\n\n## Why Now\n\nN/A\n\n## Assumptions\n\nN/A\n\n## Out of Scope\n\nN/A\n\n## Impact\n\nN/A\n",
+		filepath.Join(changeDir, "standards.md"):                     "## Applicable Standards\n\n- `standards/global/base.md`\n",
+		filepath.Join(contentRoot, "standards", "global", "base.md"): "---\nschema_version: 1\nid: global/base\ntitle: Base\nstatus: active\n---\n\n# Base\n",
+	}
+	for path, body := range files {
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatalf("write file %s: %v", path, err)
+		}
 	}
 }
 

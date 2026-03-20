@@ -211,6 +211,9 @@ auditable, and safe for future local/remote parity.
   arbitrarily large trees.
 - Bundle traversal should also enforce practical depth and file-count bounds so
   pathological trees fail closed rather than consuming unbounded work.
+- Once bundle traversal begins, missing or broken symlink targets discovered
+  during exact or glob evaluation should also fail closed consistently rather
+  than being silently treated as empty matches.
 - Bundle exact and glob evaluation should canonicalize aspect roots before
   containment checks so in-bounds symlinked aspect directories are accepted
   consistently.
@@ -381,11 +384,17 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
   when headings naturally collide with suffixed forms such as `foo-2`; tooling
   should preserve deterministic, machine-validated fragments rather than
   silently overwriting earlier headings.
+- Duplicate heading fragments should also follow deterministic markdown-anchor
+  numbering (`foo`, `foo-1`, `foo-2`, ...) instead of skipping the first
+  duplicate suffix, while still advancing past already occupied suffixed forms.
 - Thin `runectx status`, `runectx change new`, `runectx change shape`, and
   `runectx change close` entrypoints may land here as narrow wrappers over the
   same core operations, with the broader CLI contract deferred to `alpha.6`.
   Explicit path arguments should remain explicit roots even when the caller
   passes `.`.
+- Thin CLI parsing should fail with a direct `requires a value` usage error when
+  a required string flag is followed by another long flag token, rather than
+  consuming that next flag as data and producing a downstream parse error.
 - Mixed standalone RuneContext and RuneCode teams must remain portable: the
   repository carries all correctness-critical state, while RuneCode may add
   richer audit evidence on top without becoming required for collaboration.
@@ -507,6 +516,8 @@ Post-review clarifications:
     being serialized as placeholder values such as `<nil>`.
   - Empty promotion-assessment maps preserve the default `pending` status on
     rewrite rather than serializing placeholder values or invalid enum entries.
+  - YAML rewrite helpers propagate encoder close failures instead of ignoring
+    them after a successful encode step.
 - [x] Issue: populate and refresh `standards.md` during change creation and
   shaping.
 - [x] Issue: enforce reviewable diffs for any automatic `standards.md` refresh.

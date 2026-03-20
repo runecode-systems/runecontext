@@ -75,7 +75,7 @@ pkgs.buildGoModule {
   version = releaseMetadata.version;
   src = releaseSource;
   go = goToolchain;
-  vendorHash = "sha256-MYHY7N+LqNnfNuIdUqtb4Cr24UQqi+4tbc1ysdzJ2BY=";
+  vendorHash = "sha256-Eepto6l5Z5KQGcKxhUNao2Uy5u6Gle3clqh43M+hbrs=";
   doCheck = false;
   strictDeps = true;
 

@@ -125,6 +125,17 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   completed `verification_status`, and missing spec/decision reciprocity now
   points reviewers back to the referenced change `status.yaml` instead of
   repeating the same change ID twice.
+- A subsequent PR-follow-up hardening pass also aligns duplicate markdown
+  heading fragments with deterministic markdown-anchor numbering (`foo`,
+  `foo-1`, `foo-2`, ...) while still skipping already occupied suffixed forms,
+  makes broken bundle symlink targets fail closed consistently once traversal
+  begins, rejects another long flag token as the missing value for thin
+  `change` command string flags, and propagates YAML encoder close failures
+  during `status.yaml` rewrites instead of silently discarding them.
+- That same follow-up keeps the current alpha.2 git-source contract intact:
+  validation rejects option-like and remote-helper forms, but local repository
+  paths remain intentionally allowed for now rather than narrowing `type: git`
+  to remote-only URLs mid-train.
 - `alpha.4` is the planned point where this repository should be able to use
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment

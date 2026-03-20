@@ -52,47 +52,81 @@ func validateSpecStandardReferenceBodies(index *ProjectIndex) error {
 }
 
 func validateMarkdownStandardReferences(path string, artifact *MarkdownArtifact, index *ProjectIndex) error {
+	if err := validateMarkdownDeepStandardRefs(path, artifact, index); err != nil {
+		return err
+	}
+	if err := validatePlainStandardPathRefs(path, artifact, index); err != nil {
+		return err
+	}
+	return validateCopiedStandardBody(path, artifact, index)
+}
+
+func validateMarkdownDeepStandardRefs(path string, artifact *MarkdownArtifact, index *ProjectIndex) error {
 	for _, ref := range artifact.Refs {
-		if !strings.HasPrefix(ref.Path, "standards/") {
-			continue
-		}
-		if _, ok := index.StandardPaths[ref.Path]; !ok {
-			return &ValidationError{Path: path, Message: fmt.Sprintf("standard reference %q points to missing standard %q", ref.Raw, ref.Path)}
+		if strings.HasPrefix(ref.Path, "standards/") {
+			if _, ok := index.StandardPaths[ref.Path]; !ok {
+				return &ValidationError{Path: path, Message: fmt.Sprintf("standard reference %q points to missing standard %q", ref.Raw, ref.Path)}
+			}
 		}
 	}
-	for _, segment := range markdownTextSegments(strings.ReplaceAll(artifact.Body, "\r\n", "\n")) {
+	return nil
+}
+
+func validatePlainStandardPathRefs(path string, artifact *MarkdownArtifact, index *ProjectIndex) error {
+	for _, refPath := range plainStandardPathRefs(artifact.Body) {
+		if _, ok := index.StandardPaths[refPath.refPath]; !ok {
+			return &ValidationError{Path: path, Message: fmt.Sprintf("standard path reference %q points to missing standard %q", refPath.raw, refPath.refPath)}
+		}
+	}
+	return nil
+}
+
+type plainStandardPathRef struct {
+	raw     string
+	refPath string
+}
+
+func plainStandardPathRefs(body string) []plainStandardPathRef {
+	refs := make([]plainStandardPathRef, 0)
+	for _, segment := range markdownTextSegments(strings.ReplaceAll(body, "\r\n", "\n")) {
 		if segment.fenced {
 			continue
 		}
-		matches := plainStandardPathPattern.FindAllStringSubmatch(segment.text, -1)
-		for _, match := range matches {
-			if len(match) < 2 {
-				continue
-			}
-			refPath := filepath.ToSlash(match[1])
-			if _, ok := index.StandardPaths[refPath]; !ok {
-				return &ValidationError{Path: path, Message: fmt.Sprintf("standard path reference %q points to missing standard %q", match[0], refPath)}
+		for _, match := range plainStandardPathPattern.FindAllStringSubmatch(segment.text, -1) {
+			if len(match) >= 2 {
+				refs = append(refs, plainStandardPathRef{raw: match[0], refPath: filepath.ToSlash(match[1])})
 			}
 		}
 	}
+	return refs
+}
+
+func validateCopiedStandardBody(path string, artifact *MarkdownArtifact, index *ProjectIndex) error {
 	body := normalizeComparableMarkdownText(nonFencedComparableMarkdownText(artifact.Body))
 	if body == "" {
 		return nil
 	}
 	for _, standardPath := range SortedKeys(index.StandardPaths) {
-		standardArtifact := index.MarkdownFiles[standardPath]
-		if standardArtifact == nil {
-			continue
-		}
-		snippet := normalizeComparableMarkdownText(extractMarkdownComparableStandardBody(nonFencedComparableMarkdownText(standardArtifact.Body)))
-		if snippet == "" {
-			continue
-		}
-		if strings.Contains(body, snippet) {
+		if copied, err := copiedStandardBodyError(path, body, standardPath, index); err != nil || copied {
+			if err != nil {
+				return err
+			}
 			return &ValidationError{Path: path, Message: fmt.Sprintf("markdown body appears to copy standard content from %q; reference the standard by path instead", standardPath)}
 		}
 	}
 	return nil
+}
+
+func copiedStandardBodyError(path, body, standardPath string, index *ProjectIndex) (bool, error) {
+	standardArtifact := index.MarkdownFiles[standardPath]
+	if standardArtifact == nil {
+		return false, nil
+	}
+	snippet := normalizeComparableMarkdownText(extractMarkdownComparableStandardBody(nonFencedComparableMarkdownText(standardArtifact.Body)))
+	if snippet == "" {
+		return false, nil
+	}
+	return strings.Contains(body, snippet), nil
 }
 
 func nonFencedComparableMarkdownText(body string) string {

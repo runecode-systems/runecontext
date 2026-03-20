@@ -19,26 +19,35 @@ func TestBundleResolutionGoldenFixtures(t *testing.T) {
 	}
 	defer index.Close()
 
-	for _, tc := range []struct {
-		name     string
-		bundleID string
-		golden   string
-	}{
-		{name: "child reinclude override", bundleID: "child-reinclude", golden: "child-reinclude.yaml"},
-		{name: "diamond inheritance precedence", bundleID: "diamond", golden: "diamond.yaml"},
-		{name: "exact include exclude", bundleID: "exact-rules", golden: "exact-rules.yaml"},
-		{name: "relative glob normalization", bundleID: "relative-glob", golden: "relative-glob.yaml"},
-		{name: "diagnostics and empty globs", bundleID: "diagnostics", golden: "diagnostics.yaml"},
-	} {
+	for _, tc := range bundleGoldenScenarios() {
 		t.Run(tc.name, func(t *testing.T) {
-			resolution, err := index.ResolveBundle(tc.bundleID)
-			if err != nil {
-				t.Fatalf("resolve bundle %q: %v", tc.bundleID, err)
-			}
-			assertBundleResolutionMatchesGolden(t, resolution, fixturePath(t, "bundle-resolution", "golden", tc.golden))
+			assertBundleGoldenFixture(t, index, tc.bundleID, tc.golden)
 		})
 	}
+	assertDiamondBaseAppearsOnce(t, index)
+}
 
+type bundleGoldenScenario struct {
+	name     string
+	bundleID string
+	golden   string
+}
+
+func bundleGoldenScenarios() []bundleGoldenScenario {
+	return []bundleGoldenScenario{{"child reinclude override", "child-reinclude", "child-reinclude.yaml"}, {"diamond inheritance precedence", "diamond", "diamond.yaml"}, {"exact include exclude", "exact-rules", "exact-rules.yaml"}, {"relative glob normalization", "relative-glob", "relative-glob.yaml"}, {"diagnostics and empty globs", "diagnostics", "diagnostics.yaml"}}
+}
+
+func assertBundleGoldenFixture(t *testing.T, index *ProjectIndex, bundleID, golden string) {
+	t.Helper()
+	resolution, err := index.ResolveBundle(bundleID)
+	if err != nil {
+		t.Fatalf("resolve bundle %q: %v", bundleID, err)
+	}
+	assertBundleResolutionMatchesGolden(t, resolution, fixturePath(t, "bundle-resolution", "golden", golden))
+}
+
+func assertDiamondBaseAppearsOnce(t *testing.T, index *ProjectIndex) {
+	t.Helper()
 	resolution, err := index.ResolveBundle("diamond")
 	if err != nil {
 		t.Fatalf("resolve diamond bundle: %v", err)
@@ -196,6 +205,29 @@ func TestBundleResolutionAllowsSymlinkedAspectRootWhenInBounds(t *testing.T) {
 	}
 }
 
+func TestWalkBundleFilesFailsClosedOnBrokenSymlink(t *testing.T) {
+	contentRoot := t.TempDir()
+	aspectRoot := filepath.Join(contentRoot, "standards")
+	if err := os.MkdirAll(aspectRoot, 0o755); err != nil {
+		t.Fatalf("mkdir aspect root: %v", err)
+	}
+	brokenPath := filepath.Join(aspectRoot, "broken.md")
+	if err := tryCreateSymlink("missing.md", brokenPath); err != nil {
+		if strings.Contains(err.Error(), "symlink tests skipped") {
+			t.Skip(err.Error())
+		}
+		t.Fatal(err)
+	}
+
+	err := walkBundleFiles(contentRoot, aspectRoot, brokenPath, map[string]struct{}{}, &bundleWalkState{}, func(string) error {
+		t.Fatal("expected broken symlink to fail before visiting")
+		return nil
+	})
+	if err == nil || !os.IsNotExist(err) {
+		t.Fatalf("expected broken symlink traversal to fail closed with not-exist, got %v", err)
+	}
+}
+
 func assertBundleResolutionMatchesGolden(t *testing.T, resolution *BundleResolution, goldenPath string) {
 	t.Helper()
 	if resolution == nil {
@@ -284,29 +316,27 @@ func comparableBundleRuleReference(ref BundleRuleReference) map[string]any {
 func comparableBundleDiagnostics(diagnostics []BundleDiagnostic) []any {
 	result := make([]any, 0, len(diagnostics))
 	for _, diagnostic := range diagnostics {
-		item := map[string]any{
-			"severity": string(diagnostic.Severity),
-			"code":     diagnostic.Code,
-			"message":  diagnostic.Message,
-		}
-		if diagnostic.Bundle != "" {
-			item["bundle"] = diagnostic.Bundle
-		}
-		if diagnostic.Aspect != "" {
-			item["aspect"] = string(diagnostic.Aspect)
-		}
-		if diagnostic.Rule != "" {
-			item["rule"] = string(diagnostic.Rule)
-		}
-		if diagnostic.Pattern != "" {
-			item["pattern"] = diagnostic.Pattern
-		}
-		if len(diagnostic.Matches) > 0 {
-			item["matches"] = append([]string(nil), diagnostic.Matches...)
-		}
-		result = append(result, item)
+		result = append(result, comparableBundleDiagnostic(diagnostic))
 	}
 	return result
+}
+
+func comparableBundleDiagnostic(diagnostic BundleDiagnostic) map[string]any {
+	item := map[string]any{"severity": string(diagnostic.Severity), "code": diagnostic.Code, "message": diagnostic.Message}
+	appendOptionalBundleDiagnosticField(item, "bundle", diagnostic.Bundle)
+	appendOptionalBundleDiagnosticField(item, "aspect", string(diagnostic.Aspect))
+	appendOptionalBundleDiagnosticField(item, "rule", string(diagnostic.Rule))
+	appendOptionalBundleDiagnosticField(item, "pattern", diagnostic.Pattern)
+	if len(diagnostic.Matches) > 0 {
+		item["matches"] = append([]string(nil), diagnostic.Matches...)
+	}
+	return item
+}
+
+func appendOptionalBundleDiagnosticField(item map[string]any, key, value string) {
+	if value != "" {
+		item[key] = value
+	}
 }
 
 func copyBundleFixtureProject(t *testing.T, name string) string {
