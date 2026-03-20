@@ -298,7 +298,7 @@ product decision rather than a narrow review fix.
 ### Generated Artifact Stability
 - Context pack schema is fully closed in v1; no extensions.
 - Assurance artifacts (baselines, receipts) are designed as fully closed.
-- Future runecode binding or richer provenance receipts (alpha.5+) will use new artifact types or future schema versions, not mutate existing ones.
+- Future runecode binding or richer provenance receipts (alpha.6+) will use new artifact types or future schema versions, not mutate existing ones.
 
 ---
 
@@ -330,7 +330,7 @@ The following are explicitly deferred to later alphas:
 1. **Alpha.2 - Actual Source Resolution Logic**: Schemas are frozen, but implementation of resolver, symlink handling, and signed-tag verification logic happens in alpha.2.
 2. **Alpha.3 - Change Workflow Implementation**: Change ID allocation, lifecycle transitions, collision detection deferred to alpha.3.
 3. **Alpha.3 - Automatic Standards Maintenance**: Tooling for refreshing standards.md during change creation deferred to alpha.3, though alpha.1 now includes executable structure validation and fixture coverage.
-4. **Alpha.5 - Assurance Artifacts**: Baseline and receipt schema inventory is defined; implementation deferred to alpha.5.
+4. **Alpha.6 - Assurance Artifacts**: Baseline and receipt schema inventory is defined; implementation deferred to alpha.6.
 5. **Alpha.7 - Adapter Packs**: Tool-specific adapter UX and operations reference deferred to alpha.7.
 
 ---
@@ -377,7 +377,7 @@ The following are explicitly deferred to later alphas:
 
 ### Why No Extensions in Generated Artifacts?
 **Q**: Why are context packs fully closed; no extensions allowed?  
-**A**: Generated artifacts are outputs of deterministic algorithms; they must be bit-for-bit identical across implementations. Allowing extensions would create ambiguity about what is canonical. Future richer provenance (alpha.5+) will use new artifact types, not mutate existing ones.
+**A**: Generated artifacts are outputs of deterministic algorithms; they must be bit-for-bit identical across implementations. Allowing extensions would create ambiguity about what is canonical. Future richer provenance (alpha.6+) will use new artifact types, not mutate existing ones.
 
 ### Why Closed Schemas by Default?
 **Q**: Doesn't closed schema limit future extensibility?  

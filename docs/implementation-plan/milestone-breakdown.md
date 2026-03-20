@@ -49,7 +49,7 @@ that all later CLI, adapters, and RuneCode integration must share.
 - [x] Issue: author the schema and validation contract for generated context
   packs (fully closed, no extensions in v1).
 - [x] Issue: define the schema inventory for assurance baseline and receipt
-  artifacts (closed schemas, deferred implementation to alpha.5).
+  artifacts (closed schemas, deferred implementation to alpha.6).
 - [x] Issue: codify the restricted machine-readable YAML profile with no anchors,
   aliases, duplicate keys, or custom tags; UTF-8 only; normalized formatting.
 - [x] Issue: define the canonical JSON data model for hashing derived from YAML.
@@ -88,9 +88,9 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
 - [x] Issue: establish the rule that new semantics cannot land without tests or
   fixtures in the same milestone.
 - [x] Issue: add a narrow executable validation entrypoint so alpha.1 contracts
-  can be enforced without waiting for the broader alpha.6 CLI surface.
+  can be enforced without waiting for the broader alpha.5 CLI surface.
 - [x] Issue: define a stable line-oriented machine output contract for the
-  narrow alpha.1 validation entrypoint without pre-empting the broader alpha.6
+  narrow alpha.1 validation entrypoint without pre-empting the broader alpha.5
   `--json` work.
 - [x] Issue: close review-identified fail-open gaps in the alpha.1 validation
   foundation, including project-level markdown enforcement, bundle validation,
@@ -128,7 +128,7 @@ Completed as part of Epic 2 (consolidated with schema contracts for better audit
 - An executable Go validation foundation exists for schema, markdown, YAML-profile,
   and alpha.1 traceability rules.
 - A narrow `runectx validate [path]` entrypoint exists for whole-project contract
-  enforcement without pulling alpha.6 command breadth into alpha.1.
+  enforcement without pulling alpha.5 command breadth into alpha.1.
 - The alpha.1 validation entrypoint emits stable one-line `key=value` fields for
   success, invalid, and usage-error outcomes so CI and scripts can consume it
   before broader machine-facing flags land.
@@ -163,7 +163,8 @@ auditable, and safe for future local/remote parity.
   constrains the allowed subtree, and mismatched aspect/path combinations must
   fail closed.
 - Source resolution should return structured metadata that later alpha.4,
-  alpha.5, and RuneCode audit flows can reuse without semantic translation.
+  alpha.5, alpha.6, and RuneCode audit flows can reuse without semantic
+  translation.
   That metadata should include the selected config path, project root,
   RuneContext source root, source mode, source ref, resolved commit when
   applicable, verification posture, and warnings/diagnostics.
@@ -389,7 +390,7 @@ with stable IDs, lightweight shaping, and reviewable standards linkage.
   duplicate suffix, while still advancing past already occupied suffixed forms.
 - Thin `runectx status`, `runectx change new`, `runectx change shape`, and
   `runectx change close` entrypoints may land here as narrow wrappers over the
-  same core operations, with the broader CLI contract deferred to `alpha.6`.
+  same core operations, with the broader CLI contract deferred to `alpha.5`.
   Explicit path arguments should remain explicit roots even when the caller
   passes `.`.
 - Thin CLI parsing should fail with a direct `requires a value` usage error when
@@ -697,7 +698,94 @@ RuneCode integration.
 - RuneCode can verify that over-limit context packs fail loudly rather than
   being silently truncated.
 
-## `v0.1.0-alpha.5` - Assurance Tiers And Verifiable Tracing
+## `v0.1.0-alpha.5` - Minimal CLI And Machine-Facing Operations
+
+Primary outcome: expose the small universal command surface needed for
+automation, CI, debugging, non-agent workflows, and broader post-alpha.4
+dogfooding across this repository and other repositories.
+
+### Implementation Notes
+
+- `alpha.3` may already expose thin `status` and change write wrappers. This
+  milestone broadens those commands into the stable universal CLI contract
+  rather than redefining their semantics.
+- `runectx init` should land here as the repo-local scaffolding and command-UX
+  front door for embedded and linked workflows, while alpha.8 keeps the
+  release/install hardening, network-policy enforcement, and end-to-end
+  reference-fixture coverage for network-enabled install/update behavior.
+- Verified-mode enablement and backfill command surfaces move with the
+  underlying assurance implementation in `alpha.6`; alpha.5 should not block
+  aggressive Plain-mode dogfooding on those later assurance artifacts.
+
+### Epic 1: Primary commands
+
+- [ ] Issue: implement `runectx init`.
+- [ ] Issue: broaden `runectx status` from its alpha.3 narrow status-reporting
+  contract into the stable CLI surface.
+- [ ] Issue: broaden `runectx change new` from its alpha.3 thin wrapper into the
+  stable CLI surface.
+- [ ] Issue: broaden `runectx change shape` from its alpha.3 thin wrapper into
+  the stable CLI surface.
+- [ ] Issue: implement `runectx bundle resolve`.
+- [ ] Issue: broaden `runectx change close` from its alpha.3 thin wrapper into
+  the stable CLI surface.
+
+### Epic 2: Secondary and admin commands
+
+- [ ] Issue: broaden `runectx validate` from the earlier narrow contract into
+  the stable CLI surface.
+- [ ] Issue: implement `runectx doctor`.
+- [ ] Issue: implement `runectx standard discover`.
+- [ ] Issue: implement `runectx promote`.
+- [ ] Note: `runectx update` is intentionally deferred to `v0.1.0-alpha.8`
+  alongside release/install hardening.
+
+### Epic 3: Universal machine-facing flags
+
+- [ ] Issue: implement `--json` output contracts across machine-facing commands.
+- [ ] Issue: implement `--non-interactive` behavior with clear inference or
+  failure rules.
+- [ ] Issue: implement `--dry-run` behavior for write operations.
+- [ ] Issue: implement `--explain` output for resolution, standards selection,
+  and promotion suggestions.
+
+### Epic 4: Parity and automation readiness
+
+- [ ] Issue: define stable exit codes and failure classes for automation.
+- [ ] Issue: build CLI versus library parity fixtures.
+- [ ] Issue: ensure all write commands surface reviewable diffs or proposed
+  mutations rather than silent commits.
+
+### Epic 5: CLI test coverage
+
+- [ ] Issue: add integration tests for every primary command.
+- [ ] Issue: add integration tests for every secondary/admin command.
+- [ ] Issue: add snapshot or golden tests for `--json` outputs.
+- [ ] Issue: add behavior tests for `--non-interactive`, `--dry-run`, and
+  `--explain`.
+- [ ] Issue: add tests for failure classes, diagnostics, and exit-code
+  stability.
+
+### Exit Criteria
+
+- Power users can manage RuneContext entirely through the CLI.
+- Automation and CI can consume structured command outputs.
+- CLI semantics stay aligned with the canonical file model rather than becoming
+  a competing source of truth.
+- The repo can be initialized, resolved, promoted, and maintained through the
+  same stable CLI surface used for day-to-day dogfooding in Plain mode.
+- CLI behavior is protected by integration tests and machine-readable golden
+  outputs.
+
+### RuneCode Companion-Track Checkpoints
+
+- RuneCode can run parity suites between its future direct integration and the
+  CLI.
+- RuneCode can consume JSON status, resolve, and close outputs in integration
+  tests.
+- RuneCode can validate non-interactive behavior for remote/server workflows.
+
+## `v0.1.0-alpha.6` - Assurance Tiers And Verifiable Tracing
 
 Primary outcome: support both low-friction standalone use and stronger
 verifiable tracing, while keeping assurance progressive rather than mandatory.
@@ -718,6 +806,10 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - Deployment-specific evidence discovery and service-routing metadata must stay
   outside RuneContext core semantics even when RuneCode later consumes portable
   baselines and receipts.
+- The broadened alpha.5 CLI remains the day-to-day surface for these workflows;
+  alpha.6 should add assurance evidence and enablement on top of that same
+  command surface rather than introducing an alternate source of truth or a
+  parallel authoring model.
 
 ### Epic 1: Assurance-tier model
 
@@ -730,6 +822,7 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 
 ### Epic 2: Verified enablement flow
 
+- [ ] Issue: implement `runectx assurance enable verified`.
 - [ ] Issue: implement the Verified enablement flow from adoption commit through
   baseline generation.
 - [ ] Issue: record initial resolved source posture and adoption metadata.
@@ -742,6 +835,7 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 
 ### Epic 3: Backfill and historical provenance
 
+- [ ] Issue: implement `runectx assurance backfill`.
 - [ ] Issue: implement imported provenance class support for historical work.
 - [ ] Issue: implement backfill traversal over git history and existing
   RuneContext artifacts.
@@ -792,85 +886,6 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
   model.
 - RuneCode can reject `type: path` packs as verified provenance in audited
   flows.
-
-## `v0.1.0-alpha.6` - Minimal CLI And Machine-Facing Operations
-
-Primary outcome: expose the small universal command surface needed for
-automation, CI, debugging, and non-agent workflows.
-
-### Implementation Notes
-
-- `alpha.3` may already expose thin `status` and change write wrappers. This
-  milestone broadens those commands into the stable universal CLI contract
-  rather than redefining their semantics.
-
-### Epic 1: Primary commands
-
-- [ ] Issue: implement `runectx init`.
-- [ ] Issue: broaden `runectx status` from its alpha.3 narrow status-reporting
-  contract into the stable CLI surface.
-- [ ] Issue: broaden `runectx change new` from its alpha.3 thin wrapper into the
-  stable CLI surface.
-- [ ] Issue: broaden `runectx change shape` from its alpha.3 thin wrapper into
-  the stable CLI surface.
-- [ ] Issue: implement `runectx bundle resolve`.
-- [ ] Issue: broaden `runectx change close` from its alpha.3 thin wrapper into
-  the stable CLI surface.
-
-### Epic 2: Secondary and admin commands
-
-- [ ] Issue: broaden `runectx validate` from the earlier narrow contract into
-  the stable CLI surface.
-- [ ] Issue: implement `runectx doctor`.
-- [ ] Issue: implement `runectx standard discover`.
-- [ ] Issue: implement `runectx promote`.
-- [ ] Issue: implement `runectx assurance enable verified`.
-- [ ] Issue: implement `runectx assurance backfill`.
-- [ ] Note: `runectx update` is intentionally deferred to `v0.1.0-alpha.8`
-  alongside release/install hardening.
-
-### Epic 3: Universal machine-facing flags
-
-- [ ] Issue: implement `--json` output contracts across machine-facing commands.
-- [ ] Issue: implement `--non-interactive` behavior with clear inference or
-  failure rules.
-- [ ] Issue: implement `--dry-run` behavior for write operations.
-- [ ] Issue: implement `--explain` output for resolution, standards selection,
-  and promotion suggestions.
-
-### Epic 4: Parity and automation readiness
-
-- [ ] Issue: define stable exit codes and failure classes for automation.
-- [ ] Issue: build CLI versus library parity fixtures.
-- [ ] Issue: ensure all write commands surface reviewable diffs or proposed
-  mutations rather than silent commits.
-
-### Epic 5: CLI test coverage
-
-- [ ] Issue: add integration tests for every primary command.
-- [ ] Issue: add integration tests for every secondary/admin command.
-- [ ] Issue: add snapshot or golden tests for `--json` outputs.
-- [ ] Issue: add behavior tests for `--non-interactive`, `--dry-run`, and
-  `--explain`.
-- [ ] Issue: add tests for failure classes, diagnostics, and exit-code
-  stability.
-
-### Exit Criteria
-
-- Power users can manage RuneContext entirely through the CLI.
-- Automation and CI can consume structured command outputs.
-- CLI semantics stay aligned with the canonical file model rather than becoming
-  a competing source of truth.
-- CLI behavior is protected by integration tests and machine-readable golden
-  outputs.
-
-### RuneCode Companion-Track Checkpoints
-
-- RuneCode can run parity suites between its future direct integration and the
-  CLI.
-- RuneCode can consume JSON status, resolve, and close outputs in integration
-  tests.
-- RuneCode can validate non-interactive behavior for remote/server workflows.
 
 ## `v0.1.0-alpha.7` - Adapters And Adapter-Pack UX
 
@@ -982,8 +997,8 @@ install/update paths and end-to-end reference fixtures.
 
 - [ ] Issue: document and test the canonical manual repo-install flow around
   pinned GitHub release assets emitted by the Nix release builder.
-- [ ] Issue: implement `runectx init` and `runectx update` as the only CLI flows
-  allowed to make network calls.
+- [ ] Issue: harden `runectx init` and implement `runectx update` as the only
+  CLI flows allowed to make network calls.
 - [ ] Issue: implement `runectx update` as a diff-first, reviewable update
   flow.
 - [ ] Issue: harden adapter sync/update to be namespaced and merge-aware, with

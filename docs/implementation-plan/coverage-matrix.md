@@ -11,16 +11,16 @@ plan so it is clear that the planning documents capture the full design.
 | Why RuneContext Exists | Product positioning and portability guardrails | `alpha.1`, `README.md` | Yes |
 | Best Ideas To Keep From Agent OS | Markdown-first, low-ceremony, path-referenced standards | `alpha.1`, `alpha.3` | Yes |
 | OpenSpec Ideas To Mix In | Change orientation, lifecycle state, traceability | `alpha.3`, `alpha.4` | Yes |
-| Research Findings / Design Implications | Planning principles, progressive disclosure, reviewable diffs | `README.md`, `alpha.3`, `alpha.6`, `alpha.7` | Yes |
+| Research Findings / Design Implications | Planning principles, progressive disclosure, reviewable diffs | `README.md`, `alpha.3`, `alpha.5`, `alpha.7` | Yes |
 | Goals | Acceptance criteria and MVP boundaries | `README.md`, `mvp-acceptance.md` | Yes |
 | Non-Goals | Scope guardrails and post-MVP separation | `README.md`, `post-mvp.md` | Yes |
 | Product Decomposition | Core/adapters/RuneCode repository boundary | `alpha.1` | Yes |
 | Why The Three Layers Need To Exist | Boundary enforcement and ownership rules | `alpha.1`, `alpha.7` | Yes |
 | Packaging, Repositories, And Releases | Repo structure, release model, and Nix-built release workflow shape | `alpha.1`, `alpha.8` | Yes |
 | Releases and Installation | Install lanes, update flow, compatibility matrix, and local-only adapter sync | `alpha.8` | Yes |
-| Optional Assurance And Verifiable Tracing | Plain/Verified model, shared authored workflow, portable receipts, and backfill | `alpha.5` | Yes |
+| Optional Assurance And Verifiable Tracing | Plain/Verified model, shared authored workflow, portable receipts, and backfill | `alpha.6` | Yes |
 | RuneCode Context And Integration Constraints | Companion-track test and contract checklist | `alpha.1`-`alpha.8`, `mvp-acceptance.md` | Yes |
-| Usage Scenarios | Validation of local, remote, and non-RuneCode flows | `alpha.2`, `alpha.6`, `alpha.8` | Yes |
+| Usage Scenarios | Validation of local, remote, and non-RuneCode flows | `alpha.2`, `alpha.5`, `alpha.6`, `alpha.8` | Yes |
 | Terminology | Normative glossary and naming rules | `alpha.1` | Indirect |
 | Why `context bundle` Was Chosen | Naming and user-facing vocabulary | `alpha.1` | Indirect |
 | Storage Modes | Embedded, linked, path, and monorepo behavior | `alpha.2` | Yes |
@@ -28,10 +28,10 @@ plan so it is clear that the planning documents capture the full design.
 | Embedded Mode | Resolver implementation and reference fixture | `alpha.2`, `alpha.8` | Yes |
 | Linked Mode | Commit, mutable ref, signed tag, and path handling | `alpha.2`, `alpha.8` | Yes |
 | Monorepo Support | Discovery and reference fixtures | `alpha.2`, `alpha.8` | Yes |
-| Core On-Disk Layout | Authored/generated ownership and lean shaped-change scaffolding | `alpha.1`, `alpha.3`, `alpha.6` | Indirect |
+| Core On-Disk Layout | Authored/generated ownership and lean shaped-change scaffolding | `alpha.1`, `alpha.3`, `alpha.5` | Indirect |
 | Machine-Readable Schema Versioning | Schema behavior, unknown-field handling, YAML profile | `alpha.1` | Yes |
-| Generated Artifact Commit Policy | Assurance and release/install policy | `alpha.5`, `alpha.8` | Yes |
-| Project Files | Project-context scaffolding and conventions | `alpha.1`, `alpha.6` | Indirect |
+| Generated Artifact Commit Policy | Assurance and release/install policy | `alpha.6`, `alpha.8` | Yes |
+| Project Files | Project-context scaffolding and conventions | `alpha.1`, `alpha.5` | Indirect |
 | Standards | Frontmatter rules, lifecycle, migration behavior | `alpha.3` | Yes |
 | Context Bundles | Bundle schema and resolution engine | `alpha.1`, `alpha.2` | Yes |
 | Changes | ID allocation and lifecycle workflow | `alpha.3` | Yes |
@@ -40,7 +40,7 @@ plan so it is clear that the planning documents capture the full design.
 | When To Ask More Vs Less | Prompting heuristics and assumption capture | `alpha.3` | Yes |
 | Proposal.md Structure | Generator/parser/validator rules | `alpha.1`, `alpha.3` | Yes |
 | Standards.md Structure | Normalized structure and auto-maintenance | `alpha.1`, `alpha.3` | Yes |
-| Automatic Standards Maintenance | Change creation/shaping refresh and review diffs | `alpha.3`, `alpha.6` | Yes |
+| Automatic Standards Maintenance | Change creation/shaping refresh and review diffs | `alpha.3`, `alpha.5` | Yes |
 | Stable Specs | Durable spec conventions and traceability metadata | `alpha.1`, `alpha.3` | Yes |
 | Decisions | Durable decision conventions and traceability metadata | `alpha.1`, `alpha.3` | Yes |
 | Traceability And Future Lineage | Artifact-level traceability, heading-fragment deep refs, richer lineage later | `alpha.1`, `alpha.3`, `alpha.4`, `post-mvp.md` | Yes |
@@ -51,8 +51,8 @@ plan so it is clear that the planning documents capture the full design.
 | Promotion / Promotion Assessment | Structured promotion suggestions and close flow | `alpha.4` | Yes |
 | Archive/Promotion Rule | Stable-path close behavior | `alpha.3` | Yes |
 | Historical Traceability Requirements | Future-safe linkage and readable history | `alpha.3`, `alpha.4` | Yes |
-| Minimal Process And User Experience | Small mental model and progressive disclosure | `alpha.3`, `alpha.6`, `alpha.7` | Yes |
-| Invocation Surfaces And Command Architecture | Thin early change/status wrappers, broader CLI surface, and machine-facing flags | `alpha.3`, `alpha.6`, `alpha.7` | Yes |
+| Minimal Process And User Experience | Small mental model and progressive disclosure | `alpha.3`, `alpha.5`, `alpha.7` | Yes |
+| Invocation Surfaces And Command Architecture | Thin early change/status wrappers, broader CLI surface, and machine-facing flags | `alpha.3`, `alpha.5`, `alpha.7` | Yes |
 | Adapters | Thin adapters, capability model, and auto-validation workflow hooks | `alpha.7` | Yes |
 | RuneCode Integration Details / Required Capabilities | Companion-track fixtures and acceptance checkpoints | `alpha.2`-`alpha.8`, `mvp-acceptance.md` | Yes |
 | Context Pack Delivery Into Isolates | Pack-hash, artifact, and typed-delivery readiness for companion integration | `alpha.4`-`alpha.8`, `mvp-acceptance.md` | Yes |
@@ -95,7 +95,7 @@ plan so it is clear that the planning documents capture the full design.
 - Decision: RuneContext should not rely on environment variables for
   user-facing configuration or correctness-critical semantics; only minimal
   non-semantic process environment plumbing is allowed.
-  - Planned capture: `alpha.2`, `alpha.6`
+  - Planned capture: `alpha.2`, `alpha.5`
 - Decision: pinned-commit git resolution must not assume remote support for
   direct fetch-by-SHA.
   - Planned capture: `alpha.2`
@@ -118,7 +118,7 @@ plan so it is clear that the planning documents capture the full design.
 - Decision: RuneContext content must stay policy-neutral.
   - Planned capture: `alpha.1`, companion-track validation throughout
 - Decision: RuneContext starts with `Plain` and `Verified`; `Anchored` is later.
-  - Planned capture: `alpha.5`, `post-mvp.md`
+  - Planned capture: `alpha.6`, `post-mvp.md`
 - Decision: standards updates must remain reviewable and path-referenced.
   - Planned capture: `alpha.3`, `alpha.7`
 - Decision: every substantive work item gets a minimum change shape first.
@@ -129,18 +129,18 @@ plan so it is clear that the planning documents capture the full design.
   - Planned capture: `alpha.3`
 - Decision: multiple non-closed changes may exist concurrently; RuneContext
   should not require one repository-wide active-change slot.
-  - Planned capture: `alpha.3`, `alpha.6`
+  - Planned capture: `alpha.3`, `alpha.5`
 - Decision: large or high-risk work should usually escalate from minimum mode to
   full mode early, and tooling should be able to recommend that escalation when
   a new change is obviously too large, ambiguous, or risky.
-  - Planned capture: `alpha.3`, `alpha.6`
+  - Planned capture: `alpha.3`, `alpha.5`
 - Decision: lifecycle state and change shape are separate axes; `planned` should
   not imply full mode automatically, and shaping should be additive/idempotent.
   - Planned capture: `alpha.3`
 - Decision: very large features may be modeled as one umbrella change plus
   linked sub-changes, with `related_changes` preserving navigation and
   directional `depends_on` links preserving prerequisite ordering.
-  - Planned capture: `alpha.3`, `alpha.6`
+  - Planned capture: `alpha.3`, `alpha.5`
 - Decision: `proposal.md` is the canonical reviewable intent artifact.
   - Planned capture: `alpha.1`, `alpha.3`
 - Decision: `standards.md` is always present and tooling-maintained.
@@ -186,7 +186,7 @@ plan so it is clear that the planning documents capture the full design.
   - Planned capture: `alpha.2`
 - Decision: adapters are the primary UX; CLI is the power-user and automation
   surface.
-  - Planned capture: `alpha.3`, `alpha.6`, `alpha.7`
+  - Planned capture: `alpha.3`, `alpha.5`, `alpha.7`
 - Decision: `adapter pack` is the packaged tool UX surface, and
   `runecontext/operations/` is the canonical in-project reference/source area
   for underlying RuneContext operations.
@@ -211,7 +211,7 @@ plan so it is clear that the planning documents capture the full design.
 - Decision: `plain` and `verified` should share one authored workflow, and
   standalone `runectx` must be able to emit the same portable minimal receipts a
   Verified repo requires while RuneCode adds richer parallel evidence.
-  - Planned capture: `alpha.5`
+  - Planned capture: `alpha.6`
 
 ## Deferred But Captured
 

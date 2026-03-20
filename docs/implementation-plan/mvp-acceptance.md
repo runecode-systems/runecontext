@@ -187,7 +187,40 @@
 - [ ] Promotion assessment is structured and reviewable.
 - [ ] Generated indexes/manifests exist but remain optional and regenerable.
 
-## 5. Assurance
+## 5. CLI And Machine Interface
+
+- [ ] The primary CLI commands exist: `init`, `status`, `change new`,
+  `change shape`, `bundle resolve`, and `change close`.
+- [x] `runectx status` can at minimum report active, closed, and superseded
+  changes without requiring a single repository-wide active-change slot.
+- [ ] The secondary/admin commands exist: `validate`, `doctor`,
+  `standard discover`, `promote`, `assurance enable verified`, and
+  `assurance backfill`.
+- [ ] Before alpha.5 is complete, any earlier validation entrypoints remain narrow
+  wrappers around the same core contracts rather than alternate semantics.
+- [x] Before alpha.5 is complete, any earlier `status`, `change new`,
+  `change shape`, and `change close` entrypoints remain narrow wrappers around
+  the same core operations rather than alternate semantics.
+- [ ] Before alpha.5 is complete, any earlier validation entrypoints use a
+  documented and tested machine-readable output contract.
+- [ ] Before alpha.5 is complete, any earlier validation entrypoints that expose
+  signed-tag verification accept explicit trust inputs from the caller and
+  surface structured signed-tag failure reasons/diagnostics.
+- [ ] Early validation entrypoints fail closed with structured diagnostics rather
+  than panics when schemas, YAML, markdown contracts, or project references are invalid.
+- [ ] Early validation entrypoints honor declared project content roots and the
+  full restricted-YAML profile rather than relying on default-path assumptions.
+- [ ] Alpha-stage release metadata, module metadata, and parser behavior stay
+  consistent with the documented release series and fail-closed contracts.
+- [ ] The adapter-management command exists: `runectx adapter sync <tool>`.
+- [ ] `runectx adapter sync <tool>` uses the installed or pinned RuneContext
+  release contents rather than implicitly fetching adapter packs from the
+  network.
+- [ ] Machine-facing flags exist and behave consistently: `--json`,
+  `--non-interactive`, `--dry-run`, and `--explain`.
+- [ ] CLI behavior stays aligned with the canonical file model.
+
+## 6. Assurance
 
 - [ ] Plain mode works without extra assurance artifacts.
 - [ ] Verified mode can be enabled and persisted in `runecontext.yaml`.
@@ -211,39 +244,6 @@
   mutable index.
 - [ ] Backfill can generate imported historical provenance distinct from native
   verified capture.
-
-## 6. CLI And Machine Interface
-
-- [ ] The primary CLI commands exist: `init`, `status`, `change new`,
-  `change shape`, `bundle resolve`, and `change close`.
-- [x] `runectx status` can at minimum report active, closed, and superseded
-  changes without requiring a single repository-wide active-change slot.
-- [ ] The secondary/admin commands exist: `validate`, `doctor`,
-  `standard discover`, `promote`, `assurance enable verified`, and
-  `assurance backfill`.
-- [ ] Before alpha.6 is complete, any earlier validation entrypoints remain narrow
-  wrappers around the same core contracts rather than alternate semantics.
-- [x] Before alpha.6 is complete, any earlier `status`, `change new`,
-  `change shape`, and `change close` entrypoints remain narrow wrappers around
-  the same core operations rather than alternate semantics.
-- [ ] Before alpha.6 is complete, any earlier validation entrypoints use a
-  documented and tested machine-readable output contract.
-- [ ] Before alpha.6 is complete, any earlier validation entrypoints that expose
-  signed-tag verification accept explicit trust inputs from the caller and
-  surface structured signed-tag failure reasons/diagnostics.
-- [ ] Early validation entrypoints fail closed with structured diagnostics rather
-  than panics when schemas, YAML, markdown contracts, or project references are invalid.
-- [ ] Early validation entrypoints honor declared project content roots and the
-  full restricted-YAML profile rather than relying on default-path assumptions.
-- [ ] Alpha-stage release metadata, module metadata, and parser behavior stay
-  consistent with the documented release series and fail-closed contracts.
-- [ ] The adapter-management command exists: `runectx adapter sync <tool>`.
-- [ ] `runectx adapter sync <tool>` uses the installed or pinned RuneContext
-  release contents rather than implicitly fetching adapter packs from the
-  network.
-- [ ] Machine-facing flags exist and behave consistently: `--json`,
-  `--non-interactive`, `--dry-run`, and `--explain`.
-- [ ] CLI behavior stays aligned with the canonical file model.
 
 ## 7. Adapters
 

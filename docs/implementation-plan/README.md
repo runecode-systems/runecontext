@@ -57,10 +57,10 @@ contracts RuneCode needs in order to integrate cleanly.
 | `v0.1.0-alpha.2` | Source resolution, explicit trust/integrity handling, monorepo support, and deterministic bundle semantics |
 | `v0.1.0-alpha.3` | Change workflow, standards linkage, traceability, history preservation, and thin change/status commands |
 | `v0.1.0-alpha.4` | Deterministic context packs, generated indexes, and promotion assessment |
-| `v0.1.0-alpha.5` | Plain/Verified assurance, baselines, receipts, and backfill |
-| `v0.1.0-alpha.6` | Broadened CLI, validation, doctoring, and machine-facing command contracts |
+| `v0.1.0-alpha.5` | Broadened CLI, `init` scaffolding, promotion/resolve flows, validation, doctoring, and machine-facing command contracts |
+| `v0.1.0-alpha.6` | Plain/Verified assurance, baselines, receipts, and backfill |
 | `v0.1.0-alpha.7` | Generic and tool-specific adapters plus adapter-pack UX |
-| `v0.1.0-alpha.8` | Release/install/update hardening and end-to-end MVP readiness fixtures |
+| `v0.1.0-alpha.8` | Release/install/update hardening, networked `init`/`update` flows, and end-to-end MVP readiness fixtures |
 | `v0.1.0` | Stabilization, compatibility freeze, and MVP acceptance sign-off |
 
 Signed-tag verification is intentionally part of the MVP and is planned across
@@ -140,6 +140,11 @@ provenance fields), and `alpha.8` (release/reference-project validation).
   RuneContext as the primary execution-tracking layer for day-to-day feature
   progression, because generated indexes, manifests, and promotion assessment
   complete the basic flow from planned work to durable project knowledge.
+- `alpha.5` is the planned point where this repository should be able to
+  broaden that dogfooding across additional repositories and automation-heavy
+  workflows, because the broader `runectx` CLI surface adds `init`,
+  `bundle resolve`, `promote`, stable machine-facing flags, and the non-thin
+  command contracts needed for cross-repo day-to-day use.
 - `docs/implementation-plan/` should still remain the home for release-train,
   acceptance, and coverage-accounting documents even after repo-local
   RuneContext dogfooding begins; the goal is not a literal 1:1 migration of
