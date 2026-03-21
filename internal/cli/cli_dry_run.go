@@ -83,47 +83,17 @@ func runChangeOperationDryRun[T any](root string, explicitRoot bool, op func(v *
 
 func cloneDir(srcRoot string) (string, error) {
 	root := filepath.Clean(srcRoot)
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return "", err
+	}
 	targetRoot, err := os.MkdirTemp("", "runectx-dry-run-")
 	if err != nil {
 		return "", err
 	}
 	state := &snapshotState{}
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		relPath, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-		if dryRunCloneLimits.MaxDepth > 0 && dryRunPathDepth(relPath) > dryRunCloneLimits.MaxDepth {
-			return fmt.Errorf("dry-run clone exceeds maximum depth of %d", dryRunCloneLimits.MaxDepth)
-		}
-		targetPath := filepath.Join(targetRoot, relPath)
-		if d.IsDir() {
-			info, err := d.Info()
-			if err != nil {
-				return err
-			}
-			if relPath != "." && shouldSkipDirForDryRun(filepath.Base(relPath)) {
-				return filepath.SkipDir
-			}
-			return os.MkdirAll(targetPath, info.Mode().Perm())
-		}
-		info, err := os.Lstat(path)
-		if err != nil {
-			return err
-		}
-		if info.Mode()&os.ModeSymlink != 0 {
-			return cloneSymlink(root, path, targetPath)
-		}
-		if !info.Mode().IsRegular() {
-			return nil
-		}
-		if err := updateSnapshotState(state, dryRunCloneLimits, info.Size()); err != nil {
-			return err
-		}
-		return copyFile(path, targetPath, info.Mode().Perm())
+		return cloneWalkEntry(state, dryRunCloneLimits, root, absRoot, targetRoot, path, d, walkErr)
 	})
 	if err != nil {
 		os.RemoveAll(targetRoot)
@@ -132,7 +102,53 @@ func cloneDir(srcRoot string) (string, error) {
 	return targetRoot, nil
 }
 
-func cloneSymlink(root, srcPath, targetPath string) error {
+func cloneWalkEntry(state *snapshotState, limits snapshotLimits, root, absRoot, targetRoot, path string, d fs.DirEntry, walkErr error) error {
+	if walkErr != nil {
+		return walkErr
+	}
+	relPath, err := filepath.Rel(root, path)
+	if err != nil {
+		return err
+	}
+	if limits.MaxDepth > 0 && dryRunPathDepth(relPath) > limits.MaxDepth {
+		return fmt.Errorf("dry-run clone exceeds maximum depth of %d", limits.MaxDepth)
+	}
+	targetPath := filepath.Join(targetRoot, relPath)
+	if d.IsDir() {
+		return cloneDirectoryEntry(relPath, d, targetPath)
+	}
+	return cloneFileEntry(state, limits, absRoot, path, targetPath)
+}
+
+func cloneDirectoryEntry(relPath string, d fs.DirEntry, targetPath string) error {
+	info, err := d.Info()
+	if err != nil {
+		return err
+	}
+	if relPath != "." && shouldSkipDirForDryRun(filepath.Base(relPath)) {
+		return filepath.SkipDir
+	}
+	return os.MkdirAll(targetPath, info.Mode().Perm())
+}
+
+func cloneFileEntry(state *snapshotState, limits snapshotLimits, absRoot, path, targetPath string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return cloneSymlink(absRoot, path, targetPath)
+	}
+	if !info.Mode().IsRegular() {
+		return nil
+	}
+	if err := updateSnapshotState(state, limits, info.Size()); err != nil {
+		return err
+	}
+	return copyFile(path, targetPath, info.Mode().Perm())
+}
+
+func cloneSymlink(absRoot, srcPath, targetPath string) error {
 	linkTarget, err := os.Readlink(srcPath)
 	if err != nil {
 		return err
@@ -141,10 +157,6 @@ func cloneSymlink(root, srcPath, targetPath string) error {
 		return fmt.Errorf("dry-run clone rejects absolute symlink %q; convert it to a relative link or run without --dry-run", srcPath)
 	}
 	resolvedTarget := filepath.Join(filepath.Dir(srcPath), linkTarget)
-	absRoot, err := filepath.Abs(root)
-	if err != nil {
-		return err
-	}
 	absResolved, err := filepath.Abs(resolvedTarget)
 	if err != nil {
 		return err

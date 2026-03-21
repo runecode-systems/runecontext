@@ -19,44 +19,79 @@ type machineFlagConfig struct {
 	explainNotYet bool
 }
 
+type machineFlagHandler func(hasValue bool, config machineFlagConfig, options *machineOptions) error
+
 func parseMachineFlags(args []string, config machineFlagConfig) (machineOptions, []string, error) {
 	options := machineOptions{}
 	remaining := make([]string, 0, len(args))
 	for _, arg := range args {
-		name, _, hasValue := strings.Cut(arg, "=")
-		switch name {
-		case "--json":
-			if hasValue {
-				return machineOptions{}, nil, fmt.Errorf("--json does not accept a value")
-			}
-			options.jsonOutput = true
-		case "--non-interactive":
-			if hasValue {
-				return machineOptions{}, nil, fmt.Errorf("--non-interactive does not accept a value")
-			}
-			options.nonInteractive = true
-		case "--dry-run":
-			if hasValue {
-				return machineOptions{}, nil, fmt.Errorf("--dry-run does not accept a value")
-			}
-			if !config.allowDryRun {
-				return machineOptions{}, nil, fmt.Errorf("--dry-run is only supported for write commands")
-			}
-			options.dryRun = true
-		case "--explain":
-			if hasValue {
-				return machineOptions{}, nil, fmt.Errorf("--explain does not accept a value")
-			}
-			if !config.allowExplain {
-				return machineOptions{}, nil, fmt.Errorf("--explain is not supported for this command")
-			}
-			options.explain = true
-			if config.explainNotYet {
-				options.explainWarning = "--explain is not yet implemented for this command; output will not include explanation details"
-			}
-		default:
-			remaining = append(remaining, arg)
+		handled, err := applyMachineFlag(arg, config, &options)
+		if err != nil {
+			return machineOptions{}, nil, err
 		}
+		if handled {
+			continue
+		}
+		remaining = append(remaining, arg)
 	}
 	return options, remaining, nil
+}
+
+func applyMachineFlag(arg string, config machineFlagConfig, options *machineOptions) (bool, error) {
+	name, _, hasValue := strings.Cut(arg, "=")
+	handler, ok := machineFlagHandlers[name]
+	if !ok {
+		return false, nil
+	}
+	if err := handler(hasValue, config, options); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
+var machineFlagHandlers = map[string]machineFlagHandler{
+	"--json": func(hasValue bool, _ machineFlagConfig, options *machineOptions) error {
+		if err := requireNoValue("--json", hasValue); err != nil {
+			return err
+		}
+		options.jsonOutput = true
+		return nil
+	},
+	"--non-interactive": func(hasValue bool, _ machineFlagConfig, options *machineOptions) error {
+		if err := requireNoValue("--non-interactive", hasValue); err != nil {
+			return err
+		}
+		options.nonInteractive = true
+		return nil
+	},
+	"--dry-run": func(hasValue bool, config machineFlagConfig, options *machineOptions) error {
+		if err := requireNoValue("--dry-run", hasValue); err != nil {
+			return err
+		}
+		if !config.allowDryRun {
+			return fmt.Errorf("--dry-run is only supported for write commands")
+		}
+		options.dryRun = true
+		return nil
+	},
+	"--explain": func(hasValue bool, config machineFlagConfig, options *machineOptions) error {
+		if err := requireNoValue("--explain", hasValue); err != nil {
+			return err
+		}
+		if !config.allowExplain {
+			return fmt.Errorf("--explain is not supported for this command")
+		}
+		options.explain = true
+		if config.explainNotYet {
+			options.explainWarning = "--explain is not yet implemented for this command; output will not include explanation details"
+		}
+		return nil
+	},
+}
+
+func requireNoValue(name string, hasValue bool) error {
+	if hasValue {
+		return fmt.Errorf("%s does not accept a value", name)
+	}
+	return nil
 }
