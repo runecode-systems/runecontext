@@ -27,7 +27,7 @@ func parseMachineFlags(args []string, config machineFlagConfig) (machineOptions,
 	for _, arg := range args {
 		handled, err := applyMachineFlag(arg, config, &options)
 		if err != nil {
-			return machineOptions{}, nil, err
+			return options, remaining, err
 		}
 		if handled {
 			continue

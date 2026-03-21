@@ -137,10 +137,13 @@ func cloneFileEntry(state *snapshotState, limits snapshotLimits, absRoot, path, 
 		return err
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
+		if err := updateSnapshotState(state, limits, 0); err != nil {
+			return err
+		}
 		return cloneSymlink(absRoot, path, targetPath)
 	}
 	if !info.Mode().IsRegular() {
-		return nil
+		return fmt.Errorf("dry-run clone rejects unsupported file type %q", path)
 	}
 	if err := updateSnapshotState(state, limits, info.Size()); err != nil {
 		return err
@@ -161,7 +164,11 @@ func cloneSymlink(absRoot, srcPath, targetPath string) error {
 	if err != nil {
 		return err
 	}
-	if !strings.HasPrefix(absResolved, absRoot+string(filepath.Separator)) && absResolved != absRoot {
+	rel, err := filepath.Rel(absRoot, absResolved)
+	if err != nil {
+		return err
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return fmt.Errorf("dry-run clone rejects relative symlink %q resolving outside project root to %q", srcPath, absResolved)
 	}
 	return os.Symlink(linkTarget, targetPath)

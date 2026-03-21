@@ -197,6 +197,19 @@ func TestRunChangeNewDryRunDoesNotPersistChange(t *testing.T) {
 	}
 }
 
+func TestRunChangeMachineFlagErrorRetainsJson(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"status", "--json", "--dry-run", projectRoot}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for unsupported flag, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "\"schema_version\"") {
+		t.Fatalf("expected --json output envelope even when parse fails, got %q", stderr.String())
+	}
+}
+
 func TestRunStatusOutputsCounts(t *testing.T) {
 	projectRoot := prepareCLIWorkflowProject(t)
 	firstID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
