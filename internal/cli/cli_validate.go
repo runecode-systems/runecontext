@@ -18,7 +18,7 @@ type validateRequest struct {
 }
 
 func runValidate(args []string, stdout, stderr io.Writer) int {
-	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true, explainNotYet: true})
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
@@ -39,7 +39,12 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 		return exitInvalid
 	}
 	defer index.Close()
-	emitOutput(stdout, machine, appendMachineOptionLines(buildValidateOutput(absRoot, index), machine), exitOK, failureClassNone)
+	output := buildValidateOutput(absRoot, index)
+	if machine.explain {
+		diagnostics := collectDiagnostics(index)
+		output = appendValidateExplainLines(output, request, index, diagnostics)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 

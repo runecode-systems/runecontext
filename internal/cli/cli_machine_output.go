@@ -81,9 +81,6 @@ func appendMachineOptionLines(lines []line, options machineOptions) []line {
 		line{"dry_run", boolString(options.dryRun)},
 		line{"explain", boolString(options.explain)},
 	)
-	if options.explainWarning != "" {
-		lines = append(lines, line{"explain_warning", options.explainWarning})
-	}
 	return lines
 }
 

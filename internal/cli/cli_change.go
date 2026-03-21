@@ -8,7 +8,7 @@ import (
 )
 
 func runChange(args []string, stdout, stderr io.Writer) int {
-	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowDryRun: true, allowExplain: true, explainNotYet: true})
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowDryRun: true, allowExplain: true})
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change", changeUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
@@ -39,6 +39,10 @@ func runChangeNew(args []string, machine machineOptions, stdout, stderr io.Write
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change_new", changeNewUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
+	if err := enforceNonInteractiveChangeNew(machine, request); err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change_new", changeNewUsage, err), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
 	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_new", machine)
 	if code != exitOK {
 		return code
@@ -58,7 +62,11 @@ func runChangeNew(args []string, machine machineOptions, stdout, stderr io.Write
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_new", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	emitOutput(stdout, machine, appendMachineOptionLines(buildChangeNewOutput(project.absRoot, project.loaded, result), machine), exitOK, failureClassNone)
+	output := buildChangeNewOutput(project.absRoot, project.loaded, result)
+	if machine.explain {
+		output = appendChangeNewExplainLines(output, result)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
@@ -85,7 +93,11 @@ func runChangeShape(args []string, machine machineOptions, stdout, stderr io.Wri
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_shape", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	emitOutput(stdout, machine, appendMachineOptionLines(buildChangeShapeOutput(project.absRoot, project.loaded, result), machine), exitOK, failureClassNone)
+	output := buildChangeShapeOutput(project.absRoot, project.loaded, result)
+	if machine.explain {
+		output = appendChangeShapeExplainLines(output, result)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
@@ -111,7 +123,11 @@ func runChangeClose(args []string, machine machineOptions, stdout, stderr io.Wri
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_close", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	emitOutput(stdout, machine, appendMachineOptionLines(buildChangeCloseOutput(project.absRoot, project.loaded, result), machine), exitOK, failureClassNone)
+	output := buildChangeCloseOutput(project.absRoot, project.loaded, result)
+	if machine.explain {
+		output = appendChangeCloseExplainLines(output, result)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
@@ -133,7 +149,11 @@ func runChangeReallocate(args []string, machine machineOptions, stdout, stderr i
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_reallocate", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	emitOutput(stdout, machine, appendMachineOptionLines(buildChangeReallocateOutput(project.absRoot, project.loaded, result), machine), exitOK, failureClassNone)
+	output := buildChangeReallocateOutput(project.absRoot, project.loaded, result)
+	if machine.explain {
+		output = appendChangeReallocateExplainLines(output, result)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 

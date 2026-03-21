@@ -127,6 +127,14 @@ func closePromotionTargets(record *ChangeRecord) []any {
 	return targets
 }
 
+func trimmedStringField(raw any) string {
+	s, ok := raw.(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(s)
+}
+
 func sortedUniqueStrings(items []string) []string {
 	clean := make([]string, 0, len(items))
 	for _, item := range items {
@@ -223,16 +231,45 @@ func buildCloseChangeResult(record *ChangeRecord, writableRoot, changeID string,
 	sortFileMutations(changedFiles)
 	closedAt, _ := updated["closed_at"].(string)
 	status := fmt.Sprint(updated["status"])
+	promotionStatus, promotionTargets := closePromotionAssessmentDetails(updated)
 	return &ChangeOperationResult{
-		ID:                  changeID,
-		ChangePath:          runeContextRelativePath(writableRoot, changeDir),
-		Mode:                inferChangeMode(changeDir),
-		RecommendedMode:     inferChangeMode(changeDir),
-		Status:              status,
-		ClosedAt:            closedAt,
-		ContextBundles:      append([]string(nil), record.ContextBundles...),
-		ApplicableStandards: append([]string(nil), record.ApplicableStandards...),
-		ChangedFiles:        changedFiles,
-		ReviewDiffRequired:  false,
+		ID:                        changeID,
+		ChangePath:                runeContextRelativePath(writableRoot, changeDir),
+		Mode:                      inferChangeMode(changeDir),
+		RecommendedMode:           inferChangeMode(changeDir),
+		Status:                    status,
+		ClosedAt:                  closedAt,
+		ContextBundles:            append([]string(nil), record.ContextBundles...),
+		ApplicableStandards:       append([]string(nil), record.ApplicableStandards...),
+		ChangedFiles:              changedFiles,
+		ReviewDiffRequired:        false,
+		PromotionAssessmentStatus: promotionStatus,
+		SuggestedPromotionTargets: promotionTargets,
 	}
+}
+
+func closePromotionAssessmentDetails(updated map[string]any) (string, []string) {
+	promotionRaw, ok := updated["promotion_assessment"].(map[string]any)
+	if !ok {
+		return "", nil
+	}
+	status := strings.TrimSpace(fmt.Sprint(promotionRaw["status"]))
+	targets := make([]string, 0)
+	for _, targetRaw := range extractAnySlice(promotionRaw["suggested_targets"]) {
+		targetMap, ok := targetRaw.(map[string]any)
+		if !ok {
+			continue
+		}
+		targetType := trimmedStringField(targetMap["target_type"])
+		targetPath := trimmedStringField(targetMap["target_path"])
+		if targetType == "" && targetPath == "" {
+			continue
+		}
+		if targetType == "" {
+			targets = append(targets, targetPath)
+			continue
+		}
+		targets = append(targets, targetType+":"+targetPath)
+	}
+	return status, targets
 }

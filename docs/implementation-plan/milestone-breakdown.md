@@ -909,7 +909,7 @@ dogfooding across this repository and other repositories.
   inference, and failure rules.
 - [x] Issue: implement `--dry-run` behavior for write operations by simulating
   planned mutations and validating the resulting would-be project state.
-- [ ] Issue: implement `--explain` output for resolution, standards selection,
+- [x] Issue: implement `--explain` output for resolution, standards selection,
   and promotion suggestions.
 - [x] Issue: broaden `runectx status` from its alpha.3 narrow status-reporting
   contract into the stable CLI surface.
@@ -921,7 +921,7 @@ dogfooding across this repository and other repositories.
   the stable CLI surface.
 - [x] Issue: broaden `runectx validate` from the earlier narrow contract into
   the stable CLI surface.
-- [ ] Issue: build CLI-versus-library parity fixtures for the broadened command
+- [x] Issue: build CLI-versus-library parity fixtures for the broadened command
   set.
 - [x] Issue: ensure all write commands surface reviewable diffs or proposed
   mutations rather than silent commits.

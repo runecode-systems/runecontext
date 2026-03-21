@@ -8,7 +8,7 @@ import (
 )
 
 func runStatus(args []string, stdout, stderr io.Writer) int {
-	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true, explainNotYet: true})
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("status", statusUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
@@ -28,7 +28,11 @@ func runStatus(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("status", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	emitOutput(stdout, machine, appendMachineOptionLines(buildStatusOutput(project.absRoot, summary), machine), exitOK, failureClassNone)
+	output := buildStatusOutput(project.absRoot, summary)
+	if machine.explain {
+		output = appendStatusExplainLines(output, project.loaded, summary)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 

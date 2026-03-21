@@ -10,13 +10,11 @@ type machineOptions struct {
 	nonInteractive bool
 	dryRun         bool
 	explain        bool
-	explainWarning string
 }
 
 type machineFlagConfig struct {
-	allowDryRun   bool
-	allowExplain  bool
-	explainNotYet bool
+	allowDryRun  bool
+	allowExplain bool
 }
 
 type machineFlagHandler func(hasValue bool, config machineFlagConfig, options *machineOptions) error
@@ -82,9 +80,6 @@ var machineFlagHandlers = map[string]machineFlagHandler{
 			return fmt.Errorf("--explain is not supported for this command")
 		}
 		options.explain = true
-		if config.explainNotYet {
-			options.explainWarning = "--explain is not yet implemented for this command; output will not include explanation details"
-		}
 		return nil
 	},
 }

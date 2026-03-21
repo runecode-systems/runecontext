@@ -19,9 +19,12 @@ type changeNewRequest struct {
 	title          string
 	changeType     string
 	size           string
+	sizeProvided   bool
 	description    string
 	mode           string
+	modeProvided   bool
 	contextBundles []string
+	bundleProvided bool
 }
 
 type changeShapeRequest struct {
@@ -73,13 +76,25 @@ func parseChangeNewArgs(args []string) (changeNewRequest, error) {
 		case "--type":
 			return assignStringFlag(args, flag, &request.changeType)
 		case "--size":
-			return assignStringFlag(args, flag, &request.size)
+			next, err := assignStringFlag(args, flag, &request.size)
+			if err == nil {
+				request.sizeProvided = true
+			}
+			return next, err
 		case "--description":
 			return assignStringFlag(args, flag, &request.description)
 		case "--shape":
-			return assignStringFlag(args, flag, &request.mode)
+			next, err := assignStringFlag(args, flag, &request.mode)
+			if err == nil {
+				request.modeProvided = true
+			}
+			return next, err
 		case "--bundle":
-			return appendStringFlag(args, flag, &request.contextBundles)
+			next, err := appendStringFlag(args, flag, &request.contextBundles)
+			if err == nil {
+				request.bundleProvided = true
+			}
+			return next, err
 		case "--path":
 			return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
 		default:

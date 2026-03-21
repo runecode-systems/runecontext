@@ -54,20 +54,22 @@ type FileMutation struct {
 }
 
 type ChangeOperationResult struct {
-	ID                     string
-	ChangePath             string
-	Mode                   ChangeMode
-	RecommendedMode        ChangeMode
-	Status                 string
-	ClosedAt               string
-	ContextBundles         []string
-	ApplicableStandards    []string
-	AddedStandards         []string
-	ChangedFiles           []FileMutation
-	StandardsRefreshAction string
-	ReviewDiffRequired     bool
-	Reasons                []string
-	Assumptions            []string
+	ID                        string
+	ChangePath                string
+	Mode                      ChangeMode
+	RecommendedMode           ChangeMode
+	Status                    string
+	ClosedAt                  string
+	ContextBundles            []string
+	ApplicableStandards       []string
+	AddedStandards            []string
+	ChangedFiles              []FileMutation
+	StandardsRefreshAction    string
+	ReviewDiffRequired        bool
+	Reasons                   []string
+	Assumptions               []string
+	PromotionAssessmentStatus string
+	SuggestedPromotionTargets []string
 }
 
 type ChangeReallocationResult struct {
