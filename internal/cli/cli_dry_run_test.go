@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -96,5 +97,32 @@ func TestCloneFileEntryRejectsUnsupportedFileType(t *testing.T) {
 		t.Fatalf("expected unsupported file type error")
 	} else if !strings.Contains(err.Error(), "rejects unsupported file type") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCloneDirectoryRespectsPerCallExcludes(t *testing.T) {
+	srcRoot := t.TempDir()
+	dirName := "skipme"
+	if err := os.MkdirAll(filepath.Join(srcRoot, dirName), 0o755); err != nil {
+		t.Fatalf("create directory: %v", err)
+	}
+	entries, err := os.ReadDir(srcRoot)
+	if err != nil {
+		t.Fatalf("read dir: %v", err)
+	}
+	var entry fs.DirEntry
+	for _, e := range entries {
+		if e.Name() == dirName {
+			entry = e
+			break
+		}
+	}
+	if entry == nil {
+		t.Fatalf("expected to find entry %q", dirName)
+	}
+	targetRoot := t.TempDir()
+	limits := snapshotLimits{Excludes: map[string]struct{}{dirName: {}}}
+	if err := cloneDirectoryEntry(dirName, entry, filepath.Join(targetRoot, dirName), limits); err != filepath.SkipDir {
+		t.Fatalf("expected directory skip when excluded, got %v", err)
 	}
 }
