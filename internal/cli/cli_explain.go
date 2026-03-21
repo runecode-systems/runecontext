@@ -11,6 +11,14 @@ func enforceNonInteractiveChangeNew(machine machineOptions, request changeNewReq
 	if !machine.nonInteractive {
 		return nil
 	}
+	missing := missingNonInteractiveChangeNewFields(request)
+	if len(missing) == 0 {
+		return nil
+	}
+	return fmt.Errorf("--non-interactive requires explicit %s to avoid inferred defaults", strings.Join(missing, ", "))
+}
+
+func missingNonInteractiveChangeNewFields(request changeNewRequest) []string {
 	missing := make([]string, 0, 3)
 	if !request.sizeProvided || strings.TrimSpace(request.size) == "" {
 		missing = append(missing, "--size")
@@ -18,24 +26,19 @@ func enforceNonInteractiveChangeNew(machine machineOptions, request changeNewReq
 	if !request.modeProvided || strings.TrimSpace(request.mode) == "" {
 		missing = append(missing, "--shape")
 	}
-	if !request.bundleProvided {
+	if !request.bundleProvided || !hasNonInteractiveBundles(request.contextBundles) {
 		missing = append(missing, "--bundle")
-	} else {
-		hasBundle := false
-		for _, bundle := range request.contextBundles {
-			if strings.TrimSpace(bundle) != "" {
-				hasBundle = true
-				break
-			}
-		}
-		if !hasBundle {
-			missing = append(missing, "--bundle")
+	}
+	return missing
+}
+
+func hasNonInteractiveBundles(bundles []string) bool {
+	for _, bundle := range bundles {
+		if strings.TrimSpace(bundle) != "" {
+			return true
 		}
 	}
-	if len(missing) == 0 {
-		return nil
-	}
-	return fmt.Errorf("--non-interactive requires explicit %s to avoid inferred defaults", strings.Join(missing, ", "))
+	return false
 }
 
 func appendStatusExplainLines(lines []line, loaded *contracts.LoadedProject, summary *contracts.ProjectStatusSummary) []line {

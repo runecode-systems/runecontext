@@ -15,6 +15,9 @@ const (
 	validateUsage         = "runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [path]"
 	statusUsage           = "runectx status [--json] [--non-interactive] [--explain] [path]"
 	changeUsage           = "runectx change [--json] [--non-interactive] [--dry-run] [--explain] <new|shape|close|reallocate> ..."
+	bundleUsage           = "runectx bundle [--json] [--non-interactive] [--explain] <resolve>"
+	bundleResolveUsage    = "runectx bundle resolve [--json] [--non-interactive] [--explain] [--path PATH] <bundle-id>..."
+	doctorUsage           = "runectx doctor [--json] [--non-interactive] [--explain] [--path PATH] [path]"
 	changeNewUsage        = "runectx change new [--json] [--non-interactive] [--dry-run] [--explain] --title TITLE --type TYPE [--size SIZE] [--bundle ID] [--shape minimum|full] [--description TEXT] [--path PATH]"
 	changeShapeUsage      = "runectx change shape [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--design TEXT] [--verification TEXT] [--task TEXT] [--reference TEXT] [--path PATH]"
 	changeCloseUsage      = "runectx change close [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--verification-status STATUS] [--superseded-by ID] [--closed-at YYYY-MM-DD] [--path PATH]"
@@ -34,11 +37,15 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return runStatus(args[1:], stdout, stderr)
 	case "change":
 		return runChange(args[1:], stdout, stderr)
+	case "bundle":
+		return runBundle(args[1:], stdout, stderr)
+	case "doctor":
+		return runDoctor(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		printUsage(stdout)
 		return exitOK
 	default:
-		writeCommandUsageError(stderr, args[0], validateUsage, fmt.Errorf("unknown command %q", args[0]))
+		writeCommandUsageError(stderr, args[0], "runectx help", fmt.Errorf("unknown command %q", args[0]))
 		return exitUsage
 	}
 }
@@ -54,10 +61,14 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+changeCloseUsage)
 	fmt.Fprintln(w, "  "+changeReallocateUsage)
 	fmt.Fprintln(w, "  "+validateUsage)
+	fmt.Fprintln(w, "  "+bundleResolveUsage)
+	fmt.Fprintln(w, "  "+doctorUsage)
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Commands:")
 	fmt.Fprintln(w, "  help       Show CLI usage")
 	fmt.Fprintln(w, "  status     Report active, closed, and superseded changes")
 	fmt.Fprintln(w, "  change     Create, shape, close, and reallocate changes")
+	fmt.Fprintln(w, "  bundle     Resolve context bundles")
 	fmt.Fprintln(w, "  validate   Validate RuneContext contracts for a project root")
+	fmt.Fprintln(w, "  doctor     Run environment and resolution diagnostics")
 }

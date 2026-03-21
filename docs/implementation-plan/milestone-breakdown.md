@@ -944,11 +944,11 @@ outside the selected project root.
 
 ### Epic 2: Recommended Branch Cut 2 / Read-Only Admin And Resolution Commands
 
-- [ ] Issue: implement `runectx bundle resolve` on top of the existing
+- [x] Issue: implement `runectx bundle resolve` on top of the existing
   resolution/reporting core.
-- [ ] Issue: implement `runectx doctor` with a clearly separate environment,
+- [x] Issue: implement `runectx doctor` with a clearly separate environment,
   install, and source-posture diagnostic contract.
-- [ ] Issue: add integration tests for `bundle resolve` and `doctor`, including
+- [x] Issue: add integration tests for `bundle resolve` and `doctor`, including
   `--json` and `--explain` behavior where applicable.
 
 ### Epic 3: Recommended Branch Cut 3 / Local Init Workflow
