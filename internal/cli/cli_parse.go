@@ -69,44 +69,52 @@ func parseStatusArgs(args []string) (statusRequest, error) {
 
 func parseChangeNewArgs(args []string) (changeNewRequest, error) {
 	request := changeNewRequest{root: "."}
-	err := consumeArgs(args, func(flag parsedFlag) (int, error) {
-		switch flag.name {
-		case "--title":
-			return assignStringFlag(args, flag, &request.title)
-		case "--type":
-			return assignStringFlag(args, flag, &request.changeType)
-		case "--size":
-			next, err := assignStringFlag(args, flag, &request.size)
-			if err == nil {
-				request.sizeProvided = true
-			}
-			return next, err
-		case "--description":
-			return assignStringFlag(args, flag, &request.description)
-		case "--shape":
-			next, err := assignStringFlag(args, flag, &request.mode)
-			if err == nil {
-				request.modeProvided = true
-			}
-			return next, err
-		case "--bundle":
-			next, err := appendStringFlag(args, flag, &request.contextBundles)
-			if err == nil {
-				request.bundleProvided = true
-			}
-			return next, err
-		case "--path":
-			return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
-		default:
-			return flag.next, fmt.Errorf("unknown change new flag %q", flag.raw)
-		}
-	}, func(arg string) error {
+	err := consumeArgs(args, changeNewFlagHandler(args, &request), func(arg string) error {
 		return fmt.Errorf("unexpected positional argument %q", arg)
 	})
 	if err != nil {
 		return changeNewRequest{}, err
 	}
 	return finalizeChangeNewRequest(request)
+}
+
+func changeNewFlagHandler(args []string, request *changeNewRequest) func(parsedFlag) (int, error) {
+	return func(flag parsedFlag) (int, error) {
+		switch flag.name {
+		case "--title":
+			return assignStringFlag(args, flag, &request.title)
+		case "--type":
+			return assignStringFlag(args, flag, &request.changeType)
+		case "--size":
+			return assignStringFlagWithProvided(args, flag, &request.size, &request.sizeProvided)
+		case "--description":
+			return assignStringFlag(args, flag, &request.description)
+		case "--shape":
+			return assignStringFlagWithProvided(args, flag, &request.mode, &request.modeProvided)
+		case "--bundle":
+			return appendStringFlagWithProvided(args, flag, &request.contextBundles, &request.bundleProvided)
+		case "--path":
+			return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
+		default:
+			return flag.next, fmt.Errorf("unknown change new flag %q", flag.raw)
+		}
+	}
+}
+
+func assignStringFlagWithProvided(args []string, flag parsedFlag, target *string, provided *bool) (int, error) {
+	next, err := assignStringFlag(args, flag, target)
+	if err == nil {
+		*provided = true
+	}
+	return next, err
+}
+
+func appendStringFlagWithProvided(args []string, flag parsedFlag, target *[]string, provided *bool) (int, error) {
+	next, err := appendStringFlag(args, flag, target)
+	if err == nil {
+		*provided = true
+	}
+	return next, err
 }
 
 func finalizeChangeNewRequest(request changeNewRequest) (changeNewRequest, error) {

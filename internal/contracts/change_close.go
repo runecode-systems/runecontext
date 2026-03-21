@@ -33,7 +33,7 @@ func prepareCloseChange(v *Validator, index *ProjectIndex, loaded *LoadedProject
 	if err := validateCloseVerificationStatus(record.VerificationStatus, options.VerificationStatus); err != nil {
 		return nil, "", nil, nil, nil, err
 	}
-	if err := validateCloseSuccessors(index, options.SupersededBy); err != nil {
+	if err := validateCloseSuccessors(index, changeID, options.SupersededBy); err != nil {
 		return nil, "", nil, nil, nil, err
 	}
 	writableRoot, err := writableContentRoot(loaded)
@@ -51,8 +51,11 @@ func prepareCloseChange(v *Validator, index *ProjectIndex, loaded *LoadedProject
 	return record, writableRoot, updated, writes, changedFiles, nil
 }
 
-func validateCloseSuccessors(index *ProjectIndex, successorIDs []string) error {
+func validateCloseSuccessors(index *ProjectIndex, changeID string, successorIDs []string) error {
 	for _, successorID := range successorIDs {
+		if successorID == changeID {
+			return fmt.Errorf("superseded_by must not reference the change itself")
+		}
 		if _, ok := index.Changes[successorID]; !ok {
 			return fmt.Errorf("superseded_by references missing change %q", successorID)
 		}
@@ -72,89 +75,6 @@ func buildClosedStatusMap(index *ProjectIndex, record *ChangeRecord, options Cha
 	applyClosePromotionAssessment(closed, record)
 	return closed, nil
 }
-
-func applyClosePromotionAssessment(updated map[string]any, record *ChangeRecord) {
-	if preservePromotionAssessmentState(updated["promotion_assessment"]) {
-		return
-	}
-	targets := closePromotionTargets(record)
-	status := "none"
-	if len(targets) > 0 {
-		status = "suggested"
-	}
-	updated["promotion_assessment"] = map[string]any{
-		"status":            status,
-		"suggested_targets": targets,
-	}
-}
-
-func preservePromotionAssessmentState(raw any) bool {
-	promotionRaw, ok := raw.(map[string]any)
-	if !ok {
-		return false
-	}
-	status := strings.TrimSpace(fmt.Sprint(promotionRaw["status"]))
-	return status == "accepted" || status == "completed"
-}
-
-func closePromotionTargets(record *ChangeRecord) []any {
-	// Specs and decisions are sourced from normalized traceability refs on the
-	// change record, while standards suggestions come from standards.md refs.
-	targets := make([]any, 0)
-	for _, path := range sortedUniqueStrings(record.RelatedSpecs) {
-		targets = append(targets, map[string]any{
-			"target_type": "spec",
-			"target_path": path,
-			"summary":     promotionSummarySpec,
-		})
-	}
-	if record.Type == "standard" {
-		for _, path := range sortedUniqueStrings(record.StandardRefs) {
-			targets = append(targets, map[string]any{
-				"target_type": "standard",
-				"target_path": path,
-				"summary":     promotionSummaryStandard,
-			})
-		}
-	}
-	for _, path := range sortedUniqueStrings(record.RelatedDecisions) {
-		targets = append(targets, map[string]any{
-			"target_type": "decision",
-			"target_path": path,
-			"summary":     promotionSummaryDecision,
-		})
-	}
-	return targets
-}
-
-func trimmedStringField(raw any) string {
-	s, ok := raw.(string)
-	if !ok {
-		return ""
-	}
-	return strings.TrimSpace(s)
-}
-
-func sortedUniqueStrings(items []string) []string {
-	clean := make([]string, 0, len(items))
-	for _, item := range items {
-		trimmed := strings.TrimSpace(item)
-		if trimmed == "" {
-			continue
-		}
-		clean = append(clean, trimmed)
-	}
-	if len(clean) == 0 {
-		return []string{}
-	}
-	return uniqueSortedStrings(clean)
-}
-
-const (
-	promotionSummarySpec     = "Review and promote durable spec updates from this change."
-	promotionSummaryStandard = "Review and promote durable standards updates from this change."
-	promotionSummaryDecision = "Review and promote durable decision updates from this change."
-)
 
 func buildCloseStatusWrites(v *Validator, index *ProjectIndex, writableRoot string, record *ChangeRecord, changeID string, updated map[string]any, successorIDs []string) ([]fileRewrite, []FileMutation, error) {
 	mainWrite, changedFiles, err := buildPrimaryCloseStatusWrite(v, writableRoot, record, updated)
@@ -246,30 +166,4 @@ func buildCloseChangeResult(record *ChangeRecord, writableRoot, changeID string,
 		PromotionAssessmentStatus: promotionStatus,
 		SuggestedPromotionTargets: promotionTargets,
 	}
-}
-
-func closePromotionAssessmentDetails(updated map[string]any) (string, []string) {
-	promotionRaw, ok := updated["promotion_assessment"].(map[string]any)
-	if !ok {
-		return "", nil
-	}
-	status := strings.TrimSpace(fmt.Sprint(promotionRaw["status"]))
-	targets := make([]string, 0)
-	for _, targetRaw := range extractAnySlice(promotionRaw["suggested_targets"]) {
-		targetMap, ok := targetRaw.(map[string]any)
-		if !ok {
-			continue
-		}
-		targetType := trimmedStringField(targetMap["target_type"])
-		targetPath := trimmedStringField(targetMap["target_path"])
-		if targetType == "" && targetPath == "" {
-			continue
-		}
-		if targetType == "" {
-			targets = append(targets, targetPath)
-			continue
-		}
-		targets = append(targets, targetType+":"+targetPath)
-	}
-	return status, targets
 }
