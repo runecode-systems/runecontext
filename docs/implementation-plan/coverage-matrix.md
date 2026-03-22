@@ -16,7 +16,7 @@ milestones, and executable fixtures/tests.
 | Why RuneContext Exists | Product positioning and portability guardrails | `alpha.1`, `README.md` | Yes |
 | Best Ideas To Keep From Agent OS | Markdown-first, low-ceremony, path-referenced standards | `alpha.1`, `alpha.3` | Yes |
 | OpenSpec Ideas To Mix In | Change orientation, lifecycle state, traceability | `alpha.3`, `alpha.4` | Yes |
-| Research Findings / Design Implications | Planning principles, progressive disclosure, reviewable diffs | `README.md`, `alpha.3`, `alpha.5`, `alpha.7` | Yes |
+| Research Findings / Design Implications | Planning principles, progressive disclosure, reviewable diffs, conversational adapter UX, and brownfield adoption guidance | `README.md`, `alpha.7`, `post-mvp.md` | Yes |
 | Goals | Acceptance criteria and MVP boundaries | `README.md`, `mvp-acceptance.md` | Yes |
 | Non-Goals | Scope guardrails and post-MVP separation | `README.md`, `post-mvp.md` | Yes |
 | Product Decomposition | Core/adapters/RuneCode repository boundary | `alpha.1` | Yes |
@@ -58,7 +58,7 @@ milestones, and executable fixtures/tests.
 | Historical Traceability Requirements | Future-safe linkage and readable history | `alpha.3`, `alpha.4` | Yes |
 | Minimal Process And User Experience | Small mental model and progressive disclosure | `alpha.3`, `alpha.5`, `alpha.7` | Yes |
 | Invocation Surfaces And Command Architecture | Thin early change/status wrappers, broader CLI surface, clear command boundaries, shared machine-facing flags/contracts, and completion metadata | `alpha.3`, `alpha.5`, `alpha.7` | Yes |
-| Adapters | Thin adapters, capability model, auto-validation workflow hooks, and adapter-aware suggestion UX | `alpha.7` | Yes |
+| Adapters | Thin adapters, conversational adapter UX for core authoring/discovery/promotion flows, capability model, auto-validation workflow hooks, and adapter-aware suggestion UX | `alpha.7`, `post-mvp.md` | Yes |
 | RuneCode Integration Details / Required Capabilities | Companion-track fixtures and acceptance checkpoints | `alpha.2`-`alpha.8`, `mvp-acceptance.md` | Yes |
 | Context Pack Delivery Into Isolates | Pack-hash, artifact, and typed-delivery readiness for companion integration | `alpha.4`-`alpha.8`, `mvp-acceptance.md` | Yes |
 | Reviewable Intent In RuneCode History | Change/proposal binding and audit-history readiness | `alpha.3`-`alpha.8`, `mvp-acceptance.md` | Yes |
@@ -307,12 +307,18 @@ milestones, and executable fixtures/tests.
   persisting files.
   - Planned capture: `alpha.5`
 - Decision: alpha.5 `runectx init` is repo-local and local-first; release/install
-  hardening and network-enabled init/upgrade behavior remain alpha.8 work.
+  hardening and the explicit network-enabled `runectx upgrade` flow remain
+  alpha.8 work.
   - Planned capture: `alpha.5`, `alpha.8`
-- Decision: `adapter pack` is the packaged tool UX surface, and
-  `runecontext/operations/` is the canonical in-project reference/source area
-  for underlying RuneContext operations.
+- Decision: `adapter` means the tool UX layer, `adapter pack` means the
+  packaged release payload for an adapter, and `runecontext/operations/` is the
+  canonical in-project reference/source area for underlying RuneContext
+  operations.
   - Planned capture: `alpha.1`, `alpha.7`
+- Decision: one typed internal command/operation registry should be the
+  canonical source for operations docs, completion generation,
+  machine-readable completion metadata, and adapter-native suggestion surfaces.
+  - Planned capture: `alpha.7`
 - Decision: alpha.7 completion should officially target Bash, Zsh, and Fish
   first, with PowerShell and Windows command-prompt completion deferred until
   after the MVP.
@@ -320,6 +326,21 @@ milestones, and executable fixtures/tests.
 - Decision: repo-aware suggestions should remain read-only, honor nearest-root
   discovery and explicit `--path`, and degrade gracefully outside RuneContext
   projects.
+  - Planned capture: `alpha.7`
+- Decision: adapter-triggered validation should be limited to authored
+  authoritative RuneContext files and should exclude generated artifacts,
+  adapter-managed files, and unrelated repository code.
+  - Planned capture: `alpha.7`
+- Decision: the `generic` adapter should remain thin and documentation-first,
+  while dynamic suggestions and tool-native automation live in shared CLI or
+  tool-specific layers.
+  - Planned capture: `alpha.7`
+- Decision: adapter sync must preserve explicit boundaries between tool-managed
+  files and user-owned config, with synced manifests remaining convenience
+  metadata rather than correctness-critical state.
+  - Planned capture: `alpha.7`, `alpha.8`
+- Decision: compatibility mode should be capability-based and explicit so weaker
+  hosts lose convenience rather than changing RuneContext semantics.
   - Planned capture: `alpha.7`
 - Decision: the release workflow should mirror RuneCode's tag-driven
   build/publish structure, with Nix defining the canonical unsigned release
@@ -329,28 +350,61 @@ milestones, and executable fixtures/tests.
   attested convenience assets without replacing the canonical repo bundles.
   - Planned capture: `alpha.8`
 - Decision: adapter packs ship with the selected RuneContext release, and
-  `runectx adapter sync <tool>` materializes them locally rather than fetching
-  them implicitly from GitHub.
+  `runectx adapter sync <tool>` materializes local adapter files from those
+  packaged contents rather than fetching them implicitly from GitHub.
   - Planned capture: `alpha.7`, `alpha.8`
-- Decision: adapter packs should automatically run `runectx validate` after
-  edits to authoritative RuneContext files and surface failures immediately.
+- Decision: adapter-driven workflows should automatically run `runectx validate`
+  after edits to authoritative RuneContext files and surface failures
+  immediately.
   - Planned capture: `alpha.7`
-- Decision: `runectx` must not make network calls outside explicit `init` and
-  `upgrade` flows.
+- Decision: adapter-layer features should remain thin UX over explicit core
+  operations and stable candidate data rather than inventing adapter-only
+  hidden semantics or alternate mutation paths.
+  - Planned capture: `README.md`, `alpha.7`
+- Decision: conversational adapter UX should be a pre-MVP priority for
+  `change new`, `change shape`, `standard discover`, and `promote` when the
+  host supports normal chat-driven flows, while weaker hosts degrade gracefully
+  without changing semantics.
+  - Planned capture: `alpha.7`, `mvp-acceptance.md`
+- Decision: if adapters expose standards-discovery scoping or focus inputs,
+  those inputs must exist in the underlying operation/CLI contract rather than
+  living only in prompt text or hidden tool state.
+  - Planned capture: `alpha.7`, `mvp-acceptance.md`
+- Decision: `runectx` must not make network calls outside explicit `upgrade`
+  flows.
   - Planned capture: `alpha.5`, `alpha.7`, `alpha.8`
+- Decision: `runectx init` remains local-only and scaffolds from already-
+  installed RuneContext release contents; `runectx upgrade` is the only CLI
+  flow allowed to make narrow, explicit network calls.
+  - Planned capture: `alpha.8`
 - Decision: `runectx upgrade` is preview-first and reviewable, and
   `runectx upgrade apply` is the only durable mutation surface for source-tree
   upgrades and migrations.
+  - Planned capture: `alpha.8`
+- Decision: project upgrade planning should classify state explicitly as
+  `current`, `upgradeable`, `unsupported_project_version`,
+  `mixed_or_stale_tree`, or `conflicted` before apply is allowed.
+  - Planned capture: `alpha.8`
+- Decision: the upgrade migrator registry should be driven by project-level
+  `runecontext_version` transition edges, with file-level `schema_version`
+  checks and explicit migration markers acting as subordinate transform gates.
   - Planned capture: `alpha.8`
 - Decision: source upgrades must be transactional: stage in tool-owned
   temporary space, validate before replace, and auto-rollback on in-flight
   failure; successful rollback stays in normal VCS history rather than hidden
   tool state.
   - Planned capture: `alpha.8`
+- Decision: embedded upgrade conflicts should fail closed with a reviewable
+  conflict set rather than auto-merging or overwriting user-modified managed
+  files.
+  - Planned capture: `alpha.8`
 - Decision: `type: path` sources remain externally managed for upgrades and must
   never be mutated by `runectx`; users are directed to navigate to the owning
   source path and run the upgrade there.
   - Planned capture: `alpha.8`
+- Decision: migration from another spec-driven system is a separate adoption/
+  import surface and must not overload `runectx upgrade`.
+  - Planned capture: `README.md`, `alpha.8`, `post-mvp.md`
 - Decision: embedded upgrades may rewrite managed repo-local files, git upgrades
   mutate only pinned source references in `runecontext.yaml`, and read-only
   commands must never perform hidden migration.
@@ -359,10 +413,35 @@ milestones, and executable fixtures/tests.
   `doctor` should detect stale files and require an explicit rerun of
   `runectx upgrade`.
   - Planned capture: `alpha.8`, `v0.1.0`
+- Decision: Windows MVP support should cover portability validation and
+  repo-bundle usability, while Windows binary/distribution convenience parity
+  remains post-MVP.
+  - Planned capture: `alpha.8`, `post-mvp.md`
 - Decision: `plain` and `verified` should share one authored workflow, and
   standalone `runectx` must be able to emit the same portable minimal receipts a
   Verified repo requires while RuneCode adds richer parallel evidence.
   - Planned capture: `alpha.6`
+- Decision: assurance baseline and receipt families should share one portable
+  artifact envelope, with explicit artifact kind, stable subject identity,
+  deterministic hashing metadata where applicable, and visible provenance-class
+  distinctions.
+  - Planned capture: `alpha.6`
+- Decision: `runectx bundle resolve` remains read-only even in Verified mode;
+  portable context-pack receipts come from an explicit assurance capture surface
+  that emits the pack and receipt from the same validated snapshot.
+  - Planned capture: `alpha.5`, `alpha.6`
+- Decision: assurance validation should cover repo-local schema, integrity, and
+  linkage semantics without depending on external services, hidden caches, or
+  replayed historical operations.
+  - Planned capture: `alpha.6`
+- Decision: backfill is additive-only, bounded to pre-adoption history, and
+  must never rewrite native post-adoption `captured_verified` receipts.
+  - Planned capture: `alpha.6`
+- Decision: future project/company instruction assets should live in a separate
+  portable artifact family that adapters compile into tool-native skills,
+  prompts, or instruction files, while capability-bearing tool configuration
+  remains outside RuneContext core semantics.
+  - Planned capture: `README.md`, `post-mvp.md`
 
 ## Deferred But Captured
 

@@ -49,6 +49,24 @@ historical cleanup from new feature design work.
   transactional staging with validate-before-replace and automatic in-flight
   rollback, no hidden migrations in read-only commands, and externally managed
   handling for `type: path` sources.
+- 2026-03-22: Recorded that the old `runecontext/commands/` wording in
+  `docs/project_idea.md` is stale historical text. The current normative path
+  for the canonical in-project reference is `runecontext/operations/`.
+- 2026-03-22: Clarified adapter terminology across the plan: `adapter` means the
+  tool-specific UX layer, `adapter pack` means the packaged release payload for
+  an adapter, and `runectx adapter sync <tool>` is the local materialization
+  command for those packaged contents.
+- 2026-03-22: Recorded the adapter UX refinement for the remaining MVP work:
+  conversational tool-native flows for `change new`, `change shape`,
+  `standard discover`, and `promote` belong in adapters as thin UX over
+  explicit core operations, with any discovery scope/focus inputs exposed in
+  the underlying operation contract rather than hidden in prompt-only state.
+- 2026-03-22: Recorded two post-MVP planning boundaries from enhancement
+  review: migration from other spec-driven systems is a separate adoption/
+  import surface rather than part of `runectx upgrade`, and future portable
+  instruction-module work should compile into tool-native skills/prompts/
+  instructions without turning capability-bearing tool config into RuneContext
+  core semantics.
 
 ## MVP Definition
 
@@ -67,6 +85,8 @@ The MVP includes every v1 RuneContext feature described in
 - Plain and Verified assurance tiers
 - minimal CLI surface
 - thin adapters as the primary day-to-day UX
+- conversational adapter UX for selected authoring, discovery, and promotion
+  flows built as thin layers over explicit core operations
 - repo-first releases, reviewable upgrades, and compatibility documentation
 - signed and attested Linux/macOS `runectx` binaries as convenience release
   assets alongside the canonical repo bundles
@@ -85,7 +105,7 @@ contracts RuneCode needs in order to integrate cleanly.
 | `v0.1.0-alpha.4` | Deterministic context packs, stable generated indexes, and reviewable promotion assessment |
 | `v0.1.0-alpha.5` | Broadened CLI, `init` scaffolding, promotion/resolve flows, validation, doctoring, and machine-facing command contracts |
 | `v0.1.0-alpha.6` | Plain/Verified assurance, baselines, receipts, and backfill |
-| `v0.1.0-alpha.7` | Generic and tool-specific adapters plus adapter-pack UX |
+| `v0.1.0-alpha.7` | Generic and tool-specific adapters, conversational adapter UX, completion UX, and local adapter sync |
 | `v0.1.0-alpha.8` | Release/install/upgrade hardening, networked `init`/`upgrade` flows, and end-to-end MVP readiness fixtures |
 | `v0.1.0` | Stabilization, compatibility freeze, and MVP acceptance sign-off |
 
@@ -292,22 +312,75 @@ and coverage stay in one place.
 - Keep `runectx standard discover` advisory-only and `runectx promote` as the
   only durable promotion-mutation surface; interactive handoff must use
   explicit candidate data rather than hidden session state.
-- Keep alpha.5 `runectx init` local-first; network-enabled init/upgrade
-  hardening remains alpha.8 work.
+- Keep `runectx init` local-first and local-only; it should scaffold from the
+  already-installed RuneContext release contents rather than fetching project
+  files over the network.
 - Keep completion and autocomplete metadata derived from the same stable CLI
   command/flag/value definitions rather than maintaining a second hand-authored
   command model.
+- Keep one typed internal command/operation registry as the canonical source for
+  CLI metadata; human-readable operations docs, shell completion scripts,
+  machine-readable completion metadata, and adapter-native suggestion surfaces
+  should all be derived from that same registry.
+- Keep adapter-layer features implemented as thin UX over explicit core
+  operations and stable candidate data; adapters may be more conversational,
+  but they must not invent hidden semantics, alternate mutation paths, or a
+  second source of truth.
+- Keep conversational adapter UX focused on authoring/discovery/promotion flows
+  such as `change new`, `change shape`, `standard discover`, and `promote`;
+  prefer normal host conversation turns plus reviewable outputs over disruptive
+  questionnaire-style widgets when the host can support that pattern.
+- Keep discovery scoping and user-supplied focus inputs explicit in the
+  underlying operation and stable CLI contract whenever adapters expose them,
+  so those semantics are not trapped inside prompt text.
 - Keep repo-aware suggestions read-only, nearest-root-aware, and resilient when
   the current directory is not a RuneContext project.
+- Keep adapter-triggered validation narrowly scoped to authored authoritative
+  RuneContext files rather than generated artifacts, adapter-managed files, or
+  unrelated repository code.
+- Keep adapter sync ownership explicit: tool-managed files live in a namespaced
+  managed subtree, user-owned config boundaries stay reviewable, and synced
+  manifests remain convenience metadata rather than correctness-critical state.
+- Keep adapter terminology crisp: `adapter` names the tool UX layer, `adapter
+  pack` names the packaged release payload for an adapter, and
+  `runectx adapter sync <tool>` names the local materialization surface.
+- Keep the `generic` adapter as a thin host-agnostic baseline pack focused on
+  docs, examples, and manual/CLI-assisted workflows; dynamic suggestions and
+  tool-native automation belong to shared CLI or tool-specific layers instead.
+- Keep adapter compatibility mode explicit and capability-based: weaker hosts may
+  lose convenience features such as prompts, hooks, or dynamic suggestions, but
+  they must not change core RuneContext semantics.
+- Keep future project/company instruction assets as a separate portable source
+  family compiled by adapters into tool-native skills, prompts, or instruction
+  files; do not treat those generated tool-native files as the authoritative
+  source of truth.
+- Keep capability-bearing tool configuration outside RuneContext core semantics,
+  including permissions, execution rules, hooks with side effects, MCP trust or
+  credential config, model-selection policy, and any other setting that would
+  widen runtime authority.
 - Keep write-command `--dry-run` behavior centered on simulating planned
   mutations and validating the resulting would-be project state rather than
   emitting prose-only intent.
 - Keep deployment-specific evidence discovery, service locators, tenancy/auth,
   and checkpoint-routing metadata outside RuneContext core semantics; RuneCode-
   owned metadata may reference RuneContext outputs without redefining them.
+- Keep assurance baseline and receipt families aligned around one portable
+  artifact envelope: explicit artifact kind, stable subject identity,
+  deterministic hashing/canonicalization metadata where applicable, and visible
+  provenance classes so future audit consumers do not need a format refactor.
 - Keep context packs generally on-demand or ephemeral, and keep high-frequency
   runtime evidence out of the committed RuneContext tree; baselines and minimal
   portable receipts may be committed when assurance requires them.
+- Keep `runectx bundle resolve` read-only in every assurance tier; portable
+  context-pack receipts come from an explicit verified capture surface that
+  builds the pack and receipt from the same validated snapshot rather than from
+  hidden side effects during resolve.
+- Keep assurance validation repo-local and self-contained: schema, integrity,
+  and linkage checks should not depend on external services, home-directory
+  caches, or replaying historical operations.
+- Keep backfill additive-only and bounded to pre-adoption history; imported
+  evidence attaches to the adoption baseline and never rewrites native captured
+  verified receipts.
 - Keep shaped change docs lean: `design.md` and `verification.md` are the
   default shaped artifacts, while `tasks.md` and `references.md` are created
   only when they add real value.
@@ -322,22 +395,42 @@ and coverage stay in one place.
 - Keep normal adapter management local and reviewable; `runectx adapter sync
   <tool>` materializes files from the already-installed RuneContext release and
   must not fetch adapter packs implicitly.
-- Keep `runectx` network access limited to explicit `init` and `upgrade`
-  flows.
+- Keep alpha.7 adapter sync focused on local materialization from installed or
+  pinned release contents; alpha.8 hardens release packaging and broader sync/
+  update behavior without changing the local-first sync model.
+- Keep `runectx` network access limited to an explicit, narrow `upgrade` flow;
+  routine project initialization, adapter sync, validation, and other project
+  file operations should use already-installed local release contents.
 - Keep `runectx upgrade` explicit and preview-first: `runectx upgrade` reports
   the reviewable plan, and `runectx upgrade apply` is the only durable mutation
   surface for source upgrades and migrations.
+- Keep migration from other spec-driven systems separate from `runectx upgrade`;
+  external adoption/import flows are future dedicated surfaces, not hidden
+  upgrade behavior.
+- Keep `runectx upgrade` state explicit and fail-closed: project state should be
+  classified as current, upgradeable, unsupported, mixed/stale, or conflicted
+  before apply is allowed.
+- Keep project upgrade planning centered on project-level `runecontext_version`
+  transitions, with file-level `schema_version` checks and explicit migration
+  markers acting as subordinate gates for individual transforms.
 - Keep source upgrades transactional: stage work in tool-owned temporary space,
   validate the staged result before replacing live files, and roll back
   automatically on any in-flight failure.
 - Keep successful rollback in normal project history rather than a hidden
   RuneContext rollback store or other second source of truth.
+- Keep embedded upgrade conflict handling fail-closed: if user-modified managed
+  files are detected, preview should emit a reviewable conflict set and
+  `upgrade apply` should refuse to proceed rather than auto-merging or
+  overwriting.
 - Keep `type: path` sources externally managed for upgrades: surface the owning
   source path and instructions, but never mutate files outside the selected
   project root.
 - Keep mixed-version trees after merge/rebase invalid but repairable through an
   explicit rerun of `runectx upgrade`; `validate` and `doctor` should detect the
   stale-file state rather than silently tolerating it.
+- Keep Windows MVP support focused on repo-bundle usability and portability
+  validation; convenience binary/distribution parity beyond Linux/macOS remains
+  post-MVP work.
 - Treat RuneContext content as untrusted LLM input as well as untrusted policy
   input; rely on typed boundaries, review, and isolation rather than trusting
   the text itself.

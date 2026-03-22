@@ -271,10 +271,15 @@
 - [ ] `runectx adapter sync <tool>` uses the installed or pinned RuneContext
   release contents rather than implicitly fetching adapter packs from the
   network.
+- [ ] `runectx adapter sync <tool>` preserves explicit boundaries between
+  tool-managed files and user-owned config and does not silently rewrite
+  arbitrary host-tool configuration.
 - [x] Machine-facing flags exist and behave consistently: `--json`,
   `--non-interactive`, `--dry-run`, and `--explain`.
 - [ ] `runectx completion <bash|zsh|fish>` exists and stays aligned with the
   stable CLI command/flag/value surface.
+- [ ] One typed command/operation registry drives operations docs, completion,
+  machine-readable completion metadata, and adapter-native suggestion surfaces.
 - [x] Machine-facing JSON output uses one documented envelope and failure
   taxonomy across commands rather than drifting command by command.
 - [x] Write-command `--dry-run` behavior simulates planned mutations and
@@ -286,7 +291,8 @@
   incremental; current alpha.5 commands surface explicit `explain_warning`
   metadata when `--explain` is accepted but detailed explain output is pending.
 - [x] `runectx init` covers repo-local embedded/linked scaffolding in alpha.5,
-  while network-enabled init/upgrade hardening remains deferred to alpha.8.
+  while broader release/install hardening and the explicit network-enabled
+  `runectx upgrade` flow remain deferred to alpha.8.
 - [ ] `runectx standard discover` is advisory-only; interactive runs may chain
   into `promote` only after explicit confirmation, while `--non-interactive`
   discovery emits reusable candidate data and exits without mutation.
@@ -301,23 +307,35 @@
 - [ ] Plain and Verified use the same authored workflow and repository source
   model; Verified adds portable evidence requirements rather than alternate
   source-of-truth files.
+- [ ] Baseline and receipt families share one stable portable assurance envelope
+  with explicit artifact kind, stable subject identity, deterministic hashing
+  metadata where applicable, and explicit provenance-class distinctions.
 - [ ] Verified mode generates a baseline artifact.
 - [ ] Verified mode generates receipt families for context packs, changes,
   promotions, and verifications.
 - [ ] Standalone `runectx` can generate the same minimal portable receipt set
   that a Verified repository requires for mixed-team collaboration.
+- [ ] `runectx bundle resolve` remains read-only in both tiers; Verified
+  context-pack receipts come from an explicit capture flow that emits the pack
+  and receipt from the same validated snapshot.
 - [ ] RuneCode may attach richer parallel audit evidence without becoming the
   only place correctness-critical assurance state lives.
 - [ ] Verified commit policy preserves a low-noise portable tree: baselines and
   minimal portable receipts may be committed, while high-frequency runtime
   evidence stays outside RuneContext's core repository model.
+- [ ] Verified mutation/capture flows fail closed if required portable receipt
+  emission fails.
 - [ ] Portable assurance artifacts do not depend on home-directory caches,
   external service availability, or deployment-specific evidence locator
   metadata for correctness.
+- [ ] `runectx validate` can check assurance artifact schemas plus repo-local
+  integrity/linkage semantics without external services, hidden caches, or
+  replayed historical commands.
 - [ ] Receipt filenames are collision-resistant and do not require a shared
   mutable index.
 - [ ] Backfill can generate imported historical provenance distinct from native
-  verified capture.
+  verified capture, and does so additively without rewriting native
+  post-adoption evidence.
 
 ## 7. Adapters
 
@@ -326,15 +344,35 @@
 - [ ] The `claude-code`, `opencode`, and `codex` adapters exist.
 - [ ] Adapters differ in UX only, not in core semantics or source-of-truth
   files.
+- [ ] The `generic` adapter remains thin and documentation-first rather than
+  becoming a second source of dynamic runtime behavior.
+- [ ] Adapter-layer features are implemented as thin UX over explicit core
+  operations and stable candidate data rather than adapter-only hidden
+  semantics.
+- [ ] At least one tool-specific adapter supports conversational flows for
+  `change new`, `change shape`, `standard discover`, and `promote` while still
+  producing reviewable outputs and preserving the same underlying semantics as
+  the CLI/core operations.
+- [ ] When adapters expose discovery scoping or focus inputs, those inputs map
+  to explicit underlying operation/CLI contract fields rather than living only
+  in prompt text or hidden tool state.
+- [ ] `runectx standard discover` supports those explicit scope/focus inputs as
+  stable underlying operation/CLI-contract fields for adapter-driven targeted
+  discovery.
 - [ ] Adapters and CLI shell completion reuse one canonical completion metadata
   model or equivalent provider surface rather than defining separate command
   semantics.
 - [ ] Adapter-driven edits to authoritative RuneContext files automatically run
   `runectx validate` and surface failures before the workflow step is treated as
   complete.
+- [ ] Authoritative-file validation triggers are limited to authored RuneContext
+  files rather than generated artifacts, adapter-managed files, or unrelated
+  repository code.
 - [ ] Repo-aware completion/suggestion UX can surface valid change IDs, bundle
   IDs, promotion targets, and adapter names without mutating project state.
-- [ ] Adapters are packaged for release.
+- [ ] Compatibility mode is explicit and capability-based so weaker hosts lose
+  convenience rather than changing RuneContext semantics.
+- [ ] Adapter packs are packaged for release.
 
 ## 8. Release, Install, And Upgrade
 
@@ -350,21 +388,30 @@
 - [ ] Linux and macOS `runectx` binary archives are published as signed and
   attested convenience assets without replacing the canonical repo bundles.
 - [ ] Manual repo install is documented and tested.
+- [ ] `runectx init` is local-only and scaffolds from already-installed release
+  contents rather than fetching project files over the network.
 - [ ] `runectx upgrade` is preview-first, diff-first, and reviewable.
 - [ ] `runectx upgrade apply` is the only durable mutation surface for source
   upgrades and migrations.
+- [ ] Project upgrade planning classifies state explicitly as `current`,
+  `upgradeable`, `unsupported_project_version`, `mixed_or_stale_tree`, or
+  `conflicted` before apply is allowed.
+- [ ] The upgrade planner/migrator registry is driven by project-level
+  `runecontext_version` transitions, with file-level `schema_version` checks and
+  explicit migration markers acting as subordinate transform gates.
 - [ ] Source upgrades stage work in tool-owned temporary space, validate the
   staged result before replacing live files, and auto-rollback on in-flight
   failure.
 - [ ] Successful rollback guidance relies on normal VCS history rather than a
   hidden RuneContext rollback store.
 - [ ] Embedded upgrades detect locally modified managed files and stop with
-  conflict-style guidance rather than silently overwriting user changes.
+  a reviewable conflict set and fail closed rather than silently overwriting or
+  auto-merging user changes.
 - [ ] Git upgrades update only pinned source reference fields in
   `runecontext.yaml` and do not rewrite linked source trees.
 - [ ] `type: path` sources are treated as externally managed and are never
   mutated in place; the CLI directs users to the owning source path.
-- [ ] Adapter sync/update is namespaced and merge-aware.
+- [ ] Adapter sync and re-sync behavior is namespaced and merge-aware.
 - [ ] Adapter sync materializes local tool files and config updates from the
   installed release content rather than acting as a remote installer.
 - [ ] Read-only commands such as `status`, `validate`, and `doctor` never
@@ -372,8 +419,11 @@
 - [ ] `validate` and `doctor` detect unsupported version combinations and stale
   mixed-version trees after merge/rebase and direct users to rerun
   `runectx upgrade`.
-- [ ] `runectx` makes no network calls outside explicit `init` and `upgrade`
+- [ ] `doctor` also provides explicit upgrade-readiness diagnostics.
+- [ ] `runectx` makes no network calls outside explicit `runectx upgrade`
   flows.
+- [ ] Windows MVP support covers portability validation and repo-bundle install
+  usability without requiring binary convenience parity.
 - [ ] The following anti-patterns are absent: required global installs,
   bash-only installers, overwriting existing `.claude`/`.github` files,
   hidden runtime-manager dependencies, template-only primary distribution,

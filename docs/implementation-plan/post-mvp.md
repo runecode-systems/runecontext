@@ -105,3 +105,76 @@ describes as optional or supplementary rather than mandatory for v1.
 
 - RuneCode can test advanced guardrails without depending on them for baseline
   correctness.
+
+## `v0.2.0-alpha.5` - External Spec-System Adoption And Migration
+
+Primary outcome: help brownfield repositories adopt RuneContext from other
+spec-driven/project-memory setups without overloading the core version-upgrade
+surface.
+
+Important boundary:
+
+- this work is separate from `runectx upgrade`
+- `runectx upgrade` remains reserved for RuneContext-version transitions and
+  RuneContext-managed migrations only
+
+### Epics
+
+- [ ] Issue: define a dedicated external adoption/import/migration command
+  surface separate from `runectx upgrade`.
+- [ ] Issue: implement a discovery-first advisory flow that scans an existing
+  documentation/spec tree and proposes how it maps into RuneContext artifacts.
+- [ ] Issue: prefer generic artifact classification and mapping heuristics over
+  per-tool one-off migration logic where practical.
+- [ ] Issue: support reviewable candidate outputs for likely standards, specs,
+  decisions, project files, and change-history artifacts discovered in a
+  foreign system.
+- [ ] Issue: optionally draft a new RuneContext change that plans and tracks the
+  migration rather than forcing one-shot in-place conversion.
+- [ ] Issue: add fixtures and end-to-end coverage for representative foreign
+  documentation layouts and brownfield adoption flows.
+
+### RuneCode Companion-Track Checkpoints
+
+- RuneCode can help brownfield repositories adopt RuneContext without redefining
+  `runectx upgrade` semantics or hidden migration behavior.
+
+## `v0.2.0-alpha.6` - Portable Instruction Modules And Adapter Compilation
+
+Primary outcome: support portable project/company instruction assets that
+adapters can compile into tool-native skills, prompts, and instruction files
+without making those tool-native outputs the source of truth.
+
+Important boundaries:
+
+- this work is separate from context-bundle selection semantics
+- portable instruction modules are a distinct authored artifact family, even if
+  they reuse inheritance/composition design ideas similar to bundles
+- capability-bearing tool configuration remains outside RuneContext core
+  semantics
+
+### Epics
+
+- [ ] Issue: define a portable instruction-module artifact family for reusable
+  project/company guidance, prompt templates, command guidance, and task
+  playbooks.
+- [ ] Issue: define inheritance/composition rules for those modules so shared
+  base guidance and more specific task/tool guidance combine deterministically.
+- [ ] Issue: define adapter compilation targets that render portable instruction
+  modules into tool-native skills, prompt files, repository instructions, or
+  equivalent host-specific outputs.
+- [ ] Issue: ensure generated tool-native outputs remain reviewable adapter
+  artifacts rather than authored RuneContext source of truth.
+- [ ] Issue: explicitly exclude capability-bearing surfaces such as
+  permissions/allowlists, execution rules, hooks with side effects, MCP trust or
+  credential config, model-selection policy, and other settings that would act
+  as runtime authority.
+- [ ] Issue: add parity fixtures proving that compiled outputs for supported
+  hosts preserve the portable authored meaning without changing core RuneContext
+  semantics.
+
+### RuneCode Companion-Track Checkpoints
+
+- RuneCode can consume the same portable project/company guidance assets as
+  advisory context inputs without treating tool-native adapter outputs as policy
+  authority.

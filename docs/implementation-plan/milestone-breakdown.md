@@ -887,7 +887,8 @@ dogfooding across this repository and other repositories.
 - `runectx init` should land here as the repo-local, local-first scaffolding
   and command-UX front door for embedded and linked workflows, while alpha.8
   keeps the release/install hardening, network-policy enforcement, and end-to-
-  end reference-fixture coverage for network-enabled install/update behavior.
+  end reference-fixture coverage for the explicit network-enabled upgrade
+  behavior.
 - `runectx promote` should be the only durable-mutation surface for promotion
   state. Close-time assessment still settles to `none` or `suggested`; explicit
   promote workflows own transitions to `accepted` and `completed`.
@@ -1017,6 +1018,11 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - `plain` and `verified` should share one authored workflow and one repository
   source model. Verified mode adds portable evidence requirements rather than an
   alternate authoring path.
+- Baseline and receipt families should share one assurance artifact envelope:
+  schema versioning, artifact kind, stable subject identity, creation metadata,
+  deterministic hashing/canonicalization metadata where applicable, and
+  explicit provenance-class support. Receipt artifacts additionally carry
+  `receipt_id` and `receipt_hash`.
 - Standalone `runectx` must be able to generate the same minimal portable
   Verified receipts that mixed-team collaboration depends on.
 - RuneCode may add richer parallel audit evidence, but that evidence must remain
@@ -1025,6 +1031,9 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
   baselines and minimal portable receipts may be committed when needed, but
   high-frequency runtime evidence must stay outside the portable RuneContext
   tree.
+- Alpha.6 should define commit-policy guidance per assurance artifact family up
+  front so future features do not have to infer whether a given baseline or
+  receipt file is normally committed, ignored, or treated as ephemeral.
 - Deployment-specific evidence discovery and service-routing metadata must stay
   outside RuneContext core semantics even when RuneCode later consumes portable
   baselines and receipts.
@@ -1035,17 +1044,55 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - Assurance receipts for durable knowledge promotion should attach to the
   explicit `runectx promote` workflow introduced in alpha.5 rather than
   inventing an assurance-only promotion mutation surface.
+- `runectx bundle resolve` must remain read-only in both tiers. Verified
+  context-pack receipts should come from an explicit assurance capture surface
+  that constructs the pack and receipt from the same validated snapshot rather
+  than by replaying resolution later.
+- Verified mutation and explicit-capture flows should fail closed if portable
+  receipt emission fails, rather than leaving durable state mutations behind
+  without their required evidence.
+- `runectx validate` for alpha.6 should validate assurance artifact schemas plus
+  repo-local integrity and linkage semantics that can be checked from repository
+  contents alone; it should not require external services or historical
+  operation replay.
+- Backfill should be additive-only and bounded to pre-adoption history. It may
+  inspect git history and existing RuneContext artifacts at or before the
+  selected adoption point, attach imported evidence to the baseline, and must
+  never rewrite later native captured receipts.
 
-### Epic 1: Assurance-tier model
+Implementation note: to keep reviews manageable without creating a review
+monster, alpha.6 work is grouped into the following recommended branch cuts.
+
+### Recommended Branch Cut 1: Assurance core, artifact contracts, and merge-safe receipts
 
 - [ ] Issue: implement persisted `plain` versus `verified` tier behavior.
-- [ ] Issue: implement generated baseline artifact shape and baseline creation.
+- [ ] Issue: implement a shared assurance artifact envelope for baselines and
+  receipt families, including artifact kind, stable subject identity, creation
+  metadata, deterministic hashing/canonicalization metadata where applicable,
+  and explicit provenance-class support.
+- [ ] Issue: implement generated baseline artifact shape and baseline creation,
+  including adoption commit, resolved source posture, and attachment points for
+  imported historical evidence.
 - [ ] Issue: implement receipt schemas and file conventions for context packs,
   changes, promotions, and verifications.
 - [ ] Issue: implement receipt hashing, receipt IDs, and collision-resistant
-  filenames.
+  filenames without any shared mutable index.
+- [ ] Issue: ensure receipts merge by file union where possible across branches.
+- [ ] Issue: ensure concurrent verified work does not produce hidden
+  correctness-critical state outside the repository.
+- [ ] Issue: implement commit-policy guidance for what each assurance artifact
+  family normally commits, ignores, or treats as ephemeral in Verified mode.
+- [ ] Issue: extend `runectx validate` to check assurance artifact schemas and
+  repo-local integrity/linkage semantics without external services or
+  historical-operation replay.
+- [ ] Issue: add golden fixtures for baselines and each receipt family.
+- [ ] Issue: add clean-machine and no-hidden-state tests showing that portable
+  assurance artifacts do not depend on host caches, service availability, or
+  deployment-specific local metadata for correctness.
+- [ ] Issue: add tests for merge-safe receipt generation and collision-resistant
+  file naming.
 
-### Epic 2: Verified enablement flow
+### Recommended Branch Cut 2: Verified enablement and explicit receipt integration
 
 - [ ] Issue: implement `runectx assurance enable verified`.
 - [ ] Issue: implement the Verified enablement flow from adoption commit through
@@ -1055,37 +1102,32 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
   operations.
 - [ ] Issue: ensure standalone `runectx` can generate the minimal portable
   receipt set required by a Verified repository without depending on RuneCode.
-- [ ] Issue: implement commit-policy guidance for what is committed, ignored, or
-  treated as ephemeral in Verified mode.
+- [ ] Issue: ensure `runectx bundle resolve` remains read-only in Verified mode.
+- [ ] Issue: implement an explicit verified context-pack capture surface that
+  emits the pack and its portable receipt from the same validated snapshot
+  rather than by replaying resolution later.
+- [ ] Issue: ensure Verified mutation/capture flows fail closed if portable
+  receipt emission fails.
+- [ ] Issue: add tests for Verified enablement, explicit pack-receipt capture,
+  and receipt-trigger integration with change, promotion, and verification
+  workflows.
 
-### Epic 3: Backfill and historical provenance
+### Recommended Branch Cut 3: Backfill and historical provenance
 
 - [ ] Issue: implement `runectx assurance backfill`.
 - [ ] Issue: implement imported provenance class support for historical work.
 - [ ] Issue: implement backfill traversal over git history and existing
-  RuneContext artifacts.
+  RuneContext artifacts, bounded to the historical range at or before the
+  selected adoption point.
 - [ ] Issue: attach imported/backfilled evidence to the adoption baseline.
 - [ ] Issue: ensure imported evidence remains visibly distinct from native
   verified evidence.
-
-### Epic 4: Merge and concurrency behavior
-
-- [ ] Issue: ensure assurance receipt generation does not depend on a shared
-  mutable index.
-- [ ] Issue: ensure receipts merge by file union where possible across branches.
-- [ ] Issue: ensure concurrent verified work does not produce hidden
-  correctness-critical state outside the repository.
-
-### Epic 5: Assurance tests and fixtures
-
-- [ ] Issue: add golden fixtures for baselines and each receipt family.
+- [ ] Issue: ensure backfill is additive-only and never rewrites native
+  post-adoption `captured_verified` receipts.
 - [ ] Issue: add tests distinguishing `captured_verified` from
   `imported_git_history` provenance.
-- [ ] Issue: add tests for Verified enablement, backfill flow, and merge-safe
-  receipt generation.
-- [ ] Issue: add clean-machine and no-hidden-state tests showing that portable
-  assurance artifacts do not depend on host caches, service availability, or
-  deployment-specific local metadata for correctness.
+- [ ] Issue: add tests for backfill flow and additive-only historical evidence
+  attachment.
 - [ ] Issue: add fixtures RuneCode can reuse to test audited-workflow gating and
   provenance ingestion.
 
@@ -1096,9 +1138,14 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
   consumption.
 - Verified repositories remain fully usable by mixed standalone RuneContext and
   RuneCode teams through the same portable receipt model.
+- Verified context-pack receipts are emitted through an explicit capture surface
+  that returns the pack and receipt from the same validated snapshot, while
+  `runectx bundle resolve` remains read-only.
 - Verified repositories preserve a low-noise commit policy and do not require
   deployment-specific evidence-service metadata or external service availability
   for correctness.
+- Assurance validation remains repo-local, deterministic, and fail-closed for
+  portable artifacts.
 - Historical backfill can strengthen trust without pretending to be native
   verified capture.
 - Assurance behavior is covered by deterministic fixtures rather than narrative
@@ -1109,6 +1156,8 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - RuneCode can gate audited workflows on `assurance_tier: verified`.
 - RuneCode can ingest baseline and receipt fixtures into its audit/provenance
   model.
+- RuneCode can request explicit portable context-pack receipt capture without
+  relying on read-only `bundle resolve` side effects.
 - RuneCode can reject `type: path` packs as verified provenance in audited
   flows.
 
@@ -1122,8 +1171,22 @@ tools while preserving one core model.
 - Adapters should preserve the alpha.5 split between advisory `standard
   discover` output and explicit confirmed `promote` mutations rather than
   inventing hidden tool-specific auto-promotion behavior.
+- The canonical in-project adapter reference should live under
+  `runecontext/operations/`; earlier historical references to
+  `runecontext/commands/` are stale and should not be revived.
+- Alpha.7 terminology should stay precise: `adapter` means the tool-specific UX
+  layer, `adapter pack` means the packaged release payload for an adapter, and
+  `runectx adapter sync <tool>` means local materialization of adapter files
+  from installed or pinned release contents.
+- Because the alpha.5 CLI broadening work is already complete, any additive
+  adapter-facing refinements needed for conversational host UX should land here
+  in alpha.7 rather than retroactively changing earlier milestone scope.
 - Rich completion and suggestion UX should derive from the stable alpha.5 CLI
   contract so completions are never a second command-definition source of truth.
+- Alpha.7 should formalize one typed internal command/operation registry as the
+  canonical completion metadata source. Human-readable operations docs, shell
+  completion scripts, machine-readable completion metadata, and tool-native
+  suggestion surfaces should all derive from that same registry.
 - Alpha.7 should target shell completion for Bash, Zsh, and Fish first.
   PowerShell and Windows command-prompt completion are deferred until after the
   MVP.
@@ -1132,81 +1195,144 @@ tools while preserving one core model.
 - Adapter-native suggestion UX should reuse the same underlying completion
   metadata/providers as shell completion rather than inventing adapter-only
   command semantics.
+- For authoring, discovery, and promotion workflows that users primarily reach
+  through adapters, alpha.7 should prefer conversational host-native UX for
+  `change new`, `change shape`, `standard discover`, and `promote` when the
+  host supports it, while avoiding disruptive questionnaire-style widgets.
+- Those conversational flows must remain thin UX over explicit core operations
+  and stable candidate data. If an adapter lets the user scope discovery to
+  specific files/directories or describe a focus area, the same structured
+  inputs must already exist in the underlying operation/CLI contract rather than
+  living only in prompt text.
+- Adapter-triggered `runectx validate` should run only after a workflow step
+  edits authored authoritative RuneContext files: `runecontext.yaml`,
+  `bundles/**/*.yaml`, `project/**/*.md`, `standards/**/*.md`, `specs/**/*.md`,
+  `decisions/**/*.md`, and recognized authored change files under
+  `changes/*/` (`status.yaml`, `proposal.md`, `standards.md`, `design.md`,
+  `verification.md`, `tasks.md`, `references.md`). Generated artifacts,
+  adapter-managed files, and unrelated repository code must not trigger this
+  rule.
+- Adapter sync should define explicit ownership boundaries: tool-managed files
+  live in a namespaced managed subtree, user-owned config updates stay explicit
+  and reviewable, and any synced manifest remains convenience metadata rather
+  than correctness-critical state.
+- The `generic` adapter should remain intentionally thin and documentation-first:
+  manual workflows, CLI-assisted workflows, non-agent examples, and reviewable
+  guidance. Dynamic suggestions and tool-native automation belong to shared CLI
+  completion or tool-specific adapters instead.
+- Compatibility mode should be capability-based and explicit. Weaker hosts may
+  fall back from prompts, hooks, or dynamic suggestions to docs and explicit CLI
+  commands, but they must not redefine RuneContext semantics.
+- Alpha.7 should deliver local-only `runectx adapter sync <tool>` behavior
+  against installed or pinned release contents; alpha.8 later hardens release
+  packaging and broader sync/update behavior without changing that local-first
+  boundary.
 
-### Epic 1: Canonical operations reference
+Implementation note: to keep reviews manageable and avoid baking more command
+metadata duplication into adapters, alpha.7 work is grouped into the following
+recommended branch cuts.
+
+### Recommended Branch Cut 1: Canonical operations reference, metadata registry, and static completion
 
 - [ ] Issue: author the canonical in-project operations reference under
   `runecontext/operations/`.
 - [ ] Issue: define adapter-to-core operation mapping rules.
 - [ ] Issue: define how adapters consume or derive from the canonical
   operations reference without redefining semantics.
-- [ ] Issue: define a canonical completion metadata model derived from the
-  stable CLI command, flag, and value contracts.
-- [ ] Issue: define the adapter-pack rule that edits to authoritative
-  RuneContext files must automatically trigger `runectx validate` before the
-  tool considers the workflow step complete.
-
-### Epic 2: Generic adapter
-
-- [ ] Issue: author the `generic` adapter pack with plain markdown workflow
-  docs.
-- [ ] Issue: provide example flows for manual, CLI-assisted, and non-agent use.
-- [ ] Issue: document completion and suggestion affordances for generic shell-
-  based workflows.
-
-### Epic 3: Tool-specific adapters
-
-- [ ] Issue: author the `claude-code` adapter pack.
-- [ ] Issue: author the `opencode` adapter pack.
-- [ ] Issue: author the `codex` adapter pack.
-- [ ] Issue: define compatibility-mode guidance for hosts with weaker
-  interaction capabilities.
-- [ ] Issue: add tool-native suggestion/autocomplete integrations that reuse the
-  canonical completion metadata for hosts that support richer UX.
-- [ ] Issue: add tool-native automation/skills that run `runectx validate`
-  after edits to authoritative RuneContext files and surface failures
-  immediately.
-
-### Epic 4: Completion And Suggestion UX
-
-- [ ] Issue: implement `runectx completion <bash|zsh|fish>` generation.
+- [ ] Issue: define additive operation/CLI-contract extensions needed for
+  conversational adapter UX, including explicit standards-discovery scope-path
+  and user-supplied focus inputs, without changing the completed alpha.5 core
+  command semantics.
+- [ ] Issue: implement one typed internal command/operation registry as the
+  canonical source for command, subcommand, flag, and stable enum/value
+  metadata.
+- [ ] Issue: define a canonical completion metadata model and machine-readable
+  export derived from that registry rather than from hand-authored docs or help
+  text parsing.
+- [ ] Issue: implement `runectx completion <bash|zsh|fish>` generation from the
+  canonical registry.
 - [ ] Issue: support static command, subcommand, and flag completion from the
   canonical CLI contract.
 - [ ] Issue: support enum/value completion for stable machine-facing and
   workflow flags.
+- [ ] Issue: add golden tests for generated Bash, Zsh, and Fish completion
+  scripts.
+- [ ] Issue: add parity tests proving completion metadata stays aligned with the
+  actual command and flag surface.
+
+### Recommended Branch Cut 2: Generic adapter and repo-aware read-only suggestions
+
+- [ ] Issue: author the `generic` adapter as a thin docs-first baseline for
+  manual, CLI-assisted, and non-agent workflows.
+- [ ] Issue: provide example flows for manual, CLI-assisted, and non-agent use.
+- [ ] Issue: document the conversational adapter pattern for host-native
+  chat-driven flows that map back to explicit RuneContext operations instead of
+  questionnaire-style UX or adapter-only state.
+- [ ] Issue: document that dynamic suggestions are a shared CLI/completion
+  feature rather than `generic` adapter-specific hidden behavior.
 - [ ] Issue: implement repo-aware dynamic suggestions for change IDs, bundle IDs,
   promotion target paths, and adapter names where applicable.
-- [ ] Issue: ensure completion and suggestion flows never mutate project state
-  and fail soft outside RuneContext repositories.
+- [ ] Issue: ensure completion and suggestion flows never mutate project state,
+  honor nearest-root discovery and explicit `--path`, and fail soft outside
+  RuneContext repositories.
+- [ ] Issue: add fixture tests for repo-aware suggestions across embedded,
+  linked, and monorepo projects.
 
-### Epic 5: Adapter packaging and sync
+### Recommended Branch Cut 3: Adapter sync, one real tool adapter, and validation-hook boundaries
 
-- [ ] Issue: implement adapter packaging for release artifacts as packs bundled
-  with the selected RuneContext release.
 - [ ] Issue: implement the `runectx adapter sync <tool>` command as the
   adapter-management CLI surface for local adapter materialization from the
   installed or pinned RuneContext release.
 - [ ] Issue: define merge-aware adapter sync/update behavior, including managed
   file boundaries, reviewable diffs, and explicit local config updates where
   required.
+- [ ] Issue: ensure adapter sync writes tool-managed files only inside a
+  namespaced managed subtree and never silently rewrites arbitrary user-owned
+  tool configuration.
+- [ ] Issue: define adapter-managed manifest contents for synced packs as
+  convenience metadata only, not correctness-critical state.
 - [ ] Issue: ensure adapter sync never fetches from GitHub or any other network
   source; network access is reserved for explicit `runectx init` and
   `runectx upgrade` flows.
 - [ ] Issue: ensure adapters never introduce tool-specific source-of-truth
   files.
+- [ ] Issue: define the adapter rule that conversational UX for `change new`,
+  `change shape`, `standard discover`, and `promote` remains a thin wrapper
+  over explicit core operations, stable candidate data, and reviewable outputs.
+- [ ] Issue: ensure explicit promotion candidate/target data is reusable by tool
+  adapters so conversational adapter flows do not depend on hidden session
+  state or questionnaire-style handoff.
+- [ ] Issue: define the authoritative-file rule for adapter-triggered
+  `runectx validate`, limited to authored RuneContext files and excluding
+  generated artifacts, adapter-managed files, and unrelated repository code.
+- [ ] Issue: author one tool-specific adapter end to end.
+- [ ] Issue: make that first end-to-end tool adapter support conversational
+  flows for `change new`, `change shape`, `standard discover`, and `promote`
+  without changing core semantics.
+- [ ] Issue: add tool-native automation/skills that run `runectx validate`
+  after edits to authoritative RuneContext files and surface failures
+  immediately.
+- [ ] Issue: add smoke and parity tests for the first end-to-end tool adapter,
+  sync behavior, managed-file boundaries, validate-after-edit triggering, and
+  conversational-flow parity with the underlying CLI/operation contracts.
 
-### Epic 6: Adapter tests and parity
+### Recommended Branch Cut 4: Remaining tool-specific adapters, compatibility mode, and parity hardening
 
+- [ ] Issue: author the remaining `claude-code`, `opencode`, and `codex`
+  adapters.
+- [ ] Issue: define compatibility-mode guidance for hosts with weaker
+  interaction capabilities, including capability declarations and downgrade
+  behavior for prompts, shell access, hooks, dynamic suggestions, and
+  structured-output integration.
+- [ ] Issue: add tool-native suggestion/autocomplete integrations that reuse the
+  canonical completion metadata for hosts that support richer UX.
+- [ ] Issue: add parity checks proving that richer conversational adapter UX for
+  `change new`, `change shape`, `standard discover`, and `promote` still maps
+  back to the same explicit core operations and candidate data across hosts.
 - [ ] Issue: add smoke tests for the `generic`, `claude-code`, `opencode`, and
   `codex` adapters.
 - [ ] Issue: add parity checks showing adapter flows map back to the same core
   operations and expected file mutations.
-- [ ] Issue: add golden tests for generated Bash, Zsh, and Fish completion
-  scripts.
-- [ ] Issue: add parity tests proving completion metadata stays aligned with the
-  actual command and flag surface.
-- [ ] Issue: add fixture tests for repo-aware suggestions across embedded,
-  linked, and monorepo projects.
 - [ ] Issue: add tests ensuring adapters do not introduce hidden state or
   adapter-only correctness requirements.
 - [ ] Issue: add tests ensuring adapter-driven edits to authoritative
@@ -1218,12 +1344,21 @@ tools while preserving one core model.
 - At least one tool-specific adapter is usable end to end.
 - All adapters map back to the same underlying operations.
 - Users can still work directly with repo files and CLI without any adapter.
+- One typed command/operation registry drives operations docs, completion,
+  machine-readable completion metadata, and adapter-native suggestion surfaces.
 - Bash, Zsh, and Fish users can install shell completion for the stable CLI
   surface.
+- At least one tool-specific adapter provides conversational UX for `change
+  new`, `change shape`, `standard discover`, and `promote` without changing the
+  underlying RuneContext semantics.
 - Repo-aware suggestions help users discover valid change IDs, bundles,
   promotion targets, and adapter names without mutating project state.
-- Adapter sync materializes the selected tool pack from the installed release
-  without requiring network access.
+- The `generic` adapter remains a thin host-agnostic baseline rather than a
+  second source of dynamic runtime behavior.
+- Adapter sync materializes the selected tool adapter from installed release
+  adapter-pack contents without requiring network access.
+- Adapter sync preserves explicit boundaries between tool-managed files and
+  user-owned config.
 - Adapter behavior is covered by parity and smoke tests rather than manual
   walkthroughs only.
 
@@ -1252,9 +1387,24 @@ install/upgrade paths and end-to-end reference fixtures.
 - Use the command name `upgrade` rather than `update`. `runectx upgrade`
   previews a reviewable upgrade plan, and `runectx upgrade apply` is the
   explicit user-authorized mutation step.
+- `runectx init` should remain local-only. It scaffolds from already-installed
+  RuneContext release contents and must not fetch project files over the
+  network.
+- `runectx upgrade` is the only CLI flow that may make network calls, and that
+  network use should stay narrow and explicit around acquiring newer signed
+  release contents rather than ordinary project-file mutation.
+- External migration/adoption from other spec-driven systems remains a separate
+  future command surface and must not be folded into `runectx upgrade`.
 - `schema_version` remains the fail-closed parser contract for individual
   machine-readable files, while `runecontext_version` identifies the installed
   RuneContext release for compatibility checks and upgrade planning.
+- Upgrade planning should classify project state explicitly before apply is
+  allowed: `current`, `upgradeable`, `unsupported_project_version`,
+  `mixed_or_stale_tree`, or `conflicted`.
+- The upgrade planner/migrator registry should be project-version-edge based:
+  project-level `runecontext_version` transitions choose migration steps, while
+  file-level `schema_version` checks and explicit migration markers gate the
+  individual file transforms within those steps.
 - Upgrade-triggering contract changes must be machine-detectable. If authored
   file structure changes, the relevant file schema or an explicit migration
   marker must change so mixed-version trees fail closed instead of being
@@ -1269,18 +1419,87 @@ install/upgrade paths and end-to-end reference fixtures.
   repo-local files, git upgrades update only the pinned source reference fields
   in `runecontext.yaml`, and `type: path` sources are externally managed and
   must never be mutated by `runectx`.
+- Embedded upgrade conflict handling should fail closed: if user-modified
+  managed files are detected, preview emits a reviewable conflict set and
+  `runectx upgrade apply` refuses to proceed rather than auto-merging or
+  overwriting.
 - Read-only commands (`status`, `validate`, `doctor`, `bundle resolve`, and
   similar surfaces) must never perform hidden upgrades or migrations. `validate`
   and `doctor` should instead detect unsupported version combinations or stale
   pre-upgrade files after merge/rebase and direct users to rerun
   `runectx upgrade`.
+- `runectx doctor` should grow explicit upgrade-readiness diagnostics rather than
+  remaining only an environment/resolution surface.
+- Windows support in alpha.8 is portability and repo-bundle usability, not full
+  binary convenience parity with Linux/macOS. Broader Windows distribution
+  channels remain post-MVP.
 
-### Epic 1: Release packaging
+Implementation note: to keep reviews manageable, alpha.8 work is grouped into
+the following recommended branch cuts.
+
+### Recommended Branch Cut 1: Upgrade engine, diagnostics, and upgrade regressions
+
+- [ ] Issue: keep `runectx init` local-only and harden `runectx upgrade` as the
+  only CLI flow allowed to make narrow, explicit network calls.
+- [ ] Issue: implement preview-only `runectx upgrade` and explicit
+  `runectx upgrade apply` mutation as the repo-upgrade command surface.
+- [ ] Issue: implement explicit project-state classification for upgrade
+  planning: `current`, `upgradeable`, `unsupported_project_version`,
+  `mixed_or_stale_tree`, and `conflicted`.
+- [ ] Issue: implement the upgrade planner/migrator registry as project-version
+  transition edges keyed by `runecontext_version`, with file-level
+  `schema_version` checks and explicit migration markers acting as subordinate
+  transform gates.
+- [ ] Issue: implement transactional upgrade staging in tool-owned temporary
+  space with validate-before-replace and automatic rollback on in-flight
+  failure.
+- [ ] Issue: ensure embedded upgrades detect locally modified managed files,
+  emit a reviewable conflict set, and fail closed rather than auto-merging or
+  overwriting.
+- [ ] Issue: ensure git upgrades mutate only pinned source reference fields in
+  `runecontext.yaml` and never rewrite a linked source tree.
+- [ ] Issue: ensure `type: path` sources are reported as externally managed and
+  never mutated; the CLI should direct users to navigate to the owning source
+  path and run the upgrade there.
+- [ ] Issue: harden repeated adapter sync behavior to be namespaced and
+  merge-aware, with normal adapter sync remaining local-only against installed
+  release content.
+- [ ] Issue: ensure `validate` and `doctor` report unsupported version
+  combinations, stale mixed-version trees after merge/rebase, integrity posture
+  issues, and upgrade-readiness diagnostics.
+- [ ] Issue: normalize remaining maintained-doc `update` terminology to
+  `upgrade` where it describes the current user-facing flow.
+- [ ] Issue: add regression tests for preview plans, transaction rollback,
+  merge/rebase stale-file detection, local-only init behavior, explicit-network
+  upgrade behavior, and idempotent reruns of `runectx upgrade`.
+- [ ] Issue: add regression tests asserting forbidden install/upgrade patterns do
+  not appear: required global installs, bash-only installers, overwriting
+  existing tool config files, hidden runtime-manager dependencies, and silent
+  auto-upgrades.
+- [ ] Issue: add regression tests asserting adapter sync remains local-only and
+  never performs implicit network fetches.
+
+### Recommended Branch Cut 2: Reference fixtures and end-to-end install/upgrade coverage
+
+- [ ] Issue: create an embedded-mode reference project fixture.
+- [ ] Issue: create a linked-by-commit reference project fixture.
+- [ ] Issue: create a linked-by-signed-tag reference project fixture.
+- [ ] Issue: create a Verified-mode reference project fixture.
+- [ ] Issue: create a monorepo reference fixture with nested RuneContext roots.
+- [ ] Issue: document and test the canonical manual repo-install flow around
+  pinned GitHub release assets emitted by the Nix release builder.
+- [ ] Issue: add end-to-end tests for manual repo install, local CLI-managed
+  project initialization, and preview-first upgrade flows.
+- [ ] Issue: add end-to-end tests over reference projects for embedded,
+  linked-by-commit, linked-by-signed-tag, Verified-mode, and monorepo cases.
+
+### Recommended Branch Cut 3: Release artifacts, compatibility matrix, and release verification
 
 - [ ] Issue: establish CI/CD platform parity with RuneCode and mirror its
   tag-driven release workflow shape:
   - Primary: Linux (x86_64 and arm64) and macOS (x86_64 and arm64) via Nix.
-  - Portability: Windows via non-Nix smoke testing.
+  - Portability: Windows via non-Nix smoke testing and repo-bundle usability,
+    while Windows binary/distribution convenience parity remains post-MVP.
 - [x] Issue: keep `nix build .#release-artifacts` as the canonical unsigned
   release builder; workflow steps may verify, sign, attest, and publish assets
   but must not redefine release contents outside the Nix build graph.
@@ -1294,46 +1513,16 @@ install/upgrade paths and end-to-end reference fixtures.
   on mismatches before packaging or publication.
 - [x] Issue: emit release checksums, release manifest, signatures,
   attestations, SBOM, and release notes.
-- [ ] Issue: publish a RuneCode `<->` RuneContext compatibility matrix.
+- [ ] Issue: publish a RuneCode `<->` RuneContext compatibility matrix with
+  explicit supported-range columns for RuneCode releases, RuneContext releases,
+  and adapter-pack compatibility where applicable.
 - [x] Issue: publish through a protected `release` environment after unsigned
   assets are built and uploaded by the initial build job.
+- [ ] Issue: add tests covering release artifact contents, checksums, manifests,
+  schema bundle, adapter packs, optional binaries, attestations, and SBOM
+  outputs.
 
-### Epic 2: Install and upgrade flows
-
-- [ ] Issue: document and test the canonical manual repo-install flow around
-  pinned GitHub release assets emitted by the Nix release builder.
-- [ ] Issue: harden `runectx init` and implement `runectx upgrade` as the only
-  CLI flows allowed to make network calls.
-- [ ] Issue: implement preview-only `runectx upgrade` and explicit
-  `runectx upgrade apply` mutation as the repo-upgrade command surface.
-- [ ] Issue: implement the upgrade planner/migrator registry keyed by
-  `runecontext_version`, file-level `schema_version`, and explicit migration
-  markers where needed.
-- [ ] Issue: implement transactional upgrade staging in tool-owned temporary
-  space with validate-before-replace and automatic rollback on in-flight
-  failure.
-- [ ] Issue: ensure embedded upgrades detect locally modified managed files and
-  stop with reviewable conflict guidance rather than overwriting them.
-- [ ] Issue: ensure git upgrades mutate only pinned source reference fields in
-  `runecontext.yaml` and never rewrite a linked source tree.
-- [ ] Issue: ensure `type: path` sources are reported as externally managed and
-  never mutated; the CLI should direct users to navigate to the owning source
-  path and run the upgrade there.
-- [ ] Issue: harden adapter sync/update to be namespaced and merge-aware, with
-  normal adapter sync remaining local-only against installed release content.
-- [ ] Issue: ensure `validate` and `doctor` report unsupported version
-  combinations, stale mixed-version trees after merge/rebase, and integrity
-  posture issues.
-
-### Epic 3: Reference projects and fixtures
-
-- [ ] Issue: create an embedded-mode reference project fixture.
-- [ ] Issue: create a linked-by-commit reference project fixture.
-- [ ] Issue: create a linked-by-signed-tag reference project fixture.
-- [ ] Issue: create a Verified-mode reference project fixture.
-- [ ] Issue: create a monorepo reference fixture with nested RuneContext roots.
-
-### Epic 4: MVP readiness review
+### Recommended Branch Cut 4: MVP readiness review and freeze
 
 - [ ] Issue: run the full MVP acceptance matrix against reference fixtures.
 - [ ] Issue: freeze v1 naming, schema, and lifecycle semantics.
@@ -1341,25 +1530,6 @@ install/upgrade paths and end-to-end reference fixtures.
   authoritative.
 - [ ] Issue: confirm signed-tag verification is tested in both standalone and
   RuneCode companion-track readiness flows.
-
-### Epic 5: Release and workflow test hardening
-
-- [ ] Issue: add tests covering release artifact contents, checksums, manifests,
-  adapter packs, optional binaries, attestations, and SBOM outputs.
-- [ ] Issue: add end-to-end tests for manual repo install, CLI-managed install,
-  and preview-first upgrade flows.
-- [ ] Issue: add regression tests asserting forbidden install/upgrade patterns
-  do
-  not appear: required global installs, bash-only installers, overwriting
-  existing tool config files, hidden runtime-manager dependencies, and silent
-  auto-upgrades.
-- [ ] Issue: add regression tests asserting adapter sync remains local-only and
-  never performs implicit network fetches.
-- [ ] Issue: add regression tests for upgrade transaction rollback,
-  merge/rebase stale-file detection, and idempotent reruns of
-  `runectx upgrade`.
-- [ ] Issue: add end-to-end tests over reference projects for embedded,
-  linked-by-commit, linked-by-signed-tag, Verified-mode, and monorepo cases.
 
 ### Exit Criteria
 
@@ -1369,10 +1539,14 @@ install/upgrade paths and end-to-end reference fixtures.
   keeping RuneContext's unsigned asset set canonical in Nix.
 - Release artifacts are canonical, inspectable, and compatible with the repo-
   first distribution model.
-- Normal adapter sync is local-only; any network access is confined to explicit
-  `init` and `upgrade` operations.
+- `runectx init` is local-only, and normal adapter sync is local-only; any
+  network access is confined to explicit `runectx upgrade` operations.
 - Mixed-version trees fail closed and are repairable through explicit reruns of
   `runectx upgrade` rather than hidden background migration.
+- Embedded upgrade conflicts fail closed with reviewable conflict reporting
+  rather than auto-merge behavior.
+- Windows MVP support is validated through portability and repo-bundle install
+  paths without requiring binary convenience parity.
 - Signed-tag verification is included in MVP validation, not deferred.
 - Install, upgrade, and release guarantees are backed by automated end-to-end
   tests.
