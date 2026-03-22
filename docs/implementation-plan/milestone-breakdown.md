@@ -956,13 +956,14 @@ outside the selected project root.
 - [x] Issue: implement repo-local, local-first `runectx init` scaffolding for
     embedded and linked workflows.
 - [x] Issue: ensure alpha.5 `runectx init` does not depend on implicit network
-    fetches; network-enabled install/update hardening remains in `v0.1.0-alpha.8`.
+    fetches; network-enabled install/upgrade hardening remains in
+    `v0.1.0-alpha.8`.
 - [x] Issue: add integration tests covering embedded and linked local init flows
     plus `--dry-run`, `--json`, and `--non-interactive` behavior.
 - Note: init tests now cover embedded and linked scaffolding, machine-facing
   flags (`--dry-run`, `--json`, `--non-interactive`), plan reporting, and seed
   bundle validation while keeping the workflow local-first and network-free.
-- [ ] Note: `runectx update` is intentionally deferred to `v0.1.0-alpha.8`
+- [ ] Note: `runectx upgrade` is intentionally deferred to `v0.1.0-alpha.8`
   alongside release/install hardening.
 
 ### Epic 4: Recommended Branch Cut 4 / Explicit Promotion Workflow
@@ -1190,7 +1191,7 @@ tools while preserving one core model.
   required.
 - [ ] Issue: ensure adapter sync never fetches from GitHub or any other network
   source; network access is reserved for explicit `runectx init` and
-  `runectx update` flows.
+  `runectx upgrade` flows.
 - [ ] Issue: ensure adapters never introduce tool-specific source-of-truth
   files.
 
@@ -1235,10 +1236,44 @@ tools while preserving one core model.
 - RuneCode can consume the same completion metadata or equivalent providers for
   richer in-tool suggestion UX without redefining command semantics.
 
-## `v0.1.0-alpha.8` - Release, Install, Update, And End-To-End Hardening
+## `v0.1.0-alpha.8` - Release, Install, Upgrade, And End-To-End Hardening
 
 Primary outcome: harden RuneContext as a distributable product with tested
-install/update paths and end-to-end reference fixtures.
+install/upgrade paths and end-to-end reference fixtures.
+
+### Implementation Notes
+
+- Several release-foundation pieces landed before the rest of alpha.8 is
+  complete: the canonical Nix release-artifact builder, signed and attested
+  repo-bundle plus binary publication workflow, release-manifest/checksum/SBOM
+  generation, and maintainer/user verification docs. The remaining alpha.8 work
+  is primarily upgrade flow, compatibility-matrix, adapter-pack, and
+  reference-fixture hardening.
+- Use the command name `upgrade` rather than `update`. `runectx upgrade`
+  previews a reviewable upgrade plan, and `runectx upgrade apply` is the
+  explicit user-authorized mutation step.
+- `schema_version` remains the fail-closed parser contract for individual
+  machine-readable files, while `runecontext_version` identifies the installed
+  RuneContext release for compatibility checks and upgrade planning.
+- Upgrade-triggering contract changes must be machine-detectable. If authored
+  file structure changes, the relevant file schema or an explicit migration
+  marker must change so mixed-version trees fail closed instead of being
+  silently reinterpreted.
+- `runectx upgrade` must be transactional and reviewable: stage work in
+  tool-owned temporary space, run migrators there, validate the staged tree,
+  then replace only the targeted live files; any in-flight failure rolls back
+  automatically with detailed diagnostics.
+- Successful upgrades are rolled back through normal project VCS history rather
+  than a hidden RuneContext rollback store or any other second source of truth.
+- Source-mode upgrade rules stay narrow: embedded upgrades may rewrite managed
+  repo-local files, git upgrades update only the pinned source reference fields
+  in `runecontext.yaml`, and `type: path` sources are externally managed and
+  must never be mutated by `runectx`.
+- Read-only commands (`status`, `validate`, `doctor`, `bundle resolve`, and
+  similar surfaces) must never perform hidden upgrades or migrations. `validate`
+  and `doctor` should instead detect unsupported version combinations or stale
+  pre-upgrade files after merge/rebase and direct users to rerun
+  `runectx upgrade`.
 
 ### Epic 1: Release packaging
 
@@ -1246,35 +1281,49 @@ install/update paths and end-to-end reference fixtures.
   tag-driven release workflow shape:
   - Primary: Linux (x86_64 and arm64) and macOS (x86_64 and arm64) via Nix.
   - Portability: Windows via non-Nix smoke testing.
-- [ ] Issue: keep `nix build .#release-artifacts` as the canonical unsigned
+- [x] Issue: keep `nix build .#release-artifacts` as the canonical unsigned
   release builder; workflow steps may verify, sign, attest, and publish assets
   but must not redefine release contents outside the Nix build graph.
 - [ ] Issue: package the schema bundle for releases across supported platforms.
 - [ ] Issue: package adapter packs for releases.
-- [ ] Issue: package optional `runectx` binaries for primary supported platforms:
+- [x] Issue: package optional `runectx` binaries for primary supported platforms:
   `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/arm64`.
-- [ ] Issue: keep repo bundles as the canonical install and audit path even after
+- [x] Issue: keep repo bundles as the canonical install and audit path even after
   `runectx` binary archives are added as convenience assets.
-- [ ] Issue: verify pushed release tags against release metadata and fail closed
+- [x] Issue: verify pushed release tags against release metadata and fail closed
   on mismatches before packaging or publication.
-- [ ] Issue: emit release checksums, release manifest, signatures,
+- [x] Issue: emit release checksums, release manifest, signatures,
   attestations, SBOM, and release notes.
 - [ ] Issue: publish a RuneCode `<->` RuneContext compatibility matrix.
-- [ ] Issue: publish through a protected `release` environment after unsigned
+- [x] Issue: publish through a protected `release` environment after unsigned
   assets are built and uploaded by the initial build job.
 
-### Epic 2: Install and update flows
+### Epic 2: Install and upgrade flows
 
 - [ ] Issue: document and test the canonical manual repo-install flow around
   pinned GitHub release assets emitted by the Nix release builder.
-- [ ] Issue: harden `runectx init` and implement `runectx update` as the only
+- [ ] Issue: harden `runectx init` and implement `runectx upgrade` as the only
   CLI flows allowed to make network calls.
-- [ ] Issue: implement `runectx update` as a diff-first, reviewable update
-  flow.
+- [ ] Issue: implement preview-only `runectx upgrade` and explicit
+  `runectx upgrade apply` mutation as the repo-upgrade command surface.
+- [ ] Issue: implement the upgrade planner/migrator registry keyed by
+  `runecontext_version`, file-level `schema_version`, and explicit migration
+  markers where needed.
+- [ ] Issue: implement transactional upgrade staging in tool-owned temporary
+  space with validate-before-replace and automatic rollback on in-flight
+  failure.
+- [ ] Issue: ensure embedded upgrades detect locally modified managed files and
+  stop with reviewable conflict guidance rather than overwriting them.
+- [ ] Issue: ensure git upgrades mutate only pinned source reference fields in
+  `runecontext.yaml` and never rewrite a linked source tree.
+- [ ] Issue: ensure `type: path` sources are reported as externally managed and
+  never mutated; the CLI should direct users to navigate to the owning source
+  path and run the upgrade there.
 - [ ] Issue: harden adapter sync/update to be namespaced and merge-aware, with
   normal adapter sync remaining local-only against installed release content.
-- [ ] Issue: ensure `doctor` reports unsupported version combinations and
-  integrity posture issues.
+- [ ] Issue: ensure `validate` and `doctor` report unsupported version
+  combinations, stale mixed-version trees after merge/rebase, and integrity
+  posture issues.
 
 ### Epic 3: Reference projects and fixtures
 
@@ -1298,27 +1347,34 @@ install/update paths and end-to-end reference fixtures.
 - [ ] Issue: add tests covering release artifact contents, checksums, manifests,
   adapter packs, optional binaries, attestations, and SBOM outputs.
 - [ ] Issue: add end-to-end tests for manual repo install, CLI-managed install,
-  and diff-first update flows.
-- [ ] Issue: add regression tests asserting forbidden install/update patterns do
+  and preview-first upgrade flows.
+- [ ] Issue: add regression tests asserting forbidden install/upgrade patterns
+  do
   not appear: required global installs, bash-only installers, overwriting
   existing tool config files, hidden runtime-manager dependencies, and silent
-  auto-updates.
+  auto-upgrades.
 - [ ] Issue: add regression tests asserting adapter sync remains local-only and
   never performs implicit network fetches.
+- [ ] Issue: add regression tests for upgrade transaction rollback,
+  merge/rebase stale-file detection, and idempotent reruns of
+  `runectx upgrade`.
 - [ ] Issue: add end-to-end tests over reference projects for embedded,
   linked-by-commit, linked-by-signed-tag, Verified-mode, and monorepo cases.
 
 ### Exit Criteria
 
-- RuneContext can be installed manually, managed by CLI, and updated reviewably.
+- RuneContext can be installed manually, managed by CLI, and upgraded
+  reviewably.
 - The release workflow mirrors RuneCode's tag-driven build/publish split while
   keeping RuneContext's unsigned asset set canonical in Nix.
 - Release artifacts are canonical, inspectable, and compatible with the repo-
   first distribution model.
 - Normal adapter sync is local-only; any network access is confined to explicit
-  `init` and `update` operations.
+  `init` and `upgrade` operations.
+- Mixed-version trees fail closed and are repairable through explicit reruns of
+  `runectx upgrade` rather than hidden background migration.
 - Signed-tag verification is included in MVP validation, not deferred.
-- Install, update, and release guarantees are backed by automated end-to-end
+- Install, upgrade, and release guarantees are backed by automated end-to-end
   tests.
 
 ### RuneCode Companion-Track Checkpoints

@@ -20,7 +20,7 @@ historical cleanup from new feature design work.
 
 ## Planning Boundaries
 
-- This plan covers RuneContext Core, adapters, CLI, release/install/update, and
+- This plan covers RuneContext Core, adapters, CLI, release/install/upgrade, and
   the contracts needed for future RuneCode integration.
 - This plan does not schedule RuneCode runtime implementation work inside this
   repository.
@@ -43,6 +43,12 @@ historical cleanup from new feature design work.
   rewriting historical idea text. This addresses review feedback where legacy
   examples (for example, earlier canonicalization labels) may diverge from the
   current alpha.4 contract.
+- 2026-03-22: Renamed the planned repo upgrade flow from `runectx update` to
+  `runectx upgrade` and locked in the alpha.8 contract: preview-first planning
+  via `runectx upgrade`, explicit mutation via `runectx upgrade apply`,
+  transactional staging with validate-before-replace and automatic in-flight
+  rollback, no hidden migrations in read-only commands, and externally managed
+  handling for `type: path` sources.
 
 ## MVP Definition
 
@@ -61,7 +67,7 @@ The MVP includes every v1 RuneContext feature described in
 - Plain and Verified assurance tiers
 - minimal CLI surface
 - thin adapters as the primary day-to-day UX
-- repo-first releases, reviewable updates, and compatibility documentation
+- repo-first releases, reviewable upgrades, and compatibility documentation
 - signed and attested Linux/macOS `runectx` binaries as convenience release
   assets alongside the canonical repo bundles
 
@@ -80,7 +86,7 @@ contracts RuneCode needs in order to integrate cleanly.
 | `v0.1.0-alpha.5` | Broadened CLI, `init` scaffolding, promotion/resolve flows, validation, doctoring, and machine-facing command contracts |
 | `v0.1.0-alpha.6` | Plain/Verified assurance, baselines, receipts, and backfill |
 | `v0.1.0-alpha.7` | Generic and tool-specific adapters plus adapter-pack UX |
-| `v0.1.0-alpha.8` | Release/install/update hardening, networked `init`/`update` flows, and end-to-end MVP readiness fixtures |
+| `v0.1.0-alpha.8` | Release/install/upgrade hardening, networked `init`/`upgrade` flows, and end-to-end MVP readiness fixtures |
 | `v0.1.0` | Stabilization, compatibility freeze, and MVP acceptance sign-off |
 
 Signed-tag verification is intentionally part of the MVP and is planned across
@@ -286,7 +292,7 @@ and coverage stay in one place.
 - Keep `runectx standard discover` advisory-only and `runectx promote` as the
   only durable promotion-mutation surface; interactive handoff must use
   explicit candidate data rather than hidden session state.
-- Keep alpha.5 `runectx init` local-first; network-enabled init/update
+- Keep alpha.5 `runectx init` local-first; network-enabled init/upgrade
   hardening remains alpha.8 work.
 - Keep completion and autocomplete metadata derived from the same stable CLI
   command/flag/value definitions rather than maintaining a second hand-authored
@@ -316,7 +322,22 @@ and coverage stay in one place.
 - Keep normal adapter management local and reviewable; `runectx adapter sync
   <tool>` materializes files from the already-installed RuneContext release and
   must not fetch adapter packs implicitly.
-- Keep `runectx` network access limited to explicit `init` and `update` flows.
+- Keep `runectx` network access limited to explicit `init` and `upgrade`
+  flows.
+- Keep `runectx upgrade` explicit and preview-first: `runectx upgrade` reports
+  the reviewable plan, and `runectx upgrade apply` is the only durable mutation
+  surface for source upgrades and migrations.
+- Keep source upgrades transactional: stage work in tool-owned temporary space,
+  validate the staged result before replacing live files, and roll back
+  automatically on any in-flight failure.
+- Keep successful rollback in normal project history rather than a hidden
+  RuneContext rollback store or other second source of truth.
+- Keep `type: path` sources externally managed for upgrades: surface the owning
+  source path and instructions, but never mutate files outside the selected
+  project root.
+- Keep mixed-version trees after merge/rebase invalid but repairable through an
+  explicit rerun of `runectx upgrade`; `validate` and `doctor` should detect the
+  stale-file state rather than silently tolerating it.
 - Treat RuneContext content as untrusted LLM input as well as untrusted policy
   input; rely on typed boundaries, review, and isolation rather than trusting
   the text itself.
@@ -361,6 +382,8 @@ until the end.
   tested.
 - Add adapter smoke tests and reference-project tests so UX layers stay aligned
   with the same core semantics.
+- Add upgrade tests covering preview/apply behavior, transactional rollback,
+  `type: path` refusal, and merge/rebase recovery through idempotent reruns.
 - Add adapter tests ensuring that mutations to authoritative RuneContext files
   automatically trigger `runectx validate` and surface failures immediately.
 - Add golden tests for generated Bash, Zsh, and Fish completion scripts and

@@ -286,7 +286,7 @@
   incremental; current alpha.5 commands surface explicit `explain_warning`
   metadata when `--explain` is accepted but detailed explain output is pending.
 - [x] `runectx init` covers repo-local embedded/linked scaffolding in alpha.5,
-  while network-enabled init/update hardening remains deferred to alpha.8.
+  while network-enabled init/upgrade hardening remains deferred to alpha.8.
 - [ ] `runectx standard discover` is advisory-only; interactive runs may chain
   into `promote` only after explicit confirmation, while `--non-interactive`
   discovery emits reusable candidate data and exits without mutation.
@@ -336,7 +336,7 @@
   IDs, promotion targets, and adapter names without mutating project state.
 - [ ] Adapters are packaged for release.
 
-## 8. Release, Install, And Update
+## 8. Release, Install, And Upgrade
 
 - [ ] GitHub release artifacts exist for the repo-first distribution model.
 - [ ] The GitHub release workflow mirrors RuneCode's tag-driven build/publish
@@ -350,16 +350,34 @@
 - [ ] Linux and macOS `runectx` binary archives are published as signed and
   attested convenience assets without replacing the canonical repo bundles.
 - [ ] Manual repo install is documented and tested.
-- [ ] `runectx update` is diff-first and reviewable.
+- [ ] `runectx upgrade` is preview-first, diff-first, and reviewable.
+- [ ] `runectx upgrade apply` is the only durable mutation surface for source
+  upgrades and migrations.
+- [ ] Source upgrades stage work in tool-owned temporary space, validate the
+  staged result before replacing live files, and auto-rollback on in-flight
+  failure.
+- [ ] Successful rollback guidance relies on normal VCS history rather than a
+  hidden RuneContext rollback store.
+- [ ] Embedded upgrades detect locally modified managed files and stop with
+  conflict-style guidance rather than silently overwriting user changes.
+- [ ] Git upgrades update only pinned source reference fields in
+  `runecontext.yaml` and do not rewrite linked source trees.
+- [ ] `type: path` sources are treated as externally managed and are never
+  mutated in place; the CLI directs users to the owning source path.
 - [ ] Adapter sync/update is namespaced and merge-aware.
 - [ ] Adapter sync materializes local tool files and config updates from the
   installed release content rather than acting as a remote installer.
-- [ ] `runectx` makes no network calls outside explicit `init` and `update`
+- [ ] Read-only commands such as `status`, `validate`, and `doctor` never
+  perform hidden upgrades or migrations.
+- [ ] `validate` and `doctor` detect unsupported version combinations and stale
+  mixed-version trees after merge/rebase and direct users to rerun
+  `runectx upgrade`.
+- [ ] `runectx` makes no network calls outside explicit `init` and `upgrade`
   flows.
 - [ ] The following anti-patterns are absent: required global installs,
   bash-only installers, overwriting existing `.claude`/`.github` files,
   hidden runtime-manager dependencies, template-only primary distribution,
-  implicit adapter-pack fetches during sync, and silent auto-updates.
+  implicit adapter-pack fetches during sync, and silent auto-upgrades.
 
 ## 9. RuneCode Readiness (Companion Track)
 
@@ -367,6 +385,8 @@ These are not shipped by this repository, but the MVP is not truly ready until
 RuneContext makes them possible and testable.
 
 - [ ] RuneCode can version-gate on `runecontext_version`.
+- [ ] RuneCode can detect mixed-version/stale-file trees and require an explicit
+  RuneContext upgrade before audited workflows continue.
 - [ ] RuneCode can resolve the same bundles and packs from the same inputs with
   local/remote parity.
 - [ ] RuneCode can bind pack hashes and active change intent into audit history.
@@ -401,7 +421,9 @@ RuneContext makes them possible and testable.
   `--json`, `--non-interactive`, `--dry-run`, and `--explain` behavior.
 - [ ] Adapter smoke tests and parity checks exist for `generic`, `claude-code`,
   `opencode`, and `codex`.
-- [ ] Release/install/update flows are covered by end-to-end tests over
+- [ ] Release/install/upgrade flows are covered by end-to-end tests over
   reference projects.
+- [ ] Automated tests cover upgrade transaction rollback, stale-file detection
+  after merge/rebase, and `type: path` no-mutation behavior.
 - [ ] Signed-tag verification, Verified-mode gating, and RuneCode parity
   fixtures are all covered by automated tests.

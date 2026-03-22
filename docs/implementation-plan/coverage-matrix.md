@@ -22,7 +22,7 @@ milestones, and executable fixtures/tests.
 | Product Decomposition | Core/adapters/RuneCode repository boundary | `alpha.1` | Yes |
 | Why The Three Layers Need To Exist | Boundary enforcement and ownership rules | `alpha.1`, `alpha.7` | Yes |
 | Packaging, Repositories, And Releases | Repo structure, release model, and Nix-built release workflow shape | `alpha.1`, `alpha.8` | Yes |
-| Releases and Installation | Install lanes, update flow, compatibility matrix, and local-only adapter sync | `alpha.8` | Yes |
+| Releases and Installation | Install lanes, upgrade flow, compatibility matrix, and local-only adapter sync | `alpha.8` | Yes |
 | Optional Assurance And Verifiable Tracing | Plain/Verified model, shared authored workflow, portable receipts, and backfill | `alpha.6` | Yes |
 | RuneCode Context And Integration Constraints | Companion-track test and contract checklist | `alpha.1`-`alpha.8`, `mvp-acceptance.md` | Yes |
 | Usage Scenarios | Validation of local, remote, and non-RuneCode flows | `alpha.2`, `alpha.5`, `alpha.6`, `alpha.8` | Yes |
@@ -113,6 +113,10 @@ milestones, and executable fixtures/tests.
 - Decision: project root config carries `runecontext_version` and
   `assurance_tier`.
   - Planned capture: `alpha.1`, `alpha.2`
+- Decision: file-level `schema_version` remains the fail-closed parser and
+  migration gate, while `runecontext_version` identifies the installed
+  RuneContext release for compatibility checks and upgrade planning.
+  - Planned capture: `alpha.1`, `alpha.8`
 - Decision: change IDs use `CHG-YYYY-NNN-RAND-short-slug`.
   - Planned capture: `alpha.3`
 - Decision: context packs must include a top-level canonical hash.
@@ -303,7 +307,7 @@ milestones, and executable fixtures/tests.
   persisting files.
   - Planned capture: `alpha.5`
 - Decision: alpha.5 `runectx init` is repo-local and local-first; release/install
-  hardening and network-enabled init/update behavior remain alpha.8 work.
+  hardening and network-enabled init/upgrade behavior remain alpha.8 work.
   - Planned capture: `alpha.5`, `alpha.8`
 - Decision: `adapter pack` is the packaged tool UX surface, and
   `runecontext/operations/` is the canonical in-project reference/source area
@@ -332,8 +336,29 @@ milestones, and executable fixtures/tests.
   edits to authoritative RuneContext files and surface failures immediately.
   - Planned capture: `alpha.7`
 - Decision: `runectx` must not make network calls outside explicit `init` and
-  `update` flows.
+  `upgrade` flows.
   - Planned capture: `alpha.5`, `alpha.7`, `alpha.8`
+- Decision: `runectx upgrade` is preview-first and reviewable, and
+  `runectx upgrade apply` is the only durable mutation surface for source-tree
+  upgrades and migrations.
+  - Planned capture: `alpha.8`
+- Decision: source upgrades must be transactional: stage in tool-owned
+  temporary space, validate before replace, and auto-rollback on in-flight
+  failure; successful rollback stays in normal VCS history rather than hidden
+  tool state.
+  - Planned capture: `alpha.8`
+- Decision: `type: path` sources remain externally managed for upgrades and must
+  never be mutated by `runectx`; users are directed to navigate to the owning
+  source path and run the upgrade there.
+  - Planned capture: `alpha.8`
+- Decision: embedded upgrades may rewrite managed repo-local files, git upgrades
+  mutate only pinned source references in `runecontext.yaml`, and read-only
+  commands must never perform hidden migration.
+  - Planned capture: `alpha.8`
+- Decision: mixed-version trees after merge/rebase are invalid; `validate` and
+  `doctor` should detect stale files and require an explicit rerun of
+  `runectx upgrade`.
+  - Planned capture: `alpha.8`, `v0.1.0`
 - Decision: `plain` and `verified` should share one authored workflow, and
   standalone `runectx` must be able to emit the same portable minimal receipts a
   Verified repo requires while RuneCode adds richer parallel evidence.
