@@ -309,10 +309,15 @@ milestones, and executable fixtures/tests.
 - Decision: alpha.5 `runectx init` is repo-local and local-first; release/install
   hardening and network-enabled init/upgrade behavior remain alpha.8 work.
   - Planned capture: `alpha.5`, `alpha.8`
-- Decision: `adapter pack` is the packaged tool UX surface, and
-  `runecontext/operations/` is the canonical in-project reference/source area
-  for underlying RuneContext operations.
+- Decision: `adapter` means the tool UX layer, `adapter pack` means the
+  packaged release payload for an adapter, and `runecontext/operations/` is the
+  canonical in-project reference/source area for underlying RuneContext
+  operations.
   - Planned capture: `alpha.1`, `alpha.7`
+- Decision: one typed internal command/operation registry should be the
+  canonical source for operations docs, completion generation,
+  machine-readable completion metadata, and adapter-native suggestion surfaces.
+  - Planned capture: `alpha.7`
 - Decision: alpha.7 completion should officially target Bash, Zsh, and Fish
   first, with PowerShell and Windows command-prompt completion deferred until
   after the MVP.
@@ -320,6 +325,21 @@ milestones, and executable fixtures/tests.
 - Decision: repo-aware suggestions should remain read-only, honor nearest-root
   discovery and explicit `--path`, and degrade gracefully outside RuneContext
   projects.
+  - Planned capture: `alpha.7`
+- Decision: adapter-triggered validation should be limited to authored
+  authoritative RuneContext files and should exclude generated artifacts,
+  adapter-managed files, and unrelated repository code.
+  - Planned capture: `alpha.7`
+- Decision: the `generic` adapter should remain thin and documentation-first,
+  while dynamic suggestions and tool-native automation live in shared CLI or
+  tool-specific layers.
+  - Planned capture: `alpha.7`
+- Decision: adapter sync must preserve explicit boundaries between tool-managed
+  files and user-owned config, with synced manifests remaining convenience
+  metadata rather than correctness-critical state.
+  - Planned capture: `alpha.7`, `alpha.8`
+- Decision: compatibility mode should be capability-based and explicit so weaker
+  hosts lose convenience rather than changing RuneContext semantics.
   - Planned capture: `alpha.7`
 - Decision: the release workflow should mirror RuneCode's tag-driven
   build/publish structure, with Nix defining the canonical unsigned release
@@ -329,11 +349,12 @@ milestones, and executable fixtures/tests.
   attested convenience assets without replacing the canonical repo bundles.
   - Planned capture: `alpha.8`
 - Decision: adapter packs ship with the selected RuneContext release, and
-  `runectx adapter sync <tool>` materializes them locally rather than fetching
-  them implicitly from GitHub.
+  `runectx adapter sync <tool>` materializes local adapter files from those
+  packaged contents rather than fetching them implicitly from GitHub.
   - Planned capture: `alpha.7`, `alpha.8`
-- Decision: adapter packs should automatically run `runectx validate` after
-  edits to authoritative RuneContext files and surface failures immediately.
+- Decision: adapter-driven workflows should automatically run `runectx validate`
+  after edits to authoritative RuneContext files and surface failures
+  immediately.
   - Planned capture: `alpha.7`
 - Decision: `runectx` must not make network calls outside explicit `init` and
   `upgrade` flows.

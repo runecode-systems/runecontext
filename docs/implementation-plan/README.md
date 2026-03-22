@@ -49,6 +49,13 @@ historical cleanup from new feature design work.
   transactional staging with validate-before-replace and automatic in-flight
   rollback, no hidden migrations in read-only commands, and externally managed
   handling for `type: path` sources.
+- 2026-03-22: Recorded that the old `runecontext/commands/` wording in
+  `docs/project_idea.md` is stale historical text. The current normative path
+  for the canonical in-project reference is `runecontext/operations/`.
+- 2026-03-22: Clarified adapter terminology across the plan: `adapter` means the
+  tool-specific UX layer, `adapter pack` means the packaged release payload for
+  an adapter, and `runectx adapter sync <tool>` is the local materialization
+  command for those packaged contents.
 
 ## MVP Definition
 
@@ -85,7 +92,7 @@ contracts RuneCode needs in order to integrate cleanly.
 | `v0.1.0-alpha.4` | Deterministic context packs, stable generated indexes, and reviewable promotion assessment |
 | `v0.1.0-alpha.5` | Broadened CLI, `init` scaffolding, promotion/resolve flows, validation, doctoring, and machine-facing command contracts |
 | `v0.1.0-alpha.6` | Plain/Verified assurance, baselines, receipts, and backfill |
-| `v0.1.0-alpha.7` | Generic and tool-specific adapters plus adapter-pack UX |
+| `v0.1.0-alpha.7` | Generic and tool-specific adapters, completion UX, and local adapter sync |
 | `v0.1.0-alpha.8` | Release/install/upgrade hardening, networked `init`/`upgrade` flows, and end-to-end MVP readiness fixtures |
 | `v0.1.0` | Stabilization, compatibility freeze, and MVP acceptance sign-off |
 
@@ -297,8 +304,27 @@ and coverage stay in one place.
 - Keep completion and autocomplete metadata derived from the same stable CLI
   command/flag/value definitions rather than maintaining a second hand-authored
   command model.
+- Keep one typed internal command/operation registry as the canonical source for
+  CLI metadata; human-readable operations docs, shell completion scripts,
+  machine-readable completion metadata, and adapter-native suggestion surfaces
+  should all be derived from that same registry.
 - Keep repo-aware suggestions read-only, nearest-root-aware, and resilient when
   the current directory is not a RuneContext project.
+- Keep adapter-triggered validation narrowly scoped to authored authoritative
+  RuneContext files rather than generated artifacts, adapter-managed files, or
+  unrelated repository code.
+- Keep adapter sync ownership explicit: tool-managed files live in a namespaced
+  managed subtree, user-owned config boundaries stay reviewable, and synced
+  manifests remain convenience metadata rather than correctness-critical state.
+- Keep adapter terminology crisp: `adapter` names the tool UX layer, `adapter
+  pack` names the packaged release payload for an adapter, and
+  `runectx adapter sync <tool>` names the local materialization surface.
+- Keep the `generic` adapter as a thin host-agnostic baseline pack focused on
+  docs, examples, and manual/CLI-assisted workflows; dynamic suggestions and
+  tool-native automation belong to shared CLI or tool-specific layers instead.
+- Keep adapter compatibility mode explicit and capability-based: weaker hosts may
+  lose convenience features such as prompts, hooks, or dynamic suggestions, but
+  they must not change core RuneContext semantics.
 - Keep write-command `--dry-run` behavior centered on simulating planned
   mutations and validating the resulting would-be project state rather than
   emitting prose-only intent.
@@ -336,6 +362,9 @@ and coverage stay in one place.
 - Keep normal adapter management local and reviewable; `runectx adapter sync
   <tool>` materializes files from the already-installed RuneContext release and
   must not fetch adapter packs implicitly.
+- Keep alpha.7 adapter sync focused on local materialization from installed or
+  pinned release contents; alpha.8 hardens release packaging and broader sync/
+  update behavior without changing the local-first sync model.
 - Keep `runectx` network access limited to explicit `init` and `upgrade`
   flows.
 - Keep `runectx upgrade` explicit and preview-first: `runectx upgrade` reports

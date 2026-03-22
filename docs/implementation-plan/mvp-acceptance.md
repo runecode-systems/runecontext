@@ -271,10 +271,15 @@
 - [ ] `runectx adapter sync <tool>` uses the installed or pinned RuneContext
   release contents rather than implicitly fetching adapter packs from the
   network.
+- [ ] `runectx adapter sync <tool>` preserves explicit boundaries between
+  tool-managed files and user-owned config and does not silently rewrite
+  arbitrary host-tool configuration.
 - [x] Machine-facing flags exist and behave consistently: `--json`,
   `--non-interactive`, `--dry-run`, and `--explain`.
 - [ ] `runectx completion <bash|zsh|fish>` exists and stays aligned with the
   stable CLI command/flag/value surface.
+- [ ] One typed command/operation registry drives operations docs, completion,
+  machine-readable completion metadata, and adapter-native suggestion surfaces.
 - [x] Machine-facing JSON output uses one documented envelope and failure
   taxonomy across commands rather than drifting command by command.
 - [x] Write-command `--dry-run` behavior simulates planned mutations and
@@ -338,15 +343,22 @@
 - [ ] The `claude-code`, `opencode`, and `codex` adapters exist.
 - [ ] Adapters differ in UX only, not in core semantics or source-of-truth
   files.
+- [ ] The `generic` adapter remains thin and documentation-first rather than
+  becoming a second source of dynamic runtime behavior.
 - [ ] Adapters and CLI shell completion reuse one canonical completion metadata
   model or equivalent provider surface rather than defining separate command
   semantics.
 - [ ] Adapter-driven edits to authoritative RuneContext files automatically run
   `runectx validate` and surface failures before the workflow step is treated as
   complete.
+- [ ] Authoritative-file validation triggers are limited to authored RuneContext
+  files rather than generated artifacts, adapter-managed files, or unrelated
+  repository code.
 - [ ] Repo-aware completion/suggestion UX can surface valid change IDs, bundle
   IDs, promotion targets, and adapter names without mutating project state.
-- [ ] Adapters are packaged for release.
+- [ ] Compatibility mode is explicit and capability-based so weaker hosts lose
+  convenience rather than changing RuneContext semantics.
+- [ ] Adapter packs are packaged for release.
 
 ## 8. Release, Install, And Upgrade
 
@@ -376,7 +388,7 @@
   `runecontext.yaml` and do not rewrite linked source trees.
 - [ ] `type: path` sources are treated as externally managed and are never
   mutated in place; the CLI directs users to the owning source path.
-- [ ] Adapter sync/update is namespaced and merge-aware.
+- [ ] Adapter sync and re-sync behavior is namespaced and merge-aware.
 - [ ] Adapter sync materializes local tool files and config updates from the
   installed release content rather than acting as a remote installer.
 - [ ] Read-only commands such as `status`, `validate`, and `doctor` never

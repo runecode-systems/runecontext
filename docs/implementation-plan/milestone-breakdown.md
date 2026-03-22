@@ -1170,8 +1170,19 @@ tools while preserving one core model.
 - Adapters should preserve the alpha.5 split between advisory `standard
   discover` output and explicit confirmed `promote` mutations rather than
   inventing hidden tool-specific auto-promotion behavior.
+- The canonical in-project adapter reference should live under
+  `runecontext/operations/`; earlier historical references to
+  `runecontext/commands/` are stale and should not be revived.
+- Alpha.7 terminology should stay precise: `adapter` means the tool-specific UX
+  layer, `adapter pack` means the packaged release payload for an adapter, and
+  `runectx adapter sync <tool>` means local materialization of adapter files
+  from installed or pinned release contents.
 - Rich completion and suggestion UX should derive from the stable alpha.5 CLI
   contract so completions are never a second command-definition source of truth.
+- Alpha.7 should formalize one typed internal command/operation registry as the
+  canonical completion metadata source. Human-readable operations docs, shell
+  completion scripts, machine-readable completion metadata, and tool-native
+  suggestion surfaces should all derive from that same registry.
 - Alpha.7 should target shell completion for Bash, Zsh, and Fish first.
   PowerShell and Windows command-prompt completion are deferred until after the
   MVP.
@@ -1180,81 +1191,115 @@ tools while preserving one core model.
 - Adapter-native suggestion UX should reuse the same underlying completion
   metadata/providers as shell completion rather than inventing adapter-only
   command semantics.
+- Adapter-triggered `runectx validate` should run only after a workflow step
+  edits authored authoritative RuneContext files: `runecontext.yaml`,
+  `bundles/**/*.yaml`, `project/**/*.md`, `standards/**/*.md`, `specs/**/*.md`,
+  `decisions/**/*.md`, and recognized authored change files under
+  `changes/*/` (`status.yaml`, `proposal.md`, `standards.md`, `design.md`,
+  `verification.md`, `tasks.md`, `references.md`). Generated artifacts,
+  adapter-managed files, and unrelated repository code must not trigger this
+  rule.
+- Adapter sync should define explicit ownership boundaries: tool-managed files
+  live in a namespaced managed subtree, user-owned config updates stay explicit
+  and reviewable, and any synced manifest remains convenience metadata rather
+  than correctness-critical state.
+- The `generic` adapter should remain intentionally thin and documentation-first:
+  manual workflows, CLI-assisted workflows, non-agent examples, and reviewable
+  guidance. Dynamic suggestions and tool-native automation belong to shared CLI
+  completion or tool-specific adapters instead.
+- Compatibility mode should be capability-based and explicit. Weaker hosts may
+  fall back from prompts, hooks, or dynamic suggestions to docs and explicit CLI
+  commands, but they must not redefine RuneContext semantics.
+- Alpha.7 should deliver local-only `runectx adapter sync <tool>` behavior
+  against installed or pinned release contents; alpha.8 later hardens release
+  packaging and broader sync/update behavior without changing that local-first
+  boundary.
 
-### Epic 1: Canonical operations reference
+Implementation note: to keep reviews manageable and avoid baking more command
+metadata duplication into adapters, alpha.7 work is grouped into the following
+recommended branch cuts.
+
+### Recommended Branch Cut 1: Canonical operations reference, metadata registry, and static completion
 
 - [ ] Issue: author the canonical in-project operations reference under
   `runecontext/operations/`.
 - [ ] Issue: define adapter-to-core operation mapping rules.
 - [ ] Issue: define how adapters consume or derive from the canonical
   operations reference without redefining semantics.
-- [ ] Issue: define a canonical completion metadata model derived from the
-  stable CLI command, flag, and value contracts.
-- [ ] Issue: define the adapter-pack rule that edits to authoritative
-  RuneContext files must automatically trigger `runectx validate` before the
-  tool considers the workflow step complete.
-
-### Epic 2: Generic adapter
-
-- [ ] Issue: author the `generic` adapter pack with plain markdown workflow
-  docs.
-- [ ] Issue: provide example flows for manual, CLI-assisted, and non-agent use.
-- [ ] Issue: document completion and suggestion affordances for generic shell-
-  based workflows.
-
-### Epic 3: Tool-specific adapters
-
-- [ ] Issue: author the `claude-code` adapter pack.
-- [ ] Issue: author the `opencode` adapter pack.
-- [ ] Issue: author the `codex` adapter pack.
-- [ ] Issue: define compatibility-mode guidance for hosts with weaker
-  interaction capabilities.
-- [ ] Issue: add tool-native suggestion/autocomplete integrations that reuse the
-  canonical completion metadata for hosts that support richer UX.
-- [ ] Issue: add tool-native automation/skills that run `runectx validate`
-  after edits to authoritative RuneContext files and surface failures
-  immediately.
-
-### Epic 4: Completion And Suggestion UX
-
-- [ ] Issue: implement `runectx completion <bash|zsh|fish>` generation.
+- [ ] Issue: implement one typed internal command/operation registry as the
+  canonical source for command, subcommand, flag, and stable enum/value
+  metadata.
+- [ ] Issue: define a canonical completion metadata model and machine-readable
+  export derived from that registry rather than from hand-authored docs or help
+  text parsing.
+- [ ] Issue: implement `runectx completion <bash|zsh|fish>` generation from the
+  canonical registry.
 - [ ] Issue: support static command, subcommand, and flag completion from the
   canonical CLI contract.
 - [ ] Issue: support enum/value completion for stable machine-facing and
   workflow flags.
+- [ ] Issue: add golden tests for generated Bash, Zsh, and Fish completion
+  scripts.
+- [ ] Issue: add parity tests proving completion metadata stays aligned with the
+  actual command and flag surface.
+
+### Recommended Branch Cut 2: Generic adapter and repo-aware read-only suggestions
+
+- [ ] Issue: author the `generic` adapter as a thin docs-first baseline for
+  manual, CLI-assisted, and non-agent workflows.
+- [ ] Issue: provide example flows for manual, CLI-assisted, and non-agent use.
+- [ ] Issue: document that dynamic suggestions are a shared CLI/completion
+  feature rather than `generic` adapter-specific hidden behavior.
 - [ ] Issue: implement repo-aware dynamic suggestions for change IDs, bundle IDs,
   promotion target paths, and adapter names where applicable.
-- [ ] Issue: ensure completion and suggestion flows never mutate project state
-  and fail soft outside RuneContext repositories.
+- [ ] Issue: ensure completion and suggestion flows never mutate project state,
+  honor nearest-root discovery and explicit `--path`, and fail soft outside
+  RuneContext repositories.
+- [ ] Issue: add fixture tests for repo-aware suggestions across embedded,
+  linked, and monorepo projects.
 
-### Epic 5: Adapter packaging and sync
+### Recommended Branch Cut 3: Adapter sync, one real tool adapter, and validation-hook boundaries
 
-- [ ] Issue: implement adapter packaging for release artifacts as packs bundled
-  with the selected RuneContext release.
 - [ ] Issue: implement the `runectx adapter sync <tool>` command as the
   adapter-management CLI surface for local adapter materialization from the
   installed or pinned RuneContext release.
 - [ ] Issue: define merge-aware adapter sync/update behavior, including managed
   file boundaries, reviewable diffs, and explicit local config updates where
   required.
+- [ ] Issue: ensure adapter sync writes tool-managed files only inside a
+  namespaced managed subtree and never silently rewrites arbitrary user-owned
+  tool configuration.
+- [ ] Issue: define adapter-managed manifest contents for synced packs as
+  convenience metadata only, not correctness-critical state.
 - [ ] Issue: ensure adapter sync never fetches from GitHub or any other network
   source; network access is reserved for explicit `runectx init` and
   `runectx upgrade` flows.
 - [ ] Issue: ensure adapters never introduce tool-specific source-of-truth
   files.
+- [ ] Issue: define the authoritative-file rule for adapter-triggered
+  `runectx validate`, limited to authored RuneContext files and excluding
+  generated artifacts, adapter-managed files, and unrelated repository code.
+- [ ] Issue: author one tool-specific adapter end to end.
+- [ ] Issue: add tool-native automation/skills that run `runectx validate`
+  after edits to authoritative RuneContext files and surface failures
+  immediately.
+- [ ] Issue: add smoke and parity tests for the first end-to-end tool adapter,
+  sync behavior, managed-file boundaries, and validate-after-edit triggering.
 
-### Epic 6: Adapter tests and parity
+### Recommended Branch Cut 4: Remaining tool-specific adapters, compatibility mode, and parity hardening
 
+- [ ] Issue: author the remaining `claude-code`, `opencode`, and `codex`
+  adapters.
+- [ ] Issue: define compatibility-mode guidance for hosts with weaker
+  interaction capabilities, including capability declarations and downgrade
+  behavior for prompts, shell access, hooks, dynamic suggestions, and
+  structured-output integration.
+- [ ] Issue: add tool-native suggestion/autocomplete integrations that reuse the
+  canonical completion metadata for hosts that support richer UX.
 - [ ] Issue: add smoke tests for the `generic`, `claude-code`, `opencode`, and
   `codex` adapters.
 - [ ] Issue: add parity checks showing adapter flows map back to the same core
   operations and expected file mutations.
-- [ ] Issue: add golden tests for generated Bash, Zsh, and Fish completion
-  scripts.
-- [ ] Issue: add parity tests proving completion metadata stays aligned with the
-  actual command and flag surface.
-- [ ] Issue: add fixture tests for repo-aware suggestions across embedded,
-  linked, and monorepo projects.
 - [ ] Issue: add tests ensuring adapters do not introduce hidden state or
   adapter-only correctness requirements.
 - [ ] Issue: add tests ensuring adapter-driven edits to authoritative
@@ -1266,12 +1311,18 @@ tools while preserving one core model.
 - At least one tool-specific adapter is usable end to end.
 - All adapters map back to the same underlying operations.
 - Users can still work directly with repo files and CLI without any adapter.
+- One typed command/operation registry drives operations docs, completion,
+  machine-readable completion metadata, and adapter-native suggestion surfaces.
 - Bash, Zsh, and Fish users can install shell completion for the stable CLI
   surface.
 - Repo-aware suggestions help users discover valid change IDs, bundles,
   promotion targets, and adapter names without mutating project state.
-- Adapter sync materializes the selected tool pack from the installed release
-  without requiring network access.
+- The `generic` adapter remains a thin host-agnostic baseline rather than a
+  second source of dynamic runtime behavior.
+- Adapter sync materializes the selected tool adapter from installed release
+  adapter-pack contents without requiring network access.
+- Adapter sync preserves explicit boundaries between tool-managed files and
+  user-owned config.
 - Adapter behavior is covered by parity and smoke tests rather than manual
   walkthroughs only.
 
@@ -1367,8 +1418,9 @@ install/upgrade paths and end-to-end reference fixtures.
 - [ ] Issue: ensure `type: path` sources are reported as externally managed and
   never mutated; the CLI should direct users to navigate to the owning source
   path and run the upgrade there.
-- [ ] Issue: harden adapter sync/update to be namespaced and merge-aware, with
-  normal adapter sync remaining local-only against installed release content.
+- [ ] Issue: harden repeated adapter sync behavior to be namespaced and
+  merge-aware, with normal adapter sync remaining local-only against installed
+  release content.
 - [ ] Issue: ensure `validate` and `doctor` report unsupported version
   combinations, stale mixed-version trees after merge/rebase, and integrity
   posture issues.
