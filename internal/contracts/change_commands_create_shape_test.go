@@ -87,6 +87,102 @@ func TestCreateChangeRejectsSymlinkedMutationPath(t *testing.T) {
 	}
 }
 
+func TestCreateChangeAllowsNoSelectableStandards(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	configureWorkflowWithNoSelectableStandards(t, root)
+	v, result := mustCreateDefaultFeatureChange(t, root)
+	changeDir := filepath.Join(root, "runecontext", "changes", result.ID)
+	if got := len(result.ApplicableStandards); got != 0 {
+		t.Fatalf("expected no applicable standards, got %d (%#v)", got, result.ApplicableStandards)
+	}
+	wantAssumption := "No selectable standards are defined in the project yet; the Applicable Standards section is intentionally blank."
+	if !containsStringValue(result.Assumptions, wantAssumption) {
+		t.Fatalf("expected assumptions to include %q, got %#v", wantAssumption, result.Assumptions)
+	}
+	requireFileContent(t, filepath.Join(changeDir, "standards.md"), strings.Join([]string{"## Applicable Standards", "N/A", "", "## Resolution Notes", "Generated from the current context bundle selection; review any automatic refresh before committing.", ""}, "\n"))
+	assertValidatedWorkflowProject(t, v, root)
+}
+
+func TestCreateChangeUsesConservativeFallbackAssumptionWhenStandardsExist(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	writeWorkflowBundle(t, root, filepath.Join("bundles", "base.yaml"), []string{"schema_version: 1", "id: base", "includes:", "  project:", "    - project/mission.md", ""})
+	v, result := mustCreateDefaultFeatureChange(t, root)
+	wantAssumption := "Used all non-draft standards as a conservative fallback because no standards were selected through context bundles."
+	if !containsStringValue(result.Assumptions, wantAssumption) {
+		t.Fatalf("expected assumptions to include %q, got %#v", wantAssumption, result.Assumptions)
+	}
+	if got, want := len(result.ApplicableStandards), 2; got != want {
+		t.Fatalf("expected %d applicable standards, got %d (%#v)", want, got, result.ApplicableStandards)
+	}
+	changeDir := filepath.Join(root, "runecontext", "changes", result.ID)
+	requireFileContent(t, filepath.Join(changeDir, "standards.md"), strings.Join([]string{"## Applicable Standards", "- `standards/global/base.md`: Selected from the current context bundles.", "- `standards/security/review.md`: Selected from the current context bundles.", "", "## Resolution Notes", "Generated from the current context bundle selection; review any automatic refresh before committing.", ""}, "\n"))
+	assertValidatedWorkflowProject(t, v, root)
+}
+
+func TestShapeChangeRefreshesStandardsAfterNoSelectableStandardsCreate(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	configureWorkflowWithNoSelectableStandards(t, root)
+	v, created := mustCreateDefaultFeatureChange(t, root)
+	restoreBaseBundleToSelectSecurityStandard(t, root)
+	rewriteWorkflowStandardStatus(t, root, filepath.Join("standards", "security", "review.md"), "active")
+	shapeResult := mustShapeChange(t, v, root, created.ID, ChangeShapeOptions{})
+	if got, want := shapeResult.StandardsRefreshAction, "updated"; got != want {
+		t.Fatalf("expected standards refresh %q, got %q", want, got)
+	}
+	if got, want := len(shapeResult.AddedStandards), 1; got != want || shapeResult.AddedStandards[0] != "standards/security/review.md" {
+		t.Fatalf("expected one added standard, got %#v", shapeResult.AddedStandards)
+	}
+	changeDir := filepath.Join(root, "runecontext", "changes", created.ID)
+	requireFileContent(t, filepath.Join(changeDir, "standards.md"), strings.Join([]string{"## Applicable Standards", "- `standards/security/review.md`: Selected from the current context bundles.", "", "## Standards Added Since Last Refresh", "- `standards/security/review.md`: Newly selected during standards refresh.", "", "## Resolution Notes", "Generated from the current context bundle selection; review any automatic refresh before committing.", ""}, "\n"))
+	assertValidatedWorkflowProject(t, v, root)
+}
+
+func configureWorkflowWithNoSelectableStandards(t *testing.T, root string) {
+	t.Helper()
+	for _, rel := range []string{filepath.Join("standards", "global", "base.md"), filepath.Join("standards", "security", "review.md")} {
+		rewriteWorkflowStandardStatus(t, root, rel, "draft")
+	}
+	writeWorkflowBundle(t, root, filepath.Join("bundles", "base.yaml"), []string{"schema_version: 1", "id: base", "includes:", "  project:", "    - project/mission.md", ""})
+	writeWorkflowBundle(t, root, filepath.Join("bundles", "security.yaml"), []string{"schema_version: 1", "id: security", "includes:", "  project:", "    - project/mission.md", ""})
+}
+
+func rewriteWorkflowStandardStatus(t *testing.T, root, standardRelPath, status string) {
+	t.Helper()
+	path := filepath.Join(root, "runecontext", standardRelPath)
+	rewriteFile(t, path, func(text string) string {
+		for _, current := range []string{"active", "draft", "deprecated"} {
+			updated := strings.Replace(text, "status: "+current, "status: "+status, 1)
+			if updated != text {
+				return updated
+			}
+		}
+		t.Fatalf("expected status field in %s", path)
+		return text
+	})
+}
+
+func restoreBaseBundleToSelectSecurityStandard(t *testing.T, root string) {
+	t.Helper()
+	writeWorkflowBundle(t, root, filepath.Join("bundles", "base.yaml"), []string{"schema_version: 1", "id: base", "includes:", "  project:", "    - project/mission.md", "  standards:", "    - standards/security/review.md", ""})
+}
+
+func writeWorkflowBundle(t *testing.T, root, bundleRelPath string, lines []string) {
+	t.Helper()
+	path := filepath.Join(root, "runecontext", bundleRelPath)
+	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0o644); err != nil {
+		t.Fatalf("write bundle %s: %v", path, err)
+	}
+}
+
+func containsStringValue(items []string, want string) bool {
+	for _, item := range items {
+		if item == want {
+			return true
+		}
+	}
+	return false
+}
+
 func TestShapeChangeCreatesSupplementalDocsAndRefreshesStandards(t *testing.T) {
 	root := copyChangeWorkflowTemplate(t)
 	v, result := mustCreateDefaultFeatureChange(t, root)

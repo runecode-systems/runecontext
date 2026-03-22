@@ -222,10 +222,10 @@ func standardsSelectedFromBundleResolution(resolution *BundleResolution) []strin
 
 func fallbackApplicableStandards(index *ProjectIndex) ([]string, []string, error) {
 	fallback := selectableNonDraftStandards(index)
-	if len(fallback) == 0 {
-		return nil, nil, fmt.Errorf("cannot infer applicable standards because the project has no selectable standards")
-	}
 	assumption := "Used all non-draft standards as a conservative fallback because no standards were selected through context bundles."
+	if len(fallback) == 0 {
+		assumption = "No selectable standards are defined in the project yet; the Applicable Standards section is intentionally blank."
+	}
 	return fallback, []string{assumption}, nil
 }
 
