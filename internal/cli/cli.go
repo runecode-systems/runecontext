@@ -22,6 +22,7 @@ const (
 	changeShapeUsage      = "runectx change shape [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--design TEXT] [--verification TEXT] [--task TEXT] [--reference TEXT] [--path PATH]"
 	changeCloseUsage      = "runectx change close [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--verification-status STATUS] [--superseded-by ID] [--closed-at YYYY-MM-DD] [--path PATH]"
 	changeReallocateUsage = "runectx change reallocate [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--path PATH]"
+	initUsage             = "runectx init [--json] [--non-interactive] [--dry-run] [--explain] [--mode embedded|linked] [--seed-bundle NAME] [--path PATH]"
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -41,6 +42,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return runBundle(args[1:], stdout, stderr)
 	case "doctor":
 		return runDoctor(args[1:], stdout, stderr)
+	case "init":
+		return runInit(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		printUsage(stdout)
 		return exitOK
@@ -63,6 +66,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+validateUsage)
 	fmt.Fprintln(w, "  "+bundleResolveUsage)
 	fmt.Fprintln(w, "  "+doctorUsage)
+	fmt.Fprintln(w, "  "+initUsage)
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Commands:")
 	fmt.Fprintln(w, "  help       Show CLI usage")
@@ -71,4 +75,5 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  bundle     Resolve context bundles")
 	fmt.Fprintln(w, "  validate   Validate RuneContext contracts for a project root")
 	fmt.Fprintln(w, "  doctor     Run environment and resolution diagnostics")
+	fmt.Fprintln(w, "  init       Scaffold a RuneContext project")
 }

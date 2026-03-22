@@ -100,7 +100,7 @@ for target in "${targets[@]}"; do
 
   for binary in "${binaries[@]}"; do
     [ -n "${binary}" ] || continue
-    GOOS="${goos}" GOARCH="${goarch}" go build -ldflags="-s -w" -o "${bin_dir}/${binary}" "./cmd/${binary}"
+    GOOS="${goos}" GOARCH="${goarch}" go build -ldflags="-s -w -X github.com/runecode-systems/runecontext/internal/cli.runecontextVersion=@tag@" -o "${bin_dir}/${binary}" "./cmd/${binary}"
   done
 
   cp LICENSE NOTICE README.md "${package_dir}/"

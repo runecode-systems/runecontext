@@ -5,6 +5,15 @@ repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 package_root="${repo_root}/build/local/runecontext"
 binary_path="${package_root}/bin/runectx"
 launcher_path="${repo_root}/bin/runectx"
+metadata_path="${repo_root}/nix/release/metadata.nix"
+
+version="$(awk -F '"' '/^[[:space:]]*version[[:space:]]*=/{print $2; exit}' "${metadata_path}")"
+if [ -z "${version}" ]; then
+  printf 'failed to read release version from %s\n' "${metadata_path}" >&2
+  exit 1
+fi
+build_tag="v${version}"
+ldflags="-X github.com/runecode-systems/runecontext/internal/cli.runecontextVersion=${build_tag}"
 
 entries=(
   README.md
@@ -35,7 +44,7 @@ mkdir -p "${package_root}/bin"
 
 (
   cd "${repo_root}"
-  go build -o "${binary_path}" ./cmd/runectx
+  go build -ldflags "${ldflags}" -o "${binary_path}" ./cmd/runectx
 )
 
 for entry in "${entries[@]}"; do

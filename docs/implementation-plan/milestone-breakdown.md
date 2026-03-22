@@ -953,12 +953,15 @@ outside the selected project root.
 
 ### Epic 3: Recommended Branch Cut 3 / Local Init Workflow
 
-- [ ] Issue: implement repo-local, local-first `runectx init` scaffolding for
-  embedded and linked workflows.
-- [ ] Issue: ensure alpha.5 `runectx init` does not depend on implicit network
-  fetches; network-enabled install/update hardening remains in `v0.1.0-alpha.8`.
-- [ ] Issue: add integration tests covering embedded and linked local init flows
-  plus `--dry-run`, `--json`, and `--non-interactive` behavior.
+- [x] Issue: implement repo-local, local-first `runectx init` scaffolding for
+    embedded and linked workflows.
+- [x] Issue: ensure alpha.5 `runectx init` does not depend on implicit network
+    fetches; network-enabled install/update hardening remains in `v0.1.0-alpha.8`.
+- [x] Issue: add integration tests covering embedded and linked local init flows
+    plus `--dry-run`, `--json`, and `--non-interactive` behavior.
+- Note: init tests now cover embedded and linked scaffolding, machine-facing
+  flags (`--dry-run`, `--json`, `--non-interactive`), plan reporting, and seed
+  bundle validation while keeping the workflow local-first and network-free.
 - [ ] Note: `runectx update` is intentionally deferred to `v0.1.0-alpha.8`
   alongside release/install hardening.
 

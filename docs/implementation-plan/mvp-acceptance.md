@@ -285,7 +285,7 @@
 - Note: richer `--explain` payloads for resolution/standards/promotion remain
   incremental; current alpha.5 commands surface explicit `explain_warning`
   metadata when `--explain` is accepted but detailed explain output is pending.
-- [ ] `runectx init` covers repo-local embedded/linked scaffolding in alpha.5,
+- [x] `runectx init` covers repo-local embedded/linked scaffolding in alpha.5,
   while network-enabled init/update hardening remains deferred to alpha.8.
 - [ ] `runectx standard discover` is advisory-only; interactive runs may chain
   into `promote` only after explicit confirmation, while `--non-interactive`
