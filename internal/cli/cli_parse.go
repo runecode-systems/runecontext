@@ -19,9 +19,12 @@ type changeNewRequest struct {
 	title          string
 	changeType     string
 	size           string
+	sizeProvided   bool
 	description    string
 	mode           string
+	modeProvided   bool
 	contextBundles []string
+	bundleProvided bool
 }
 
 type changeShapeRequest struct {
@@ -66,32 +69,52 @@ func parseStatusArgs(args []string) (statusRequest, error) {
 
 func parseChangeNewArgs(args []string) (changeNewRequest, error) {
 	request := changeNewRequest{root: "."}
-	err := consumeArgs(args, func(flag parsedFlag) (int, error) {
-		switch flag.name {
-		case "--title":
-			return assignStringFlag(args, flag, &request.title)
-		case "--type":
-			return assignStringFlag(args, flag, &request.changeType)
-		case "--size":
-			return assignStringFlag(args, flag, &request.size)
-		case "--description":
-			return assignStringFlag(args, flag, &request.description)
-		case "--shape":
-			return assignStringFlag(args, flag, &request.mode)
-		case "--bundle":
-			return appendStringFlag(args, flag, &request.contextBundles)
-		case "--path":
-			return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
-		default:
-			return flag.next, fmt.Errorf("unknown change new flag %q", flag.raw)
-		}
-	}, func(arg string) error {
+	err := consumeArgs(args, changeNewFlagHandler(args, &request), func(arg string) error {
 		return fmt.Errorf("unexpected positional argument %q", arg)
 	})
 	if err != nil {
 		return changeNewRequest{}, err
 	}
 	return finalizeChangeNewRequest(request)
+}
+
+func changeNewFlagHandler(args []string, request *changeNewRequest) func(parsedFlag) (int, error) {
+	return func(flag parsedFlag) (int, error) {
+		switch flag.name {
+		case "--title":
+			return assignStringFlag(args, flag, &request.title)
+		case "--type":
+			return assignStringFlag(args, flag, &request.changeType)
+		case "--size":
+			return assignStringFlagWithProvided(args, flag, &request.size, &request.sizeProvided)
+		case "--description":
+			return assignStringFlag(args, flag, &request.description)
+		case "--shape":
+			return assignStringFlagWithProvided(args, flag, &request.mode, &request.modeProvided)
+		case "--bundle":
+			return appendStringFlagWithProvided(args, flag, &request.contextBundles, &request.bundleProvided)
+		case "--path":
+			return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
+		default:
+			return flag.next, fmt.Errorf("unknown change new flag %q", flag.raw)
+		}
+	}
+}
+
+func assignStringFlagWithProvided(args []string, flag parsedFlag, target *string, provided *bool) (int, error) {
+	next, err := assignStringFlag(args, flag, target)
+	if err == nil {
+		*provided = true
+	}
+	return next, err
+}
+
+func appendStringFlagWithProvided(args []string, flag parsedFlag, target *[]string, provided *bool) (int, error) {
+	next, err := appendStringFlag(args, flag, target)
+	if err == nil {
+		*provided = true
+	}
+	return next, err
 }
 
 func finalizeChangeNewRequest(request changeNewRequest) (changeNewRequest, error) {

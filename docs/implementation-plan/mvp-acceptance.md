@@ -248,12 +248,15 @@
 - [ ] The secondary/admin commands exist: `validate`, `doctor`,
   `standard discover`, `promote`, `assurance enable verified`, and
   `assurance backfill`.
-- [ ] Before alpha.5 is complete, any earlier validation entrypoints remain narrow
+- [ ] `status`, `validate`, and `doctor` have distinct stable responsibilities:
+  workflow summary, authoritative contract enforcement, and
+  environment/install/source-posture diagnosis.
+- [x] Before alpha.5 is complete, any earlier validation entrypoints remain narrow
   wrappers around the same core contracts rather than alternate semantics.
 - [x] Before alpha.5 is complete, any earlier `status`, `change new`,
   `change shape`, and `change close` entrypoints remain narrow wrappers around
   the same core operations rather than alternate semantics.
-- [ ] Before alpha.5 is complete, any earlier validation entrypoints use a
+- [x] Before alpha.5 is complete, any earlier validation entrypoints use a
   documented and tested machine-readable output contract.
 - [ ] Before alpha.5 is complete, any earlier validation entrypoints that expose
   signed-tag verification accept explicit trust inputs from the caller and
@@ -268,8 +271,27 @@
 - [ ] `runectx adapter sync <tool>` uses the installed or pinned RuneContext
   release contents rather than implicitly fetching adapter packs from the
   network.
-- [ ] Machine-facing flags exist and behave consistently: `--json`,
+- [x] Machine-facing flags exist and behave consistently: `--json`,
   `--non-interactive`, `--dry-run`, and `--explain`.
+- [ ] `runectx completion <bash|zsh|fish>` exists and stays aligned with the
+  stable CLI command/flag/value surface.
+- [x] Machine-facing JSON output uses one documented envelope and failure
+  taxonomy across commands rather than drifting command by command.
+- [x] Write-command `--dry-run` behavior simulates planned mutations and
+  validates the resulting would-be project state without persisting files.
+- Note: alpha.5 dry-run is fail-closed for unsafe symlink topology (absolute
+  links and relative links resolving outside project root) and enforces
+  clone-time resource limits to avoid unbounded local snapshot growth.
+- Note: richer `--explain` payloads for resolution/standards/promotion remain
+  incremental; current alpha.5 commands surface explicit `explain_warning`
+  metadata when `--explain` is accepted but detailed explain output is pending.
+- [x] `runectx init` covers repo-local embedded/linked scaffolding in alpha.5,
+  while network-enabled init/update hardening remains deferred to alpha.8.
+- [ ] `runectx standard discover` is advisory-only; interactive runs may chain
+  into `promote` only after explicit confirmation, while `--non-interactive`
+  discovery emits reusable candidate data and exits without mutation.
+- [ ] `runectx promote` is the only CLI surface that advances promotion state to
+  `accepted` and `completed` and writes durable target updates.
 - [ ] CLI behavior stays aligned with the canonical file model.
 
 ## 6. Assurance
@@ -304,9 +326,14 @@
 - [ ] The `claude-code`, `opencode`, and `codex` adapters exist.
 - [ ] Adapters differ in UX only, not in core semantics or source-of-truth
   files.
+- [ ] Adapters and CLI shell completion reuse one canonical completion metadata
+  model or equivalent provider surface rather than defining separate command
+  semantics.
 - [ ] Adapter-driven edits to authoritative RuneContext files automatically run
   `runectx validate` and surface failures before the workflow step is treated as
   complete.
+- [ ] Repo-aware completion/suggestion UX can surface valid change IDs, bundle
+  IDs, promotion targets, and adapter names without mutating project state.
 - [ ] Adapters are packaged for release.
 
 ## 8. Release, Install, And Update
@@ -370,7 +397,7 @@ RuneContext makes them possible and testable.
   artifact validation.
 - [ ] Golden fixtures cover deterministic outputs such as context packs,
   manifests, baselines, receipts, and machine-readable CLI output.
-- [ ] CLI integration tests cover all primary and secondary commands plus
+- [x] CLI integration tests cover all primary and secondary commands plus
   `--json`, `--non-interactive`, `--dry-run`, and `--explain` behavior.
 - [ ] Adapter smoke tests and parity checks exist for `generic`, `claude-code`,
   `opencode`, and `codex`.

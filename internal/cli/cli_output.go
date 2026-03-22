@@ -32,21 +32,29 @@ func writeLines(w io.Writer, lines ...line) {
 }
 
 func writeCommandUsageError(w io.Writer, command, usage string, err error) {
-	writeLines(w,
-		line{"result", "usage_error"},
-		line{"command", command},
-		line{"error_message", err.Error()},
-		line{"usage", usage},
-	)
+	writeLines(w, buildCommandUsageErrorLines(command, usage, err)...)
 }
 
 func writeCommandInvalid(w io.Writer, command, root string, err error) {
-	writeLines(w,
-		line{"result", "invalid"},
-		line{"command", command},
-		line{"root", root},
-		line{"error_message", err.Error()},
-	)
+	writeLines(w, buildCommandInvalidLines(command, root, err)...)
+}
+
+func buildCommandUsageErrorLines(command, usage string, err error) []line {
+	return []line{
+		{"result", "usage_error"},
+		{"command", command},
+		{"error_message", err.Error()},
+		{"usage", usage},
+	}
+}
+
+func buildCommandInvalidLines(command, root string, err error) []line {
+	return []line{
+		{"result", "invalid"},
+		{"command", command},
+		{"root", root},
+		{"error_message", err.Error()},
+	}
 }
 
 func sanitizeValue(value string) string {

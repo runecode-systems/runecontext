@@ -274,6 +274,28 @@ and coverage stay in one place.
 - Keep repositories self-sufficient for mixed standalone RuneContext and
   RuneCode teams; RuneCode evidence may be richer but must remain additive
   rather than required for correctness.
+- Keep one shared machine-facing CLI envelope and failure taxonomy across
+  commands; broaden thin wrappers rather than letting command-specific contracts
+  drift apart.
+- Keep invalid-output path fields consistent across commands: `root` is the
+  project root and `error_path` is the specific failing artifact path when
+  present.
+- Keep CLI command boundaries crisp: `status` is workflow summary, `validate` is
+  authoritative contract enforcement, and `doctor` is environment/install/
+  source-posture diagnosis.
+- Keep `runectx standard discover` advisory-only and `runectx promote` as the
+  only durable promotion-mutation surface; interactive handoff must use
+  explicit candidate data rather than hidden session state.
+- Keep alpha.5 `runectx init` local-first; network-enabled init/update
+  hardening remains alpha.8 work.
+- Keep completion and autocomplete metadata derived from the same stable CLI
+  command/flag/value definitions rather than maintaining a second hand-authored
+  command model.
+- Keep repo-aware suggestions read-only, nearest-root-aware, and resilient when
+  the current directory is not a RuneContext project.
+- Keep write-command `--dry-run` behavior centered on simulating planned
+  mutations and validating the resulting would-be project state rather than
+  emitting prose-only intent.
 - Keep deployment-specific evidence discovery, service locators, tenancy/auth,
   and checkpoint-routing metadata outside RuneContext core semantics; RuneCode-
   owned metadata may reference RuneContext outputs without redefining them.
@@ -329,6 +351,11 @@ until the end.
   sync with the documented alpha train so foundational tooling does not drift.
 - Add CLI integration tests for write flows, non-interactive behavior, dry-run
   behavior, explain output, and failure classes.
+- Add golden and behavior tests for the shared machine-facing CLI envelope so
+  JSON/failure contracts do not drift command by command.
+- Add discovery-versus-promotion tests proving that `standard discover` stays
+  advisory, interactive confirmation is required before any promote handoff, and
+  `--non-interactive` discovery exits without mutation.
 - Before full `--json` lands, narrow early CLI commands may use stable
   line-oriented machine output if that contract is explicitly documented and
   tested.
@@ -336,6 +363,10 @@ until the end.
   with the same core semantics.
 - Add adapter tests ensuring that mutations to authoritative RuneContext files
   automatically trigger `runectx validate` and surface failures immediately.
+- Add golden tests for generated Bash, Zsh, and Fish completion scripts and
+  parity tests proving the completion metadata matches the actual CLI surface.
+- Add fixture tests for repo-aware suggestions so dynamic completion stays
+  correct across embedded, linked, monorepo, and out-of-project cases.
 - Add clean-machine and no-hidden-state parity tests showing that portable
   outputs stay correct when home-directory state, caches, or other non-declared
   local tool state are absent.

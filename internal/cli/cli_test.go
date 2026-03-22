@@ -273,7 +273,7 @@ func TestRunValidateUsage(t *testing.T) {
 	if !strings.Contains(stderr.String(), "result=usage_error") {
 		t.Fatalf("expected usage result output, got %q", stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "usage=runectx validate [--ssh-allowed-signers PATH] [path]") {
+	if !strings.Contains(stderr.String(), "usage=runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [path]") {
 		t.Fatalf("expected usage output, got %q", stderr.String())
 	}
 }
@@ -293,12 +293,16 @@ func parseCLIKeyValueOutput(t *testing.T, output string) map[string]string {
 	t.Helper()
 	fields := map[string]string{}
 	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
-		if strings.TrimSpace(line) == "" {
+		line = strings.TrimSpace(line)
+		if line == "" {
 			continue
+		}
+		if !strings.Contains(line, "=") {
+			t.Fatalf("CLI output line missing key=value: %q", line)
 		}
 		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
-			t.Fatalf("unexpected CLI output line %q", line)
+			t.Fatalf("malformed CLI output line: %q", line)
 		}
 		fields[parts[0]] = unsanitizeCLIValue(parts[1])
 	}

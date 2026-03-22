@@ -91,6 +91,9 @@ func collectStandardsMarkdownSections(path string, sections []markdownSection) (
 }
 
 func validateStandardsSectionReferences(path, heading, body string) error {
+	if allowsEmptyApplicableStandardsBody(heading, body) {
+		return nil
+	}
 	for _, item := range parseStandardsSectionItems(body) {
 		if item.err != nil {
 			return &ValidationError{Path: path, Message: fmt.Sprintf("section %q must list standards as bullet path references instead of copied body text", heading)}
@@ -104,6 +107,13 @@ func validateStandardsSectionReferences(path, heading, body string) error {
 		}
 	}
 	return nil
+}
+
+func allowsEmptyApplicableStandardsBody(heading, body string) bool {
+	if heading != "Applicable Standards" {
+		return false
+	}
+	return strings.TrimSpace(body) == "N/A"
 }
 
 type standardsSectionItem struct {

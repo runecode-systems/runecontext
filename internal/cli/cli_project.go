@@ -8,9 +8,10 @@ import (
 )
 
 type cliProject struct {
-	absRoot   string
-	validator *contracts.Validator
-	loaded    *contracts.LoadedProject
+	absRoot      string
+	explicitRoot bool
+	validator    *contracts.Validator
+	loaded       *contracts.LoadedProject
 }
 
 func (project *cliProject) close() {
@@ -19,13 +20,13 @@ func (project *cliProject) close() {
 	}
 }
 
-func loadProjectOrReport(root string, explicitRoot bool, stderr io.Writer, command string) (*cliProject, int) {
+func loadProjectOrReport(root string, explicitRoot bool, stderr io.Writer, command string, machine machineOptions) (*cliProject, int) {
 	absRoot, validator, loaded, err := loadProjectForCLI(root, explicitRoot)
 	if err != nil {
-		writeCommandInvalid(stderr, command, absRootOrFallback(root, absRoot), err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines(command, absRootOrFallback(root, absRoot), err), machine), exitInvalid, failureClassInvalid)
 		return nil, exitInvalid
 	}
-	return &cliProject{absRoot: absRoot, validator: validator, loaded: loaded}, exitOK
+	return &cliProject{absRoot: absRoot, explicitRoot: explicitRoot, validator: validator, loaded: loaded}, exitOK
 }
 
 func loadProjectForCLI(root string, explicitRoot bool) (string, *contracts.Validator, *contracts.LoadedProject, error) {

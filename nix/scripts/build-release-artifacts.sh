@@ -98,10 +98,12 @@ for target in "${targets[@]}"; do
   bin_dir="${package_dir}/bin"
   mkdir -p "${bin_dir}"
 
-  for binary in "${binaries[@]}"; do
-    [ -n "${binary}" ] || continue
-    GOOS="${goos}" GOARCH="${goarch}" go build -ldflags="-s -w" -o "${bin_dir}/${binary}" "./cmd/${binary}"
-  done
+    for binary in "${binaries[@]}"; do
+      [ -n "${binary}" ] || continue
+      ldflags_version="@tag@"
+      ldflags_version="${ldflags_version#v}"
+      GOOS="${goos}" GOARCH="${goarch}" go build -ldflags="-s -w -X github.com/runecode-systems/runecontext/internal/cli.runecontextVersion=${ldflags_version}" -o "${bin_dir}/${binary}" "./cmd/${binary}"
+    done
 
   cp LICENSE NOTICE README.md "${package_dir}/"
   chmod -R u=rwX,go=rX "${package_dir}"

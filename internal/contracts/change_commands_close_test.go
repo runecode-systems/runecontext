@@ -178,6 +178,17 @@ func TestCloseChangeRejectsTerminalSuccessorWithoutReciprocalLink(t *testing.T) 
 	assertFileBytesEqual(t, secondStatusPath, secondBefore)
 }
 
+func TestCloseChangeRejectsSelfSupersede(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, result := mustCreateDefaultFeatureChange(t, root)
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	_, err := CloseChange(v, loaded, result.ID, ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC), SupersededBy: []string{result.ID}})
+	if err == nil || !strings.Contains(err.Error(), "superseded_by must not reference the change itself") {
+		t.Fatalf("expected self-supersede rejection, got %v", err)
+	}
+}
+
 func createTwoWorkflowChanges(t *testing.T, root string) (*Validator, *ChangeOperationResult, *ChangeOperationResult) {
 	t.Helper()
 	v, first := mustCreateDefaultFeatureChange(t, root)

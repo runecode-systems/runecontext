@@ -18,23 +18,33 @@ type validateRequest struct {
 }
 
 func runValidate(args []string, stdout, stderr io.Writer) int {
-	request, err := parseValidateArgs(args)
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
 	if err != nil {
-		writeCommandUsageError(stderr, "validate", validateUsage, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, err), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
+	request, err := parseValidateArgs(remaining)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
 	absRoot, err := resolveAbsoluteRoot(request.root)
 	if err != nil {
-		writeCommandUsageError(stderr, "validate", validateUsage, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
 	index, err := validateProject(request, absRoot)
 	if err != nil {
-		writeValidateInvalid(stderr, absRoot, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildValidateErrorLines(absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
 	defer index.Close()
-	writeLines(stdout, buildValidateOutput(absRoot, index)...)
+	output := buildValidateOutput(absRoot, index)
+	if machine.explain {
+		diagnostics := collectDiagnostics(index)
+		output = appendValidateExplainLines(output, request, index, diagnostics)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
@@ -187,10 +197,6 @@ func appendOptionalDiagnosticLine(lines []line, key, value string) []line {
 		return lines
 	}
 	return append(lines, line{key, value})
-}
-
-func writeValidateInvalid(w io.Writer, absRoot string, err error) {
-	writeLines(w, buildValidateErrorLines(absRoot, err)...)
 }
 
 func buildValidateErrorLines(absRoot string, err error) []line {

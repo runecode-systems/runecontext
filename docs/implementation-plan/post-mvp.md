@@ -74,6 +74,9 @@ fetches into normal adapter sync flows.
 - [ ] Issue: define Scoop and winget packaging and distribution strategy if
   Windows adoption demand warrants it (Windows CI portability parity is v0.1.x;
   distribution channels are post-MVP).
+- [ ] Issue: define PowerShell and Windows command-prompt completion strategy
+  once the Bash/Zsh/Fish completion model from alpha.7 has stabilized and real
+  Windows demand justifies the added maintenance surface.
 - [ ] Issue: document how convenience channels stay subordinate to GitHub
   release artifacts.
 

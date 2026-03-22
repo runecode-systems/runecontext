@@ -109,7 +109,7 @@ func preservedStandardsSections(data []byte) ([]markdownSection, error) {
 
 func renderStandardBullets(paths []string, description string) string {
 	if len(paths) == 0 {
-		return "- `standards/placeholder.md`: Replace this placeholder once the project defines a selectable standard."
+		return "N/A"
 	}
 	lines := make([]string, 0, len(paths))
 	for _, path := range paths {

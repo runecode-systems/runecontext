@@ -36,7 +36,7 @@ milestones, and executable fixtures/tests.
 | Core On-Disk Layout | Authored/generated ownership and lean shaped-change scaffolding | `alpha.1`, `alpha.3`, `alpha.5` | Indirect |
 | Machine-Readable Schema Versioning | Schema behavior, unknown-field handling, YAML profile | `alpha.1` | Yes |
 | Generated Artifact Commit Policy | Assurance and release/install policy | `alpha.6`, `alpha.8` | Yes |
-| Project Files | Project-context scaffolding and conventions | `alpha.1`, `alpha.5` | Indirect |
+| Project Files | Project-context scaffolding, conventions, and local-first init boundaries | `alpha.1`, `alpha.5`, `alpha.8` | Indirect |
 | Standards | Frontmatter rules, lifecycle, migration behavior | `alpha.3` | Yes |
 | Context Bundles | Bundle schema and resolution engine | `alpha.1`, `alpha.2` | Yes |
 | Changes | ID allocation and lifecycle workflow | `alpha.3` | Yes |
@@ -53,12 +53,12 @@ milestones, and executable fixtures/tests.
 | Deterministic Resolved Output | Context pack generation, provenance, pack hash | `alpha.4` | Yes |
 | Standards Membership And Authoring Model | Manual versus assisted standards workflow | `alpha.3` | Yes |
 | Change Lifecycle | State machine and close rules | `alpha.3` | Yes |
-| Promotion / Promotion Assessment | Structured promotion suggestions and close flow | `alpha.4` | Yes |
+| Promotion / Promotion Assessment | Structured promotion suggestions, explicit promote flow, and advisory discovery handoff | `alpha.4`, `alpha.5`, `alpha.7` | Yes |
 | Archive/Promotion Rule | Stable-path close behavior | `alpha.3` | Yes |
 | Historical Traceability Requirements | Future-safe linkage and readable history | `alpha.3`, `alpha.4` | Yes |
 | Minimal Process And User Experience | Small mental model and progressive disclosure | `alpha.3`, `alpha.5`, `alpha.7` | Yes |
-| Invocation Surfaces And Command Architecture | Thin early change/status wrappers, broader CLI surface, and machine-facing flags | `alpha.3`, `alpha.5`, `alpha.7` | Yes |
-| Adapters | Thin adapters, capability model, and auto-validation workflow hooks | `alpha.7` | Yes |
+| Invocation Surfaces And Command Architecture | Thin early change/status wrappers, broader CLI surface, clear command boundaries, shared machine-facing flags/contracts, and completion metadata | `alpha.3`, `alpha.5`, `alpha.7` | Yes |
+| Adapters | Thin adapters, capability model, auto-validation workflow hooks, and adapter-aware suggestion UX | `alpha.7` | Yes |
 | RuneCode Integration Details / Required Capabilities | Companion-track fixtures and acceptance checkpoints | `alpha.2`-`alpha.8`, `mvp-acceptance.md` | Yes |
 | Context Pack Delivery Into Isolates | Pack-hash, artifact, and typed-delivery readiness for companion integration | `alpha.4`-`alpha.8`, `mvp-acceptance.md` | Yes |
 | Reviewable Intent In RuneCode History | Change/proposal binding and audit-history readiness | `alpha.3`-`alpha.8`, `mvp-acceptance.md` | Yes |
@@ -250,10 +250,10 @@ milestones, and executable fixtures/tests.
   dedicated reopen/downgrade workflow.
   - Planned capture: `alpha.3`
 - Decision: promotion is selective and reviewable, not silent auto-promotion.
-  - Planned capture: `alpha.4`
+  - Planned capture: `alpha.4`, `alpha.5`
 - Decision: alpha.4 close-time promotion assessment records only `none` or
   `suggested`; explicit later workflows own `accepted` and `completed`.
-  - Planned capture: `alpha.4`, `alpha.6`
+  - Planned capture: `alpha.4`, `alpha.5`, `alpha.6`
 - Decision: close-time promotion reassessment must preserve already-advanced
   promotion states (`accepted`, `completed`) and remain deterministic across
   both `closed` and `superseded` terminal change outcomes.
@@ -262,6 +262,14 @@ milestones, and executable fixtures/tests.
   normalized traceability records so `target_path` values remain canonical and
   platform-independent.
   - Planned capture: `alpha.4`
+- Decision: `runectx promote` is the only durable-mutation surface that advances
+  promotion state to `accepted` and `completed`.
+  - Planned capture: `alpha.5`, `alpha.6`
+- Decision: `runectx standard discover` remains advisory-only; it may hand off
+  to `runectx promote` interactively after confirmation, but
+  `--non-interactive` discovery emits reusable candidate data and exits without
+  mutation.
+  - Planned capture: `alpha.5`, `alpha.7`
 - Decision: users must be able to use embedded or dedicated-repo storage.
   - Planned capture: `alpha.2`, `alpha.8`
 - Decision: bundle rules and generated inventories use consistent
@@ -279,10 +287,36 @@ milestones, and executable fixtures/tests.
 - Decision: adapters are the primary UX; CLI is the power-user and automation
   surface.
   - Planned capture: `alpha.3`, `alpha.5`, `alpha.7`
+- Decision: machine-facing CLI commands should converge on one shared JSON
+  envelope and stable failure taxonomy while broadened thin wrappers continue to
+  call the same canonical core operations.
+  - Planned capture: `alpha.5`
+- Decision: completion/autocomplete should derive from the same stable CLI
+  command, flag, and value definitions rather than a separate command model.
+  - Planned capture: `alpha.7`
+- Decision: `status`, `validate`, and `doctor` remain distinct command surfaces:
+  workflow summary, authoritative contract enforcement, and
+  environment/install/source-posture diagnostics.
+  - Planned capture: `alpha.5`
+- Decision: write-command `--dry-run` behavior should simulate planned
+  mutations and validate the resulting would-be project state without
+  persisting files.
+  - Planned capture: `alpha.5`
+- Decision: alpha.5 `runectx init` is repo-local and local-first; release/install
+  hardening and network-enabled init/update behavior remain alpha.8 work.
+  - Planned capture: `alpha.5`, `alpha.8`
 - Decision: `adapter pack` is the packaged tool UX surface, and
   `runecontext/operations/` is the canonical in-project reference/source area
   for underlying RuneContext operations.
   - Planned capture: `alpha.1`, `alpha.7`
+- Decision: alpha.7 completion should officially target Bash, Zsh, and Fish
+  first, with PowerShell and Windows command-prompt completion deferred until
+  after the MVP.
+  - Planned capture: `alpha.7`, `post-mvp.md`
+- Decision: repo-aware suggestions should remain read-only, honor nearest-root
+  discovery and explicit `--path`, and degrade gracefully outside RuneContext
+  projects.
+  - Planned capture: `alpha.7`
 - Decision: the release workflow should mirror RuneCode's tag-driven
   build/publish structure, with Nix defining the canonical unsigned release
   asset set.
@@ -299,7 +333,7 @@ milestones, and executable fixtures/tests.
   - Planned capture: `alpha.7`
 - Decision: `runectx` must not make network calls outside explicit `init` and
   `update` flows.
-  - Planned capture: `alpha.7`, `alpha.8`
+  - Planned capture: `alpha.5`, `alpha.7`, `alpha.8`
 - Decision: `plain` and `verified` should share one authored workflow, and
   standalone `runectx` must be able to emit the same portable minimal receipts a
   Verified repo requires while RuneCode adds richer parallel evidence.

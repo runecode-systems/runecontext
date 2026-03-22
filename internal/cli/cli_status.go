@@ -8,22 +8,31 @@ import (
 )
 
 func runStatus(args []string, stdout, stderr io.Writer) int {
-	request, err := parseStatusArgs(args)
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
 	if err != nil {
-		writeCommandUsageError(stderr, "status", statusUsage, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("status", statusUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "status")
+	request, err := parseStatusArgs(remaining)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("status", statusUsage, err), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
+	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "status", machine)
 	if code != exitOK {
 		return code
 	}
 	defer project.close()
 	summary, err := contracts.BuildProjectStatusSummary(project.validator, project.loaded)
 	if err != nil {
-		writeCommandInvalid(stderr, "status", project.absRoot, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("status", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	writeLines(stdout, buildStatusOutput(project.absRoot, summary)...)
+	output := buildStatusOutput(project.absRoot, summary)
+	if machine.explain {
+		output = appendStatusExplainLines(output, project.loaded, summary)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 

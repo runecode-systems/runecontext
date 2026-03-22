@@ -217,36 +217,64 @@ func runRejectStandardsMarkdownCases(t *testing.T, v *Validator) {
 
 func runSpecialStandardsMarkdownCases(t *testing.T, v *Validator) {
 	t.Helper()
-	t.Run("reject standards copied body text", func(t *testing.T) {
-		data := readFixture(t, fixturePath(t, "markdown-contracts", "reject-standards-copied-body.md"))
-		if err := v.ValidateStandardsMarkdown("reject-standards-copied-body.md", data); err == nil {
-			t.Fatal("expected copied standard body text to fail")
+	runSpecialStandardsFixtureCases(t, v)
+	runSpecialStandardsInlineCases(t, v)
+}
+
+func runSpecialStandardsFixtureCases(t *testing.T, v *Validator) {
+	t.Helper()
+	for _, tc := range specialStandardsFixtureCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			data := readFixture(t, fixturePath(t, "markdown-contracts", tc.path))
+			assertStandardsMarkdownExpectation(t, v, tc.path, data, tc.shouldError)
+		})
+	}
+}
+
+func runSpecialStandardsInlineCases(t *testing.T, v *Validator) {
+	t.Helper()
+	for _, tc := range specialStandardsInlineCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			assertStandardsMarkdownExpectation(t, v, tc.path, tc.data, tc.shouldError)
+		})
+	}
+}
+
+type standardsCase struct {
+	name        string
+	path        string
+	data        []byte
+	shouldError bool
+}
+
+func specialStandardsFixtureCases() []standardsCase {
+	return []standardsCase{
+		{name: "reject standards copied body text", path: "reject-standards-copied-body.md", shouldError: true},
+		{name: "allow excluded draft standard path reference", path: "valid-standards-excluded-draft.md", shouldError: false},
+	}
+}
+
+func specialStandardsInlineCases() []standardsCase {
+	return []standardsCase{
+		{name: "reject multiple standard refs per bullet", path: "multi-ref.md", data: []byte("## Applicable Standards\n- `standards/global/a.md` and `standards/global/b.md`: invalid multi-ref bullet\n"), shouldError: true},
+		{name: "allow one standard ref plus other backticked code", path: "single-standard-with-code.md", data: []byte("## Applicable Standards\n- `standards/global/a.md`: Applies to `POST /v1/auth` without adding a second standard reference.\n")},
+		{name: "allow applicable standards N/A empty state", path: "applicable-na.md", data: []byte("## Applicable Standards\nN/A\n\n## Resolution Notes\nNo selectable standards are defined yet.\n")},
+		{name: "reject mixed canonical and non-canonical standard refs per bullet", path: "mixed-standard-refs.md", data: []byte("## Applicable Standards\n- `standards/global/a.md`: supersedes `standards/global/a.md#details` which is non-canonical.\n"), shouldError: true},
+	}
+}
+
+func assertStandardsMarkdownExpectation(t *testing.T, v *Validator, path string, data []byte, shouldError bool) {
+	t.Helper()
+	err := v.ValidateStandardsMarkdown(path, data)
+	if shouldError {
+		if err == nil {
+			t.Fatalf("expected %s to fail", path)
 		}
-	})
-	t.Run("allow excluded draft standard path reference", func(t *testing.T) {
-		data := readFixture(t, fixturePath(t, "markdown-contracts", "valid-standards-excluded-draft.md"))
-		if err := v.ValidateStandardsMarkdown("valid-standards-excluded-draft.md", data); err != nil {
-			t.Fatalf("expected excluded draft standard reference to parse: %v", err)
-		}
-	})
-	t.Run("reject multiple standard refs per bullet", func(t *testing.T) {
-		data := []byte("## Applicable Standards\n- `standards/global/a.md` and `standards/global/b.md`: invalid multi-ref bullet\n")
-		if err := v.ValidateStandardsMarkdown("multi-ref.md", data); err == nil {
-			t.Fatal("expected multiple-ref bullet to fail")
-		}
-	})
-	t.Run("allow one standard ref plus other backticked code", func(t *testing.T) {
-		data := []byte("## Applicable Standards\n- `standards/global/a.md`: Applies to `POST /v1/auth` without adding a second standard reference.\n")
-		if err := v.ValidateStandardsMarkdown("single-standard-with-code.md", data); err != nil {
-			t.Fatalf("expected non-standard code spans to be ignored, got %v", err)
-		}
-	})
-	t.Run("reject mixed canonical and non-canonical standard refs per bullet", func(t *testing.T) {
-		data := []byte("## Applicable Standards\n- `standards/global/a.md`: supersedes `standards/global/a.md#details` which is non-canonical.\n")
-		if err := v.ValidateStandardsMarkdown("mixed-standard-refs.md", data); err == nil {
-			t.Fatal("expected mixed canonical and non-canonical standard refs to fail")
-		}
-	})
+		return
+	}
+	if err != nil {
+		t.Fatalf("expected %s to parse: %v", path, err)
+	}
 }
 
 func writeSpecSymlinkProject(t *testing.T, projectRoot string) string {

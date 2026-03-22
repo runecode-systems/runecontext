@@ -8,119 +8,152 @@ import (
 )
 
 func runChange(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 {
-		writeCommandUsageError(stderr, "change", changeUsage, fmt.Errorf("change subcommand is required"))
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowDryRun: true, allowExplain: true})
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change", changeUsage, err), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
+	if len(remaining) == 0 {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change", changeUsage, fmt.Errorf("change subcommand is required")), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
 
-	switch args[0] {
+	switch remaining[0] {
 	case "new":
-		return runChangeNew(args[1:], stdout, stderr)
+		return runChangeNew(remaining[1:], machine, stdout, stderr)
 	case "shape":
-		return runChangeShape(args[1:], stdout, stderr)
+		return runChangeShape(remaining[1:], machine, stdout, stderr)
 	case "close":
-		return runChangeClose(args[1:], stdout, stderr)
+		return runChangeClose(remaining[1:], machine, stdout, stderr)
 	case "reallocate":
-		return runChangeReallocate(args[1:], stdout, stderr)
+		return runChangeReallocate(remaining[1:], machine, stdout, stderr)
 	default:
-		writeCommandUsageError(stderr, "change", changeUsage, fmt.Errorf("unknown change subcommand %q", args[0]))
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change", changeUsage, fmt.Errorf("unknown change subcommand %q", remaining[0])), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
 }
 
-func runChangeNew(args []string, stdout, stderr io.Writer) int {
+func runChangeNew(args []string, machine machineOptions, stdout, stderr io.Writer) int {
 	request, err := parseChangeNewArgs(args)
 	if err != nil {
-		writeCommandUsageError(stderr, "change_new", changeNewUsage, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change_new", changeNewUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_new")
+	if err := enforceNonInteractiveChangeNew(machine, request); err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change_new", changeNewUsage, err), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
+	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_new", machine)
 	if code != exitOK {
 		return code
 	}
 	defer project.close()
-	result, err := contracts.CreateChange(project.validator, project.loaded, contracts.ChangeCreateOptions{
-		Title:          request.title,
-		Type:           request.changeType,
-		Size:           request.size,
-		Description:    request.description,
-		ContextBundles: request.contextBundles,
-		RequestedMode:  contracts.ChangeMode(request.mode),
+	result, err := runChangeOperation(project, machine, func(v *contracts.Validator, loaded *contracts.LoadedProject) (*contracts.ChangeOperationResult, error) {
+		return contracts.CreateChange(v, loaded, contracts.ChangeCreateOptions{
+			Title:          request.title,
+			Type:           request.changeType,
+			Size:           request.size,
+			Description:    request.description,
+			ContextBundles: request.contextBundles,
+			RequestedMode:  contracts.ChangeMode(request.mode),
+		})
 	})
 	if err != nil {
-		writeCommandInvalid(stderr, "change_new", project.absRoot, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_new", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	writeLines(stdout, buildChangeNewOutput(project.absRoot, project.loaded, result)...)
+	output := buildChangeNewOutput(project.absRoot, project.loaded, result)
+	if machine.explain {
+		output = appendChangeNewExplainLines(output, result)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
-func runChangeShape(args []string, stdout, stderr io.Writer) int {
+func runChangeShape(args []string, machine machineOptions, stdout, stderr io.Writer) int {
 	request, err := parseChangeShapeArgs(args)
 	if err != nil {
-		writeCommandUsageError(stderr, "change_shape", changeShapeUsage, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change_shape", changeShapeUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_shape")
+	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_shape", machine)
 	if code != exitOK {
 		return code
 	}
 	defer project.close()
-	result, err := contracts.ShapeChange(project.validator, project.loaded, request.changeID, contracts.ChangeShapeOptions{
-		Design:       request.design,
-		Verification: request.verification,
-		Tasks:        request.tasks,
-		References:   request.references,
+	result, err := runChangeOperation(project, machine, func(v *contracts.Validator, loaded *contracts.LoadedProject) (*contracts.ChangeOperationResult, error) {
+		return contracts.ShapeChange(v, loaded, request.changeID, contracts.ChangeShapeOptions{
+			Design:       request.design,
+			Verification: request.verification,
+			Tasks:        request.tasks,
+			References:   request.references,
+		})
 	})
 	if err != nil {
-		writeCommandInvalid(stderr, "change_shape", project.absRoot, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_shape", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	writeLines(stdout, buildChangeShapeOutput(project.absRoot, project.loaded, result)...)
+	output := buildChangeShapeOutput(project.absRoot, project.loaded, result)
+	if machine.explain {
+		output = appendChangeShapeExplainLines(output, result)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
-func runChangeClose(args []string, stdout, stderr io.Writer) int {
+func runChangeClose(args []string, machine machineOptions, stdout, stderr io.Writer) int {
 	request, err := parseChangeCloseArgs(args)
 	if err != nil {
-		writeCommandUsageError(stderr, "change_close", changeCloseUsage, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change_close", changeCloseUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_close")
+	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_close", machine)
 	if code != exitOK {
 		return code
 	}
 	defer project.close()
-	result, err := contracts.CloseChange(project.validator, project.loaded, request.changeID, contracts.ChangeCloseOptions{
-		VerificationStatus: request.verificationStatus,
-		ClosedAt:           request.closedAt,
-		SupersededBy:       request.supersededBy,
+	result, err := runChangeOperation(project, machine, func(v *contracts.Validator, loaded *contracts.LoadedProject) (*contracts.ChangeOperationResult, error) {
+		return contracts.CloseChange(v, loaded, request.changeID, contracts.ChangeCloseOptions{
+			VerificationStatus: request.verificationStatus,
+			ClosedAt:           request.closedAt,
+			SupersededBy:       request.supersededBy,
+		})
 	})
 	if err != nil {
-		writeCommandInvalid(stderr, "change_close", project.absRoot, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_close", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	writeLines(stdout, buildChangeCloseOutput(project.absRoot, project.loaded, result)...)
+	output := buildChangeCloseOutput(project.absRoot, project.loaded, result)
+	if machine.explain {
+		output = appendChangeCloseExplainLines(output, result)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
-func runChangeReallocate(args []string, stdout, stderr io.Writer) int {
+func runChangeReallocate(args []string, machine machineOptions, stdout, stderr io.Writer) int {
 	request, err := parseChangeReallocateArgs(args)
 	if err != nil {
-		writeCommandUsageError(stderr, "change_reallocate", changeReallocateUsage, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change_reallocate", changeReallocateUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_reallocate")
+	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "change_reallocate", machine)
 	if code != exitOK {
 		return code
 	}
 	defer project.close()
-	result, err := contracts.ReallocateChange(project.validator, project.loaded, request.changeID, contracts.ChangeReallocateOptions{})
+	result, err := runChangeOperation(project, machine, func(v *contracts.Validator, loaded *contracts.LoadedProject) (*contracts.ChangeReallocationResult, error) {
+		return contracts.ReallocateChange(v, loaded, request.changeID, contracts.ChangeReallocateOptions{})
+	})
 	if err != nil {
-		writeCommandInvalid(stderr, "change_reallocate", project.absRoot, err)
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_reallocate", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	writeLines(stdout, buildChangeReallocateOutput(project.absRoot, project.loaded, result)...)
+	output := buildChangeReallocateOutput(project.absRoot, project.loaded, result)
+	if machine.explain {
+		output = appendChangeReallocateExplainLines(output, result)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
