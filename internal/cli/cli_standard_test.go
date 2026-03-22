@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -111,9 +112,6 @@ func TestRunStandardDiscoverHandoffEmitsExplicitCommandWhenConfirmed(t *testing.
 	if got, want := fields["handoff_promotion_target"], "standard:standards/global/base.md"; got != want {
 		t.Fatalf("expected handoff_promotion_target %q, got %q", want, got)
 	}
-	if got, want := fields["handoff_target_required"], "false"; got != want {
-		t.Fatalf("expected handoff_target_required %q, got %q", want, got)
-	}
 	if fields["handoff_command"] != "" {
 		t.Fatalf("expected no shell handoff command output, got %#v", fields)
 	}
@@ -159,6 +157,41 @@ func TestRunStandardDiscoverHandoffRejectsUnknownTarget(t *testing.T) {
 		t.Fatalf("expected handoff_eligible %q, got %q", want, got)
 	}
 	if got, want := fields["handoff_blocked_reason"], "target_not_in_candidates"; got != want {
+		t.Fatalf("expected handoff_blocked_reason %q, got %q", want, got)
+	}
+}
+
+func TestRunStandardDiscoverHandoffRequiresChangeWhenTargetProvided(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"standard", "discover", "--target", "standard:standards/global/base.md", "--path", projectRoot}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected usage exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "--confirm-handoff and --target require --change") {
+		t.Fatalf("expected clear usage error, got %q", stderr.String())
+	}
+}
+
+func TestRunStandardDiscoverHandoffBlocksWhenPromotionStatusNotSuggested(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	changeID := runCLIStandardChangeNewForTest(t, projectRoot, "Require suggested status before handoff")
+	runCLIChangeClose(t, projectRoot, changeID, []string{"--verification-status", "passed", "--closed-at", "2026-03-22", "--path", projectRoot})
+	securityPath := filepath.Join(projectRoot, "runecontext", "standards", "security", "review.md")
+	setStandardStatusForTest(t, securityPath, "deprecated")
+	rewriteChangePromotionAssessmentStatus(t, projectRoot, changeID, "none")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"standard", "discover", "--change", changeID, "--confirm-handoff", "--path", projectRoot}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["handoff_eligible"], "false"; got != want {
+		t.Fatalf("expected handoff_eligible %q, got %q", want, got)
+	}
+	if got, want := fields["handoff_blocked_reason"], "promotion_status_not_suggested"; got != want {
 		t.Fatalf("expected handoff_blocked_reason %q, got %q", want, got)
 	}
 }
@@ -221,5 +254,21 @@ func setStandardStatusForTest(t *testing.T, path, status string) {
 	}
 	if err := os.WriteFile(path, []byte(updated), 0o644); err != nil {
 		t.Fatalf("write standard: %v", err)
+	}
+}
+
+func rewriteChangePromotionAssessmentStatus(t *testing.T, projectRoot, changeID, status string) {
+	t.Helper()
+	statusPath := filepath.Join(projectRoot, "runecontext", "changes", changeID, "status.yaml")
+	data, err := os.ReadFile(statusPath)
+	if err != nil {
+		t.Fatalf("read status: %v", err)
+	}
+	updated := strings.Replace(string(data), "status: suggested", fmt.Sprintf("status: %s", status), 1)
+	if updated == string(data) {
+		t.Fatalf("expected promotion_assessment block in %s", statusPath)
+	}
+	if err := os.WriteFile(statusPath, []byte(updated), 0o644); err != nil {
+		t.Fatalf("write status: %v", err)
 	}
 }
