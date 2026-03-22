@@ -305,9 +305,23 @@ and coverage stay in one place.
 - Keep deployment-specific evidence discovery, service locators, tenancy/auth,
   and checkpoint-routing metadata outside RuneContext core semantics; RuneCode-
   owned metadata may reference RuneContext outputs without redefining them.
+- Keep assurance baseline and receipt families aligned around one portable
+  artifact envelope: explicit artifact kind, stable subject identity,
+  deterministic hashing/canonicalization metadata where applicable, and visible
+  provenance classes so future audit consumers do not need a format refactor.
 - Keep context packs generally on-demand or ephemeral, and keep high-frequency
   runtime evidence out of the committed RuneContext tree; baselines and minimal
   portable receipts may be committed when assurance requires them.
+- Keep `runectx bundle resolve` read-only in every assurance tier; portable
+  context-pack receipts come from an explicit verified capture surface that
+  builds the pack and receipt from the same validated snapshot rather than from
+  hidden side effects during resolve.
+- Keep assurance validation repo-local and self-contained: schema, integrity,
+  and linkage checks should not depend on external services, home-directory
+  caches, or replaying historical operations.
+- Keep backfill additive-only and bounded to pre-adoption history; imported
+  evidence attaches to the adoption baseline and never rewrites native captured
+  verified receipts.
 - Keep shaped change docs lean: `design.md` and `verification.md` are the
   default shaped artifacts, while `tasks.md` and `references.md` are created
   only when they add real value.

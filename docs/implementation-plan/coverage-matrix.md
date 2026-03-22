@@ -363,6 +363,22 @@ milestones, and executable fixtures/tests.
   standalone `runectx` must be able to emit the same portable minimal receipts a
   Verified repo requires while RuneCode adds richer parallel evidence.
   - Planned capture: `alpha.6`
+- Decision: assurance baseline and receipt families should share one portable
+  artifact envelope, with explicit artifact kind, stable subject identity,
+  deterministic hashing metadata where applicable, and visible provenance-class
+  distinctions.
+  - Planned capture: `alpha.6`
+- Decision: `runectx bundle resolve` remains read-only even in Verified mode;
+  portable context-pack receipts come from an explicit assurance capture surface
+  that emits the pack and receipt from the same validated snapshot.
+  - Planned capture: `alpha.5`, `alpha.6`
+- Decision: assurance validation should cover repo-local schema, integrity, and
+  linkage semantics without depending on external services, hidden caches, or
+  replayed historical operations.
+  - Planned capture: `alpha.6`
+- Decision: backfill is additive-only, bounded to pre-adoption history, and
+  must never rewrite native post-adoption `captured_verified` receipts.
+  - Planned capture: `alpha.6`
 
 ## Deferred But Captured
 

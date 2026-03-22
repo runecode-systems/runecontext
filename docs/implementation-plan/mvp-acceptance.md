@@ -301,23 +301,35 @@
 - [ ] Plain and Verified use the same authored workflow and repository source
   model; Verified adds portable evidence requirements rather than alternate
   source-of-truth files.
+- [ ] Baseline and receipt families share one stable portable assurance envelope
+  with explicit artifact kind, stable subject identity, deterministic hashing
+  metadata where applicable, and explicit provenance-class distinctions.
 - [ ] Verified mode generates a baseline artifact.
 - [ ] Verified mode generates receipt families for context packs, changes,
   promotions, and verifications.
 - [ ] Standalone `runectx` can generate the same minimal portable receipt set
   that a Verified repository requires for mixed-team collaboration.
+- [ ] `runectx bundle resolve` remains read-only in both tiers; Verified
+  context-pack receipts come from an explicit capture flow that emits the pack
+  and receipt from the same validated snapshot.
 - [ ] RuneCode may attach richer parallel audit evidence without becoming the
   only place correctness-critical assurance state lives.
 - [ ] Verified commit policy preserves a low-noise portable tree: baselines and
   minimal portable receipts may be committed, while high-frequency runtime
   evidence stays outside RuneContext's core repository model.
+- [ ] Verified mutation/capture flows fail closed if required portable receipt
+  emission fails.
 - [ ] Portable assurance artifacts do not depend on home-directory caches,
   external service availability, or deployment-specific evidence locator
   metadata for correctness.
+- [ ] `runectx validate` can check assurance artifact schemas plus repo-local
+  integrity/linkage semantics without external services, hidden caches, or
+  replayed historical commands.
 - [ ] Receipt filenames are collision-resistant and do not require a shared
   mutable index.
 - [ ] Backfill can generate imported historical provenance distinct from native
-  verified capture.
+  verified capture, and does so additively without rewriting native
+  post-adoption evidence.
 
 ## 7. Adapters
 

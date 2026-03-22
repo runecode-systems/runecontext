@@ -1017,6 +1017,11 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - `plain` and `verified` should share one authored workflow and one repository
   source model. Verified mode adds portable evidence requirements rather than an
   alternate authoring path.
+- Baseline and receipt families should share one assurance artifact envelope:
+  schema versioning, artifact kind, stable subject identity, creation metadata,
+  deterministic hashing/canonicalization metadata where applicable, and
+  explicit provenance-class support. Receipt artifacts additionally carry
+  `receipt_id` and `receipt_hash`.
 - Standalone `runectx` must be able to generate the same minimal portable
   Verified receipts that mixed-team collaboration depends on.
 - RuneCode may add richer parallel audit evidence, but that evidence must remain
@@ -1025,6 +1030,9 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
   baselines and minimal portable receipts may be committed when needed, but
   high-frequency runtime evidence must stay outside the portable RuneContext
   tree.
+- Alpha.6 should define commit-policy guidance per assurance artifact family up
+  front so future features do not have to infer whether a given baseline or
+  receipt file is normally committed, ignored, or treated as ephemeral.
 - Deployment-specific evidence discovery and service-routing metadata must stay
   outside RuneContext core semantics even when RuneCode later consumes portable
   baselines and receipts.
@@ -1035,17 +1043,55 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - Assurance receipts for durable knowledge promotion should attach to the
   explicit `runectx promote` workflow introduced in alpha.5 rather than
   inventing an assurance-only promotion mutation surface.
+- `runectx bundle resolve` must remain read-only in both tiers. Verified
+  context-pack receipts should come from an explicit assurance capture surface
+  that constructs the pack and receipt from the same validated snapshot rather
+  than by replaying resolution later.
+- Verified mutation and explicit-capture flows should fail closed if portable
+  receipt emission fails, rather than leaving durable state mutations behind
+  without their required evidence.
+- `runectx validate` for alpha.6 should validate assurance artifact schemas plus
+  repo-local integrity and linkage semantics that can be checked from repository
+  contents alone; it should not require external services or historical
+  operation replay.
+- Backfill should be additive-only and bounded to pre-adoption history. It may
+  inspect git history and existing RuneContext artifacts at or before the
+  selected adoption point, attach imported evidence to the baseline, and must
+  never rewrite later native captured receipts.
 
-### Epic 1: Assurance-tier model
+Implementation note: to keep reviews manageable without creating a review
+monster, alpha.6 work is grouped into the following recommended branch cuts.
+
+### Recommended Branch Cut 1: Assurance core, artifact contracts, and merge-safe receipts
 
 - [ ] Issue: implement persisted `plain` versus `verified` tier behavior.
-- [ ] Issue: implement generated baseline artifact shape and baseline creation.
+- [ ] Issue: implement a shared assurance artifact envelope for baselines and
+  receipt families, including artifact kind, stable subject identity, creation
+  metadata, deterministic hashing/canonicalization metadata where applicable,
+  and explicit provenance-class support.
+- [ ] Issue: implement generated baseline artifact shape and baseline creation,
+  including adoption commit, resolved source posture, and attachment points for
+  imported historical evidence.
 - [ ] Issue: implement receipt schemas and file conventions for context packs,
   changes, promotions, and verifications.
 - [ ] Issue: implement receipt hashing, receipt IDs, and collision-resistant
-  filenames.
+  filenames without any shared mutable index.
+- [ ] Issue: ensure receipts merge by file union where possible across branches.
+- [ ] Issue: ensure concurrent verified work does not produce hidden
+  correctness-critical state outside the repository.
+- [ ] Issue: implement commit-policy guidance for what each assurance artifact
+  family normally commits, ignores, or treats as ephemeral in Verified mode.
+- [ ] Issue: extend `runectx validate` to check assurance artifact schemas and
+  repo-local integrity/linkage semantics without external services or
+  historical-operation replay.
+- [ ] Issue: add golden fixtures for baselines and each receipt family.
+- [ ] Issue: add clean-machine and no-hidden-state tests showing that portable
+  assurance artifacts do not depend on host caches, service availability, or
+  deployment-specific local metadata for correctness.
+- [ ] Issue: add tests for merge-safe receipt generation and collision-resistant
+  file naming.
 
-### Epic 2: Verified enablement flow
+### Recommended Branch Cut 2: Verified enablement and explicit receipt integration
 
 - [ ] Issue: implement `runectx assurance enable verified`.
 - [ ] Issue: implement the Verified enablement flow from adoption commit through
@@ -1055,37 +1101,32 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
   operations.
 - [ ] Issue: ensure standalone `runectx` can generate the minimal portable
   receipt set required by a Verified repository without depending on RuneCode.
-- [ ] Issue: implement commit-policy guidance for what is committed, ignored, or
-  treated as ephemeral in Verified mode.
+- [ ] Issue: ensure `runectx bundle resolve` remains read-only in Verified mode.
+- [ ] Issue: implement an explicit verified context-pack capture surface that
+  emits the pack and its portable receipt from the same validated snapshot
+  rather than by replaying resolution later.
+- [ ] Issue: ensure Verified mutation/capture flows fail closed if portable
+  receipt emission fails.
+- [ ] Issue: add tests for Verified enablement, explicit pack-receipt capture,
+  and receipt-trigger integration with change, promotion, and verification
+  workflows.
 
-### Epic 3: Backfill and historical provenance
+### Recommended Branch Cut 3: Backfill and historical provenance
 
 - [ ] Issue: implement `runectx assurance backfill`.
 - [ ] Issue: implement imported provenance class support for historical work.
 - [ ] Issue: implement backfill traversal over git history and existing
-  RuneContext artifacts.
+  RuneContext artifacts, bounded to the historical range at or before the
+  selected adoption point.
 - [ ] Issue: attach imported/backfilled evidence to the adoption baseline.
 - [ ] Issue: ensure imported evidence remains visibly distinct from native
   verified evidence.
-
-### Epic 4: Merge and concurrency behavior
-
-- [ ] Issue: ensure assurance receipt generation does not depend on a shared
-  mutable index.
-- [ ] Issue: ensure receipts merge by file union where possible across branches.
-- [ ] Issue: ensure concurrent verified work does not produce hidden
-  correctness-critical state outside the repository.
-
-### Epic 5: Assurance tests and fixtures
-
-- [ ] Issue: add golden fixtures for baselines and each receipt family.
+- [ ] Issue: ensure backfill is additive-only and never rewrites native
+  post-adoption `captured_verified` receipts.
 - [ ] Issue: add tests distinguishing `captured_verified` from
   `imported_git_history` provenance.
-- [ ] Issue: add tests for Verified enablement, backfill flow, and merge-safe
-  receipt generation.
-- [ ] Issue: add clean-machine and no-hidden-state tests showing that portable
-  assurance artifacts do not depend on host caches, service availability, or
-  deployment-specific local metadata for correctness.
+- [ ] Issue: add tests for backfill flow and additive-only historical evidence
+  attachment.
 - [ ] Issue: add fixtures RuneCode can reuse to test audited-workflow gating and
   provenance ingestion.
 
@@ -1096,9 +1137,14 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
   consumption.
 - Verified repositories remain fully usable by mixed standalone RuneContext and
   RuneCode teams through the same portable receipt model.
+- Verified context-pack receipts are emitted through an explicit capture surface
+  that returns the pack and receipt from the same validated snapshot, while
+  `runectx bundle resolve` remains read-only.
 - Verified repositories preserve a low-noise commit policy and do not require
   deployment-specific evidence-service metadata or external service availability
   for correctness.
+- Assurance validation remains repo-local, deterministic, and fail-closed for
+  portable artifacts.
 - Historical backfill can strengthen trust without pretending to be native
   verified capture.
 - Assurance behavior is covered by deterministic fixtures rather than narrative
@@ -1109,6 +1155,8 @@ verifiable tracing, while keeping assurance progressive rather than mandatory.
 - RuneCode can gate audited workflows on `assurance_tier: verified`.
 - RuneCode can ingest baseline and receipt fixtures into its audit/provenance
   model.
+- RuneCode can request explicit portable context-pack receipt capture without
+  relying on read-only `bundle resolve` side effects.
 - RuneCode can reject `type: path` packs as verified provenance in audited
   flows.
 
