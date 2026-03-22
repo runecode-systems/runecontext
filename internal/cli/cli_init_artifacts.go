@@ -46,7 +46,7 @@ func createInitSeedBundle(state initState, machine machineOptions, stderr io.Wri
 }
 
 func createInitConfig(state initState, bundleCreated bool, machine machineOptions, stderr io.Writer) int {
-	configData := fmt.Sprintf("schema_version: 1\nrunecontext_version: %q\nassurance_tier: plain\nsource:\n  type: %s\n  path: runecontext\n", runecontextVersion, state.sourceType)
+	configData := fmt.Sprintf("schema_version: 1\nrunecontext_version: %q\nassurance_tier: plain\nsource:\n  type: %s\n  path: runecontext\n", normalizedRunecontextVersion(), state.sourceType)
 	if err := createExclusiveFile(state.configPath, []byte(configData)); err != nil {
 		if bundleCreated {
 			_ = os.Remove(state.bundlePath)

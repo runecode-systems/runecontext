@@ -13,7 +13,11 @@ if [ -z "${version}" ]; then
   exit 1
 fi
 build_tag="v${version}"
-ldflags="-X github.com/runecode-systems/runecontext/internal/cli.runecontextVersion=${build_tag}"
+ldflags_version="${version#v}"
+if [ -z "${ldflags_version}" ]; then
+  ldflags_version="${version}"
+fi
+ldflags="-X github.com/runecode-systems/runecontext/internal/cli.runecontextVersion=${ldflags_version}"
 
 entries=(
   README.md

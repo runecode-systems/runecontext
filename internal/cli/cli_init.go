@@ -5,11 +5,21 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 // runecontextVersion is overridden at build time via -ldflags -X.
 var runecontextVersion = "0.0.0-dev"
+var bundleIDPattern = regexp.MustCompile("^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
+
+func normalizedRunecontextVersion() string {
+	trimmed := strings.TrimPrefix(runecontextVersion, "v")
+	if trimmed == "" {
+		return "0.0.0-dev"
+	}
+	return trimmed
+}
 
 type initRequest struct {
 	root         string
@@ -67,6 +77,9 @@ func resolveSeedBundlePath(seedBundleName, bundlesDir string) (string, error) {
 	}
 	if invalidSeedBundleName(seedBundleName) {
 		return "", fmt.Errorf("--seed-bundle name must not contain path separators or '..' segments")
+	}
+	if !bundleIDPattern.MatchString(seedBundleName) {
+		return "", fmt.Errorf("--seed-bundle name %q must match %s", seedBundleName, bundleIDPattern)
 	}
 	return filepath.Join(bundlesDir, seedBundleName+".yaml"), nil
 }
