@@ -181,14 +181,15 @@ func TestRunInitFailureReportsRootAndErrorPathForConfig(t *testing.T) {
 	if code != exitInvalid {
 		t.Fatalf("expected invalid exit code, got %d/stderr=%q", code, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "result=invalid") {
-		t.Fatalf("expected invalid result output, got %q", stderr.String())
+	fields := parseCLIKeyValueOutput(t, stderr.String())
+	if got, want := fields["result"], "invalid"; got != want {
+		t.Fatalf("expected result %q, got %q (%q)", want, got, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "root="+absRoot) {
-		t.Fatalf("expected project root output, got %q", stderr.String())
+	if got, want := fields["root"], absRoot; got != want {
+		t.Fatalf("expected root %q, got %q (%q)", want, got, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "error_path="+configPath) {
-		t.Fatalf("expected config error_path output, got %q", stderr.String())
+	if got, want := fields["error_path"], configPath; got != want {
+		t.Fatalf("expected error_path %q, got %q (%q)", want, got, stderr.String())
 	}
 }
 
@@ -214,11 +215,15 @@ func TestRunInitFailureReportsRootAndErrorPathForSeedBundle(t *testing.T) {
 	if code != exitInvalid {
 		t.Fatalf("expected invalid exit code, got %d/stderr=%q", code, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "root="+absRoot) {
-		t.Fatalf("expected project root output, got %q", stderr.String())
+	fields := parseCLIKeyValueOutput(t, stderr.String())
+	if got, want := fields["result"], "invalid"; got != want {
+		t.Fatalf("expected result %q, got %q (%q)", want, got, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "error_path="+bundlePath) {
-		t.Fatalf("expected bundle error_path output, got %q", stderr.String())
+	if got, want := fields["root"], absRoot; got != want {
+		t.Fatalf("expected root %q, got %q (%q)", want, got, stderr.String())
+	}
+	if got, want := fields["error_path"], bundlePath; got != want {
+		t.Fatalf("expected error_path %q, got %q (%q)", want, got, stderr.String())
 	}
 }
 
