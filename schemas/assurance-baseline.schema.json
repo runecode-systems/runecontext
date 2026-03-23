@@ -1,14 +1,40 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["schema_version", "kind", "subject_id", "created_at", "canonicalization"],
+  "required": ["schema_version", "kind", "subject_id", "created_at", "canonicalization", "value"],
   "properties": {
     "schema_version": {"const": 1},
     "kind": {"const": "baseline"},
     "subject_id": {"type": "string"},
     "created_at": {"type": "integer"},
     "canonicalization": {"const": "runecontext-canonical-json-v1"},
-    "value": {}
+    "value": {
+      "type": "object",
+      "required": ["adoption_commit", "source_posture"],
+      "properties": {
+        "adoption_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "source_posture": {
+          "type": "string",
+          "enum": ["embedded", "git", "path"]
+        },
+        "imported_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["provenance", "path"],
+            "properties": {
+              "provenance": {"const": "imported_git_history"},
+              "path": {"type": "string", "minLength": 1}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }

@@ -302,20 +302,21 @@
 
 ## 6. Assurance
 
-- [ ] Plain mode works without extra assurance artifacts.
-- [ ] Verified mode can be enabled and persisted in `runecontext.yaml`.
+- [x] Plain mode works without extra assurance artifacts.
+- [x] Verified mode can be enabled and persisted in `runecontext.yaml`.
 - [ ] Plain and Verified use the same authored workflow and repository source
   model; Verified adds portable evidence requirements rather than alternate
   source-of-truth files.
-- [ ] Baseline and receipt families share one stable portable assurance envelope and expose the same flat schema fields for envelope metadata and receipt-specific identifiers
+- [x] Baseline and receipt families share one stable portable assurance envelope and expose the same flat schema fields for envelope metadata and receipt-specific identifiers
   with explicit artifact kind, stable subject identity, deterministic hashing
   metadata where applicable, and explicit provenance-class distinctions; golden fixtures live under `fixtures/assurance/golden/` to prove the layout.
-- [ ] Verified mode generates a baseline artifact.
-- [ ] Verified mode generates receipt families for context packs, changes,
-  promotions, and verifications.
-- [ ] Standalone `runectx` can generate the same minimal portable receipt set
+- [x] Verified mode generates a baseline artifact.
+- [x] Verified mode generates receipt families for context packs, changes,
+  promotions, and verifications (with verification-family capture scoped to
+  verification workflows that emit durable verification events).
+- [x] Standalone `runectx` can generate the same minimal portable receipt set
   that a Verified repository requires for mixed-team collaboration.
-- [ ] `runectx bundle resolve` remains read-only in both tiers; Verified
+- [x] `runectx bundle resolve` remains read-only in both tiers; Verified
   context-pack receipts come from an explicit capture flow that emits the pack
   and receipt from the same validated snapshot.
 - [ ] RuneCode may attach richer parallel audit evidence without becoming the
@@ -323,17 +324,17 @@
 - [ ] Verified commit policy preserves a low-noise portable tree: baselines and
   minimal portable receipts may be committed, while high-frequency runtime
   evidence stays outside RuneContext's core repository model.
-- [ ] Verified mutation/capture flows fail closed if required portable receipt
+- [x] Verified mutation/capture flows fail closed if required portable receipt
   emission fails.
 - [ ] Portable assurance artifacts do not depend on home-directory caches,
   external service availability, or deployment-specific evidence locator
   metadata for correctness.
-- [ ] `runectx validate` can check assurance artifact schemas plus repo-local
+- [x] `runectx validate` can check assurance artifact schemas plus repo-local
   integrity/linkage semantics without external services, hidden caches, or
   replayed historical commands.
-- [ ] Receipt filenames are collision-resistant and do not require a shared
+- [x] Receipt filenames are collision-resistant and do not require a shared
   mutable index.
-- [ ] Backfill can generate imported historical provenance distinct from native
+- [x] Backfill can generate imported historical provenance distinct from native
   verified capture, and does so additively without rewriting native
   post-adoption evidence.
 

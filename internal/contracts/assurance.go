@@ -6,8 +6,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"reflect"
+	"strings"
 	"unicode/utf8"
 )
+
+const AssuranceCanonicalizationToken = "runecontext-canonical-json-v1"
 
 // AssuranceEnvelope is a minimal portable assurance artifact envelope.
 type AssuranceEnvelope struct {
@@ -159,6 +162,64 @@ func GenerateReceiptFilename(receiptID string, receiptHash string, kind string) 
 		hashPrefix = hashPrefix[:12]
 	}
 	return fmt.Sprintf("%s--%s-%s.json", sanitizeForID(kind), sanitizeForID(receiptID), sanitizeForID(hashPrefix))
+}
+
+func BuildCapturedVerifiedReceipt(family, subjectID string, value map[string]any, createdAt int64) (ReceiptArtifact, string, error) {
+	family = strings.TrimSpace(family)
+	if family == "" {
+		return ReceiptArtifact{}, "", fmt.Errorf("receipt family is required")
+	}
+	subjectID = strings.TrimSpace(subjectID)
+	if subjectID == "" {
+		return ReceiptArtifact{}, "", fmt.Errorf("receipt subject_id is required")
+	}
+	if value == nil {
+		value = map[string]any{}
+	}
+	if strings.TrimSpace(fmt.Sprint(value["receipt_family"])) == "" {
+		value["receipt_family"] = family
+	}
+	receiptID, err := GenerateReceiptID(family, subjectID, createdAt)
+	if err != nil {
+		return ReceiptArtifact{}, "", err
+	}
+	artifact := ReceiptArtifact{
+		AssuranceEnvelope: AssuranceEnvelope{
+			SchemaVersion:    1,
+			Kind:             "receipt",
+			SubjectID:        subjectID,
+			CreatedAt:        createdAt,
+			Canonicalization: AssuranceCanonicalizationToken,
+			Value:            value,
+		},
+		ReceiptID:  receiptID,
+		Provenance: "captured_verified",
+	}
+	hash, err := ComputeReceiptHash(artifact)
+	if err != nil {
+		return ReceiptArtifact{}, "", err
+	}
+	artifact.ReceiptHash = hash
+	filename := GenerateReceiptFilename(artifact.ReceiptID, artifact.ReceiptHash, family)
+	return artifact, filename, nil
+}
+
+func ComputeReceiptHash(artifact ReceiptArtifact) (string, error) {
+	input := map[string]any{
+		"schema_version":   artifact.SchemaVersion,
+		"kind":             artifact.Kind,
+		"subject_id":       artifact.SubjectID,
+		"created_at":       artifact.CreatedAt,
+		"canonicalization": artifact.Canonicalization,
+		"provenance":       artifact.Provenance,
+		"receipt_id":       artifact.ReceiptID,
+		"value":            artifact.Value,
+	}
+	canonical, err := ComputeArtifactCanonicalJSON(input)
+	if err != nil {
+		return "", err
+	}
+	return ComputeSHA256Hex([]byte(canonical)), nil
 }
 
 func sanitizeForID(s string) string {

@@ -46,21 +46,25 @@ type FrontmatterDocument struct {
 }
 
 type ProjectIndex struct {
-	RootConfigPath string
-	ContentRoot    string
-	Resolution     *SourceResolution
-	Bundles        *BundleCatalog
-	Diagnostics    []ValidationDiagnostic
-	ChangeIDs      map[string]struct{}
-	Changes        map[string]*ChangeRecord
-	MarkdownFiles  map[string]*MarkdownArtifact
-	StandardPaths  map[string]struct{}
-	Standards      map[string]*StandardRecord
-	SpecPaths      map[string]struct{}
-	Specs          map[string]*SpecRecord
-	DecisionPaths  map[string]struct{}
-	Decisions      map[string]*DecisionRecord
-	StatusFiles    map[string]StatusFileRecord
+	RootConfigPath        string
+	ContentRoot           string
+	Resolution            *SourceResolution
+	Bundles               *BundleCatalog
+	Diagnostics           []ValidationDiagnostic
+	AssuranceBaseline     *AssuranceEnvelope
+	AssuranceBaselinePath string
+	AssuranceBaselineMap  map[string]any
+	AssuranceReceipts     map[string]AssuranceReceiptRecord
+	ChangeIDs             map[string]struct{}
+	Changes               map[string]*ChangeRecord
+	MarkdownFiles         map[string]*MarkdownArtifact
+	StandardPaths         map[string]struct{}
+	Standards             map[string]*StandardRecord
+	SpecPaths             map[string]struct{}
+	Specs                 map[string]*SpecRecord
+	DecisionPaths         map[string]struct{}
+	Decisions             map[string]*DecisionRecord
+	StatusFiles           map[string]StatusFileRecord
 }
 
 type StatusFileRecord struct {

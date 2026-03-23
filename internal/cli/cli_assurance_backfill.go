@@ -185,7 +185,7 @@ func isCanonicalLowerHex40(s string) bool {
 // loadBackfillInputs loads and validates the baseline, adoption commit, and
 // assurance context needed for backfill operations.
 func loadBackfillInputs(root string) (*assuranceEnableContext, map[string]any, string, error) {
-	context, err := newAssuranceEnableContext(root)
+	context, err := newAssuranceEnableContext(root, nil)
 	if err != nil {
 		return nil, nil, "", err
 	}

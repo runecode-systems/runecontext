@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func CloseChange(v *Validator, loaded *LoadedProject, changeID string, options ChangeCloseOptions) (*ChangeOperationResult, error) {
@@ -19,10 +20,38 @@ func CloseChange(v *Validator, loaded *LoadedProject, changeID string, options C
 	if err != nil {
 		return nil, err
 	}
+	if isVerifiedAssuranceTier(loaded) {
+		writes, changedFiles, err = appendCloseChangeReceiptWrite(writes, changedFiles, loaded.Resolution.ProjectRoot, changeID, updated, options)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if err := applyCloseChangeWrites(v, loaded, writes); err != nil {
 		return nil, err
 	}
 	return buildCloseChangeResult(record, writableRoot, changeID, updated, changedFiles), nil
+}
+
+func appendCloseChangeReceiptWrite(rewrites []fileRewrite, changedFiles []FileMutation, projectRoot, changeID string, updated map[string]any, options ChangeCloseOptions) ([]fileRewrite, []FileMutation, error) {
+	createdAt := options.ClosedAt
+	if createdAt.IsZero() {
+		createdAt = time.Now().UTC().Truncate(time.Second)
+	}
+	value := map[string]any{
+		"receipt_family":      assuranceReceiptFamilyChanges,
+		"change_id":           changeID,
+		"change_status":       fmt.Sprint(updated["status"]),
+		"verification_status": fmt.Sprint(updated["verification_status"]),
+	}
+	return appendCapturedVerifiedReceiptRewrite(
+		rewrites,
+		changedFiles,
+		projectRoot,
+		assuranceReceiptFamilyChanges,
+		"changes/"+changeID,
+		value,
+		createdAt.Unix(),
+	)
 }
 
 func prepareCloseChange(v *Validator, index *ProjectIndex, loaded *LoadedProject, changeID string, options ChangeCloseOptions) (*ChangeRecord, string, map[string]any, []fileRewrite, []FileMutation, error) {

@@ -64,12 +64,15 @@ func loadValidatedRootConfig(v *Validator, configPath string) ([]byte, map[strin
 }
 
 func (v *Validator) ValidateLoadedProject(loaded *LoadedProject) (*ProjectIndex, error) {
-	contentRoot, rootConfigPath, rootData, err := validateLoadedProjectInputs(loaded)
+	contentRoot, rootConfigPath, rootData, rootConfig, projectRoot, err := validateLoadedProjectInputs(loaded)
 	if err != nil {
 		return nil, err
 	}
 	index, err := buildResolvedProjectIndex(v, contentRoot, rootConfigPath, rootData, loaded.Resolution)
 	if err != nil {
+		return nil, err
+	}
+	if err := loadProjectAssuranceArtifacts(v, index, projectRoot, rootConfig); err != nil {
 		return nil, err
 	}
 	if err := validateResolvedStatusFiles(v, index, rootConfigPath, rootData); err != nil {
@@ -81,15 +84,18 @@ func (v *Validator) ValidateLoadedProject(loaded *LoadedProject) (*ProjectIndex,
 	return index, nil
 }
 
-func validateLoadedProjectInputs(loaded *LoadedProject) (string, string, []byte, error) {
+func validateLoadedProjectInputs(loaded *LoadedProject) (string, string, []byte, map[string]any, string, error) {
 	if loaded == nil || loaded.Resolution == nil {
-		return "", "", nil, fmt.Errorf("loaded project is required")
+		return "", "", nil, nil, "", fmt.Errorf("loaded project is required")
 	}
 	contentRoot := loaded.Resolution.MaterializedRoot()
 	if contentRoot == "" {
-		return "", "", nil, fmt.Errorf("resolved source root is unavailable")
+		return "", "", nil, nil, "", fmt.Errorf("resolved source root is unavailable")
 	}
-	return contentRoot, loaded.Resolution.SelectedConfigPath, loaded.RootConfigData, nil
+	if loaded.RootConfig == nil {
+		return "", "", nil, nil, "", fmt.Errorf("loaded root config is unavailable")
+	}
+	return contentRoot, loaded.Resolution.SelectedConfigPath, loaded.RootConfigData, loaded.RootConfig, loaded.Resolution.ProjectRoot, nil
 }
 
 func buildResolvedProjectIndex(v *Validator, contentRoot, rootConfigPath string, rootData []byte, resolution *SourceResolution) (*ProjectIndex, error) {

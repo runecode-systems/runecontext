@@ -66,19 +66,33 @@ func createFileBackup(path string) (fileBackup, error) {
 	}
 	info, err := os.Stat(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return fileBackup{Path: path, Exists: false}, nil
+		}
 		return fileBackup{}, err
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fileBackup{}, err
 	}
-	return fileBackup{Path: path, Data: data, Perm: info.Mode().Perm()}, nil
+	return fileBackup{Path: path, Data: data, Perm: info.Mode().Perm(), Exists: true}, nil
 }
 
 func writeFileRewrites(rewrites []fileRewrite, backups []fileBackup) error {
 	written := 0
 	for _, rewrite := range rewrites {
-		if err := writeFileAtomically(rewrite.Path, rewrite.Data, backups[written].Perm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(rewrite.Path), 0o755); err != nil {
+			rollbackErr := restoreFileBackups(backups[:written])
+			return combineFileRewriteRollbackError(err, rollbackErr)
+		}
+		perm := rewrite.Perm
+		if perm == 0 {
+			perm = backups[written].Perm
+		}
+		if perm == 0 {
+			perm = 0o644
+		}
+		if err := writeFileAtomically(rewrite.Path, rewrite.Data, perm); err != nil {
 			rollbackErr := restoreFileBackups(backups[:written])
 			return combineFileRewriteRollbackError(err, rollbackErr)
 		}
@@ -91,6 +105,12 @@ func restoreFileBackups(backups []fileBackup) error {
 	errMessages := make([]string, 0)
 	for i := len(backups) - 1; i >= 0; i-- {
 		backup := backups[i]
+		if !backup.Exists {
+			if err := removeAllPath(backup.Path); err != nil && !os.IsNotExist(err) {
+				errMessages = append(errMessages, fmt.Sprintf("restore %q: %v", filepath.ToSlash(backup.Path), err))
+			}
+			continue
+		}
 		if err := writeFileAtomically(backup.Path, backup.Data, backup.Perm); err != nil {
 			errMessages = append(errMessages, fmt.Sprintf("restore %q: %v", filepath.ToSlash(backup.Path), err))
 		}

@@ -26,6 +26,7 @@ const (
 	promoteUsage          = "runectx promote [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--accept | --complete] [--target TYPE:PATH (summary auto-filled per target type)] [--path PATH]"
 	standardUsage         = "runectx standard [--json] [--non-interactive] [--explain] <discover>"
 	standardDiscoverUsage = "runectx standard discover [--json] [--non-interactive] [--explain] [--path PATH] [--change CHANGE_ID] [--confirm-handoff] [--target TYPE:PATH]"
+	assuranceUsage        = "runectx assurance [--json] [--non-interactive] [--dry-run] [--explain] <enable|backfill|capture> ..."
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -75,7 +76,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  init       Scaffold a RuneContext project")
 	fmt.Fprintln(w, "  promote    Explicitly advance promotion assessment state (summary auto-filled for --target entries)")
 	fmt.Fprintln(w, "  standard   Discover advisory standards candidates for promotion handoff")
-	fmt.Fprintln(w, "  assurance  Enable or backfill Verified assurance artifacts")
+	fmt.Fprintln(w, "  assurance  Enable, backfill, or capture Verified assurance artifacts")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  runectx help")
@@ -90,4 +91,5 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+initUsage)
 	fmt.Fprintln(w, "  "+promoteUsage)
 	fmt.Fprintln(w, "  "+standardDiscoverUsage)
+	fmt.Fprintln(w, "  "+assuranceUsage)
 }

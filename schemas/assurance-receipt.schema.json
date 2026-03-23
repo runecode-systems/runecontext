@@ -1,20 +1,62 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["schema_version", "kind", "subject_id", "created_at", "canonicalization", "receipt_id", "receipt_hash"],
+  "required": ["schema_version", "kind", "subject_id", "created_at", "canonicalization", "value", "receipt_id", "receipt_hash", "provenance"],
   "properties": {
     "schema_version": {"const": 1},
     "kind": {"const": "receipt"},
-    "subject_id": {"type": "string"},
+    "subject_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(changes/CHG-\\d{4}-\\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(?:-[a-z0-9]+)*|context-packs/[0-9a-f]{64})$"
+    },
     "created_at": {"type": "integer"},
     "canonicalization": {"const": "runecontext-canonical-json-v1"},
-    "value": {},
-    "receipt_id": {"type": "string"},
+    "value": {
+      "type": "object",
+      "required": ["receipt_family"],
+      "properties": {
+        "receipt_family": {
+          "type": "string",
+          "enum": ["context-packs", "changes", "promotions", "verifications"]
+        },
+        "pack_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "requested_bundle_ids": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "source_mode": {
+          "type": "string",
+          "enum": ["embedded", "git", "path"]
+        },
+        "source_ref": {"type": "string"},
+        "change_id": {
+          "type": "string",
+          "pattern": "^CHG-\\d{4}-\\d{3}-[a-z0-9]{4,6}-[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "change_status": {"type": "string"},
+        "verification_status": {"type": "string"},
+        "promotion_status": {"type": "string"},
+        "promotion_targets": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "change_lifecycle": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+-[0-9a-f]{8}-[0-9]+-[0-9a-f]{12}$"
+    },
     "receipt_hash": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
-    "provenance": {"type": "string"}
+    "provenance": {"const": "captured_verified"}
   },
   "additionalProperties": false
 }

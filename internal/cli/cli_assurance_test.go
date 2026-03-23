@@ -270,11 +270,27 @@ func TestSourceSnapshotFieldsUsesExpectCommitFallback(t *testing.T) {
 			"expect_commit": "1234567890abcdef1234567890abcdef12345678",
 		},
 	}
-	commit, posture := sourceSnapshotFields(rootCfg)
+	commit, posture := sourceSnapshotFields("", rootCfg, nil)
 	if commit != "1234567890abcdef1234567890abcdef12345678" {
 		t.Fatalf("unexpected adoption commit %q", commit)
 	}
 	if posture != "git" {
+		t.Fatalf("unexpected source posture %q", posture)
+	}
+}
+
+func TestSourceSnapshotFieldsSynthesizesEmbeddedAdoptionCommit(t *testing.T) {
+	rootCfg := map[string]any{
+		"source": map[string]any{
+			"type": "embedded",
+			"path": "runecontext",
+		},
+	}
+	commit, posture := sourceSnapshotFields("", rootCfg, nil)
+	if !isCanonicalLowerHex40(commit) {
+		t.Fatalf("expected canonical synthetic adoption commit, got %q", commit)
+	}
+	if posture != "embedded" {
 		t.Fatalf("unexpected source posture %q", posture)
 	}
 }

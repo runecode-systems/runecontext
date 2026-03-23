@@ -14,6 +14,12 @@ Hand-authored JSON Schema files for machine-readable RuneContext artifacts live 
   - generated context-pack contract
 - `context-pack-report.schema.json`
   - generated context-pack report contract
+- `assurance-baseline.schema.json`
+  - generated assurance baseline contract
+- `assurance-receipt.schema.json`
+  - generated portable assurance receipt contract
+- `assurance-imported-history.schema.json`
+  - generated imported-history artifact for additive backfill provenance
 - `manifest.schema.json`
   - generated `runecontext/manifest.yaml` contract
 - `changes-by-status-index.schema.json`

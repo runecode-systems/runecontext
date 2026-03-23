@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type promoteOperation string
@@ -64,6 +65,12 @@ func preparePromoteChange(v *Validator, index *ProjectIndex, loaded *LoadedProje
 	if err != nil {
 		return nil, err
 	}
+	if changed && isVerifiedAssuranceTier(loaded) {
+		writes, changedFiles, err = appendPromoteReceiptWrite(writes, changedFiles, loaded.Resolution.ProjectRoot, changeID, updated)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &promoteChangePrepared{
 		record:       record,
 		writableRoot: writableRoot,
@@ -72,6 +79,27 @@ func preparePromoteChange(v *Validator, index *ProjectIndex, loaded *LoadedProje
 		changedFiles: changedFiles,
 		changeID:     changeID,
 	}, nil
+}
+
+func appendPromoteReceiptWrite(rewrites []fileRewrite, changedFiles []FileMutation, projectRoot, changeID string, updated map[string]any) ([]fileRewrite, []FileMutation, error) {
+	status, targets := closePromotionAssessmentDetails(updated)
+	value := map[string]any{
+		"receipt_family":    assuranceReceiptFamilyPromotions,
+		"change_id":         changeID,
+		"promotion_status":  status,
+		"promotion_targets": append([]string(nil), targets...),
+		"change_lifecycle":  fmt.Sprint(updated["status"]),
+	}
+	createdAt := time.Now().UTC().Truncate(time.Second).Unix()
+	return appendCapturedVerifiedReceiptRewrite(
+		rewrites,
+		changedFiles,
+		projectRoot,
+		assuranceReceiptFamilyPromotions,
+		"changes/"+changeID,
+		value,
+		createdAt,
+	)
 }
 
 func promoteStatusWrites(v *Validator, writableRoot string, record *ChangeRecord, updated map[string]any, changed bool) ([]fileRewrite, []FileMutation, error) {
@@ -211,35 +239,4 @@ func ensurePromotionAssessmentMap(updated map[string]any) map[string]any {
 		promotion["suggested_targets"] = []any{}
 	}
 	return promotion
-}
-
-var allowedPromotionTargetTypes = map[string]struct{}{
-	"spec":     {},
-	"standard": {},
-	"decision": {},
-}
-
-const allowedPromotionTargetTypeMessage = "spec, standard, decision"
-
-func validatePromoteTargets(targets []string) error {
-	for _, target := range targets {
-		target = strings.TrimSpace(target)
-		if target == "" {
-			return fmt.Errorf("promotion target cannot be empty")
-		}
-		targetType, targetPath, ok := strings.Cut(target, ":")
-		if !ok || strings.TrimSpace(targetType) == "" || strings.TrimSpace(targetPath) == "" {
-			return fmt.Errorf("invalid promotion target %q: expected TYPE:PATH", target)
-		}
-		typeTrim := strings.TrimSpace(targetType)
-		if !allowedPromotionTargetType(typeTrim) {
-			return fmt.Errorf("invalid promotion target %q: unknown target type %q (allowed: %s)", target, typeTrim, allowedPromotionTargetTypeMessage)
-		}
-	}
-	return nil
-}
-
-func allowedPromotionTargetType(targetType string) bool {
-	_, ok := allowedPromotionTargetTypes[targetType]
-	return ok
 }

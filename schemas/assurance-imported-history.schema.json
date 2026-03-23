@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "kind", "provenance", "generated_at", "adoption_commit", "commits"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "history"},
+    "provenance": {"const": "imported_git_history"},
+    "generated_at": {"type": "integer"},
+    "adoption_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "commits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["commit", "committed_at", "author_name", "author_email", "subject"],
+        "properties": {
+          "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+          "committed_at": {"type": "integer"},
+          "author_name": {"type": "string"},
+          "author_email": {"type": "string"},
+          "subject": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

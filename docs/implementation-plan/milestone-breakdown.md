@@ -1065,33 +1065,33 @@ monster, alpha.6 work is grouped into the following recommended branch cuts.
 
 ### Recommended Branch Cut 1: Assurance core, artifact contracts, and merge-safe receipts
 
-- [ ] Issue: implement persisted `plain` versus `verified` tier behavior.
-- [ ] Issue: implement a shared assurance artifact envelope for baselines and
+- [x] Issue: implement persisted `plain` versus `verified` tier behavior.
+- [x] Issue: implement a shared assurance artifact envelope for baselines and
   receipt families, including artifact kind, stable subject identity, creation
   metadata, deterministic hashing/canonicalization metadata where applicable,
   explicit provenance-class support, the same flat envelope field layout across
   artifacts (no nested envelope object for receipts), and matching golden fixtures
   under `fixtures/assurance/golden`.
-- [ ] Issue: implement generated baseline artifact shape and baseline creation,
+- [x] Issue: implement generated baseline artifact shape and baseline creation,
   including adoption commit, resolved source posture, and attachment points for
   imported historical evidence.
-- [ ] Issue: implement receipt schemas and file conventions for context packs,
+- [x] Issue: implement receipt schemas and file conventions for context packs,
   changes, promotions, and verifications.
-- [ ] Issue: implement receipt hashing, receipt IDs, and collision-resistant
+- [x] Issue: implement receipt hashing, receipt IDs, and collision-resistant
   filenames without any shared mutable index.
-- [ ] Issue: ensure receipts merge by file union where possible across branches.
-- [ ] Issue: ensure concurrent verified work does not produce hidden
+- [x] Issue: ensure receipts merge by file union where possible across branches.
+- [x] Issue: ensure concurrent verified work does not produce hidden
   correctness-critical state outside the repository.
-- [ ] Issue: implement commit-policy guidance for what each assurance artifact
+- [x] Issue: implement commit-policy guidance for what each assurance artifact
   family normally commits, ignores, or treats as ephemeral in Verified mode.
-- [ ] Issue: extend `runectx validate` to check assurance artifact schemas and
+- [x] Issue: extend `runectx validate` to check assurance artifact schemas and
   repo-local integrity/linkage semantics without external services or
   historical-operation replay.
-- [ ] Issue: add golden fixtures for baselines and each receipt family.
-- [ ] Issue: add clean-machine and no-hidden-state tests showing that portable
+- [x] Issue: add golden fixtures for baselines and each receipt family.
+- [x] Issue: add clean-machine and no-hidden-state tests showing that portable
   assurance artifacts do not depend on host caches, service availability, or
   deployment-specific local metadata for correctness.
-- [ ] Issue: add tests for merge-safe receipt generation and collision-resistant
+- [x] Issue: add tests for merge-safe receipt generation and collision-resistant
   file naming.
 - All assurance envelopes and receipts canonicalize with the RuneContext-owned
   token `runecontext-canonical-json-v1`; the fixtures under `fixtures/assurance`
@@ -1099,47 +1099,51 @@ monster, alpha.6 work is grouped into the following recommended branch cuts.
 
 ### Recommended Branch Cut 2: Verified enablement and explicit receipt integration
 
-- [ ] Issue: implement `runectx assurance enable verified`.
-- [ ] Issue: implement the Verified enablement flow from adoption commit through
+- [x] Issue: implement `runectx assurance enable verified`.
+- [x] Issue: implement the Verified enablement flow from adoption commit through
   baseline generation.
-- [ ] Issue: record initial resolved source posture and adoption metadata.
-- [ ] Issue: implement receipt generation triggers for future verified
+- [x] Issue: record initial resolved source posture and adoption metadata.
+- [x] Issue: implement receipt generation triggers for future verified
   operations.
-- [ ] Issue: ensure standalone `runectx` can generate the minimal portable
+- [x] Issue: ensure standalone `runectx` can generate the minimal portable
   receipt set required by a Verified repository without depending on RuneCode.
-- [ ] Issue: ensure `runectx bundle resolve` remains read-only in Verified mode.
-- [ ] Issue: implement an explicit verified context-pack capture surface that
+- [x] Issue: ensure `runectx bundle resolve` remains read-only in Verified mode.
+- [x] Issue: implement an explicit verified context-pack capture surface that
   emits the pack and its portable receipt from the same validated snapshot
   rather than by replaying resolution later.
-- [ ] Issue: ensure Verified mutation/capture flows fail closed if portable
+- [x] Issue: ensure Verified mutation/capture flows fail closed if portable
   receipt emission fails.
-- [ ] Issue: add tests for Verified enablement, explicit pack-receipt capture,
+- [x] Issue: add tests for Verified enablement, explicit pack-receipt capture,
   and receipt-trigger integration with change, promotion, and verification
   workflows.
 
 ### Recommended Branch Cut 3: Backfill and historical provenance
 
-- [ ] Issue: implement `runectx assurance backfill`.
-- [ ] Issue: implement imported provenance class support for historical work.
-- [ ] Issue: implement backfill traversal over git history and existing
+- [x] Issue: implement `runectx assurance backfill`.
+- [x] Issue: implement imported provenance class support for historical work.
+- [x] Issue: implement backfill traversal over git history and existing
   RuneContext artifacts, bounded to the historical range at or before the
   selected adoption point.
-- [ ] Issue: attach imported/backfilled evidence to the adoption baseline.
-- [ ] Issue: ensure imported evidence remains visibly distinct from native
+- [x] Issue: attach imported/backfilled evidence to the adoption baseline.
+- [x] Issue: ensure imported evidence remains visibly distinct from native
   verified evidence.
-- [ ] Issue: ensure backfill is additive-only and never rewrites native
+- [x] Issue: ensure backfill is additive-only and never rewrites native
   post-adoption `captured_verified` receipts.
-- [ ] Issue: add tests distinguishing `captured_verified` from
+- [x] Issue: add tests distinguishing `captured_verified` from
   `imported_git_history` provenance.
-- [ ] Issue: add tests for backfill flow and additive-only historical evidence
+- [x] Issue: add tests for backfill flow and additive-only historical evidence
   attachment.
-- [ ] Issue: add fixtures RuneCode can reuse to test audited-workflow gating and
+- [x] Issue: add fixtures RuneCode can reuse to test audited-workflow gating and
   provenance ingestion.
 - Branch Cut 3 hardening (post-review): `runectx assurance backfill` must
   reject imported-history evidence paths that escape the repository root, and
   alpha.6 keeps `adoption_commit` strict as a canonical lowercase 40-character
   SHA rather than accepting non-canonical refs through implicit `rev-parse`
   normalization.
+- Implementation detail (completed): assurance artifacts live in the project-root
+  `assurance/` tree (not under source-materialized `runecontext/` content), so
+  linked-source and embedded-source projects share one portable assurance
+  mutation root while `runectx bundle resolve` remains read-only.
 
 ### Exit Criteria
 

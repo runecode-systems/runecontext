@@ -156,12 +156,14 @@ type statusDocument struct {
 type fileRewrite struct {
 	Path string
 	Data []byte
+	Perm fs.FileMode
 }
 
 type fileBackup struct {
-	Path string
-	Data []byte
-	Perm fs.FileMode
+	Path   string
+	Data   []byte
+	Perm   fs.FileMode
+	Exists bool
 }
 
 const maxCreateChangeDirAttempts = 8

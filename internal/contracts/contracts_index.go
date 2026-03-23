@@ -22,16 +22,17 @@ func buildProjectIndex(v *Validator, contentRoot string) (*ProjectIndex, error) 
 
 func newProjectIndex() *ProjectIndex {
 	return &ProjectIndex{
-		ChangeIDs:     map[string]struct{}{},
-		Changes:       map[string]*ChangeRecord{},
-		MarkdownFiles: map[string]*MarkdownArtifact{},
-		StandardPaths: map[string]struct{}{},
-		Standards:     map[string]*StandardRecord{},
-		SpecPaths:     map[string]struct{}{},
-		Specs:         map[string]*SpecRecord{},
-		DecisionPaths: map[string]struct{}{},
-		Decisions:     map[string]*DecisionRecord{},
-		StatusFiles:   map[string]StatusFileRecord{},
+		AssuranceReceipts: map[string]AssuranceReceiptRecord{},
+		ChangeIDs:         map[string]struct{}{},
+		Changes:           map[string]*ChangeRecord{},
+		MarkdownFiles:     map[string]*MarkdownArtifact{},
+		StandardPaths:     map[string]struct{}{},
+		Standards:         map[string]*StandardRecord{},
+		SpecPaths:         map[string]struct{}{},
+		Specs:             map[string]*SpecRecord{},
+		DecisionPaths:     map[string]struct{}{},
+		Decisions:         map[string]*DecisionRecord{},
+		StatusFiles:       map[string]StatusFileRecord{},
 	}
 }
 

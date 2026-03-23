@@ -4,11 +4,14 @@
   "subject_id": "context-pack",
   "created_at": 1710000005,
   "canonicalization": "runecontext-canonical-json-v1",
-  "receipt_id": "context-pack-abc123-1710000005-012345",
-  "receipt_hash": "deadbeefcafebabe",
+  "receipt_id": "context-packs-abc12345-1710000005-0123456789ab",
+  "receipt_hash": "deadbeefcafebabedeadbeefcafebabedeadbeefcafebabedeadbeefcafebabe",
   "provenance": "captured_verified",
   "value": {
-    "pack_hash": "abcdefabcdef",
+    "receipt_family": "context-packs",
+    "pack_hash": "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    "source_mode": "embedded",
+    "source_ref": "runecontext",
     "requested_bundle_ids": ["bundle-a"]
   }
 }

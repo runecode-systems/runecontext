@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+
+	"github.com/runecode-systems/runecontext/internal/contracts"
 )
 
 const (
-	assuranceCommandUsage  = "runectx assurance <enable|backfill>"
+	assuranceCommandUsage  = "runectx assurance <enable|backfill|capture>"
 	assuranceEnableUsage   = "runectx assurance enable verified [--path PATH] [path]"
 	assuranceBackfillUsage = "runectx assurance backfill [--path PATH] [path]"
+	assuranceCaptureUsage  = "runectx assurance capture context-pack [--json] [--non-interactive] [--dry-run] [--explain] [--path PATH] <bundle-id>..."
 )
 
 type assuranceEnableRequest struct {
@@ -37,6 +40,8 @@ func runAssurance(args []string, stdout, stderr io.Writer) int {
 		return runAssuranceEnableWithMachine(remaining[1:], stdout, stderr, machine)
 	case "backfill":
 		return runAssuranceBackfillWithMachine(remaining[1:], stdout, stderr, machine)
+	case "capture":
+		return runAssuranceCaptureWithMachine(remaining[1:], stdout, stderr, machine)
 	default:
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance", assuranceCommandUsage, fmt.Errorf("unknown subcommand %q", remaining[0])), machine), exitUsage, failureClassUsage)
 		return exitUsage
@@ -71,7 +76,7 @@ func runAssuranceEnableWithMachine(args []string, stdout, stderr io.Writer, mach
 	if machine.dryRun {
 		return emitAssuranceEnableDryRun(stdout, stderr, machine, resolvedRoot, plans)
 	}
-	return executeAssuranceEnable(stdout, stderr, machine, resolvedRoot)
+	return executeAssuranceEnable(stdout, stderr, machine, resolvedRoot, project.loaded)
 }
 
 func runAssuranceBackfill(args []string, stdout, stderr io.Writer) int {
@@ -162,8 +167,8 @@ func emitAssuranceEnableDryRun(stdout, stderr io.Writer, machine machineOptions,
 	return exitOK
 }
 
-func executeAssuranceEnable(stdout, stderr io.Writer, machine machineOptions, root string) int {
-	ctx, err := newAssuranceEnableContext(root)
+func executeAssuranceEnable(stdout, stderr io.Writer, machine machineOptions, root string, loaded *contracts.LoadedProject) int {
+	ctx, err := newAssuranceEnableContext(root, loaded)
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("assurance enable", root, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid

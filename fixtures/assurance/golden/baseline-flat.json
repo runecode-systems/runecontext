@@ -5,7 +5,7 @@
   "created_at": 1710000000,
   "canonicalization": "runecontext-canonical-json-v1",
   "value": {
-    "adoption_commit": "abcdef1234567890",
+    "adoption_commit": "abcdef1234567890abcdef1234567890abcdef12",
     "source_posture": "embedded"
   }
 }

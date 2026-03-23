@@ -73,6 +73,14 @@ historical cleanup from new feature design work.
   40-character SHAs for alpha.6. Any broader `rev-parse`-based normalization
   path is deferred for later design review instead of being added implicitly in
   backfill.
+- 2026-03-23: Completed alpha.6 assurance delivery alignment in implementation:
+  added explicit `runectx assurance capture context-pack` for portable receipt
+  capture, integrated assurance artifact schema/integrity/linkage checks into
+  `runectx validate`, added generated receipt emission on verified `change close`
+  and `promote` mutations with fail-closed transactional writes, and finalized
+  portable assurance artifact paths at the project root `assurance/` tree
+  (including strict plain-vs-verified enforcement and imported-history schema
+  validation for backfill artifacts).
 
 ## MVP Definition
 
