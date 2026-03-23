@@ -51,6 +51,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return runPromote(args[1:], stdout, stderr)
 	case "standard":
 		return runStandard(args[1:], stdout, stderr)
+	case "assurance":
+		return runAssurance(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		printUsage(stdout)
 		return exitOK
@@ -73,6 +75,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  init       Scaffold a RuneContext project")
 	fmt.Fprintln(w, "  promote    Explicitly advance promotion assessment state (summary auto-filled for --target entries)")
 	fmt.Fprintln(w, "  standard   Discover advisory standards candidates for promotion handoff")
+	fmt.Fprintln(w, "  assurance  Enable or backfill Verified assurance artifacts")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  runectx help")

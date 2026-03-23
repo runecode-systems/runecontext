@@ -146,3 +146,17 @@ func appendChangeReallocateExplainLines(lines []line, result *contracts.ChangeRe
 		line{"explain_rewrite_count_reason", fmt.Sprintf("%d local markdown references rewritten from old change path to new change path", result.RewrittenReferenceCount)},
 	)
 }
+
+func appendAssuranceEnableExplainLines(lines []line, root string, plans []string) []line {
+	lines = append(lines,
+		line{"explain_scope", "assurance-enable"},
+		line{"explain_assurance_tier_target", "verified"},
+		line{"explain_assurance_root", root},
+		line{"explain_baseline_subject_id", "project-root"},
+		line{"explain_baseline_canonicalization", "runecontext-canonical-json-v1"},
+	)
+	for i, action := range plans {
+		lines = append(lines, line{fmt.Sprintf("explain_plan_action_%d", i+1), action})
+	}
+	return lines
+}
