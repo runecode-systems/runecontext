@@ -20,21 +20,24 @@ type assuranceBackfillResult struct {
 }
 
 func executeAssuranceBackfill(root string) (assuranceBackfillResult, error) {
-	context, err := newAssuranceEnableContext(root)
+	context, baselineMap, adoptionCommit, err := loadBackfillInputs(root)
 	if err != nil {
 		return assuranceBackfillResult{}, err
 	}
-	if fmt.Sprint(context.rootCfg["assurance_tier"]) != "verified" {
-		return assuranceBackfillResult{}, fmt.Errorf("assurance_tier must be verified before running backfill")
+
+	// Avoid rebuilding the history if the baseline already references an
+	// existing artifact and the file is present on disk. This keeps backfill
+	// reruns idempotent and prevents trivial updates to generated_at.
+	if skip, existing := shouldSkipRebuild(root, baselineMap, adoptionCommit); skip {
+		return assuranceBackfillResult{
+			baselinePath:   context.baselinePath,
+			historyPath:    existing,
+			adoptionCommit: adoptionCommit,
+			commitCount:    0,
+			importedAdded:  false,
+		}, nil
 	}
-	baselineEnvelope, baselineMap, err := loadAssuranceBaseline(context.baselinePath)
-	if err != nil {
-		return assuranceBackfillResult{}, err
-	}
-	adoptionCommit, err := baselineAdoptionCommit(baselineEnvelope)
-	if err != nil {
-		return assuranceBackfillResult{}, err
-	}
+	// Otherwise build and write the history as before.
 	historyPath, commitCount, err := buildAndWriteImportedHistory(root, adoptionCommit)
 	if err != nil {
 		return assuranceBackfillResult{}, err
@@ -179,6 +182,27 @@ func isCanonicalLowerHex40(s string) bool {
 	return true
 }
 
+// loadBackfillInputs loads and validates the baseline, adoption commit, and
+// assurance context needed for backfill operations.
+func loadBackfillInputs(root string) (*assuranceEnableContext, map[string]any, string, error) {
+	context, err := newAssuranceEnableContext(root)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	if fmt.Sprint(context.rootCfg["assurance_tier"]) != "verified" {
+		return nil, nil, "", fmt.Errorf("assurance_tier must be verified before running backfill")
+	}
+	baselineEnvelope, baselineMap, err := loadAssuranceBaseline(context.baselinePath)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	adoptionCommit, err := baselineAdoptionCommit(baselineEnvelope)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	return context, baselineMap, adoptionCommit, nil
+}
+
 func backfillRelativePathWithinRoot(root, targetPath string) (string, error) {
 	if strings.TrimSpace(root) == "" {
 		return "", fmt.Errorf("backfill path resolution requires a repository root")
@@ -198,4 +222,25 @@ func backfillRelativePathWithinRoot(root, targetPath string) (string, error) {
 		return "", fmt.Errorf("path %q escapes repository root", targetPath)
 	}
 	return rel, nil
+}
+
+// shouldSkipRebuild inspects the baseline map for an imported_evidence entry
+// that references the history file for adoptionCommit and returns (true,
+// path) when the file exists on disk and the rebuild can be safely skipped.
+func shouldSkipRebuild(root string, baselineMap map[string]any, adoptionCommit string) (bool, string) {
+	intendedHistoryPath := filepath.Join(root, "assurance", "backfill", fmt.Sprintf("imported-git-history-%s.json", adoptionCommit))
+	relPath, err := backfillRelativePathWithinRoot(root, intendedHistoryPath)
+	if err != nil {
+		return false, ""
+	}
+	valueRaw, _ := baselineMap["value"]
+	value, _ := valueRaw.(map[string]any)
+	evidenceRaw, _ := value["imported_evidence"]
+	evidence, _ := evidenceRaw.([]any)
+	if importedEvidenceExists(evidence, relPath) {
+		if _, err := os.Stat(intendedHistoryPath); err == nil {
+			return true, intendedHistoryPath
+		}
+	}
+	return false, ""
 }

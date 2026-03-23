@@ -95,7 +95,9 @@ func parseUnixTimestamp(raw string) (int64, error) {
 }
 
 func writeImportedGitHistory(root, adoptionCommit string, commits []importedGitHistoryCommit) (string, error) {
-	path := filepath.Join(root, "assurance", "backfill", fmt.Sprintf("imported-git-history-%s.json", shortenCommit(adoptionCommit)))
+	// Use the full canonical adoption commit SHA in filenames to avoid
+	// collisions that can occur when truncating to a short prefix.
+	path := filepath.Join(root, "assurance", "backfill", fmt.Sprintf("imported-git-history-%s.json", adoptionCommit))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", fmt.Errorf("create backfill directory: %w", err)
 	}

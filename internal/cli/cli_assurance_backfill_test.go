@@ -116,7 +116,7 @@ func writeBackfillReceiptFixture(t *testing.T, root string) (string, string) {
 	if err := os.MkdirAll(filepath.Dir(receiptPath), 0o755); err != nil {
 		t.Fatalf("mkdir receipts dir: %v", err)
 	}
-	receiptContent := `{"provenance":"captured_verified","receipt_id":"r-1"}\n`
+	receiptContent := "{\"provenance\":\"captured_verified\",\"receipt_id\":\"r-1\"}\n"
 	if err := os.WriteFile(receiptPath, []byte(receiptContent), 0o644); err != nil {
 		t.Fatalf("write receipt fixture: %v", err)
 	}
