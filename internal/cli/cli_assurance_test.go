@@ -41,6 +41,45 @@ func TestEnsureAssuranceTierConfigAddsWhenMissing(t *testing.T) {
 	}
 }
 
+func TestEnsureAssuranceTierConfigPreservesInlineComment(t *testing.T) {
+	original := "schema_version: 1\nassurance_tier: plain # keep me\n"
+	updated, replaced := ensureAssuranceTierConfig([]byte(original))
+	if !replaced {
+		t.Fatalf("expected replacement")
+	}
+	text := string(updated)
+	if !strings.Contains(text, "assurance_tier: verified # keep me") {
+		t.Fatalf("expected inline comment preserved, got %q", text)
+	}
+}
+
+func TestEnsureAssuranceTierConfigRewritesSpacedColonKey(t *testing.T) {
+	original := "schema_version: 1\nassurance_tier : plain\n"
+	updated, replaced := ensureAssuranceTierConfig([]byte(original))
+	if !replaced {
+		t.Fatalf("expected replacement for spaced-colon key")
+	}
+	text := string(updated)
+	if strings.Count(text, "assurance_tier") != 1 {
+		t.Fatalf("expected single assurance_tier key, got %q", text)
+	}
+	if !strings.Contains(text, "assurance_tier : verified") {
+		t.Fatalf("expected rewritten spaced-colon key, got %q", text)
+	}
+}
+
+func TestEnsureAssuranceTierConfigPreservesCRLF(t *testing.T) {
+	original := "schema_version: 1\r\nsource:\r\n  type: embedded\r\n"
+	updated, replaced := ensureAssuranceTierConfig([]byte(original))
+	if replaced {
+		t.Fatalf("did not expect replacement")
+	}
+	text := string(updated)
+	if !strings.Contains(text, "\r\nassurance_tier: verified\r\n") {
+		t.Fatalf("expected CRLF appended tier line, got %q", text)
+	}
+}
+
 func TestParseAssuranceEnableArgsSuccess(t *testing.T) {
 	cases := []struct {
 		name         string
@@ -83,6 +122,37 @@ func TestParseAssuranceEnableArgsErrors(t *testing.T) {
 				t.Fatalf("expected error for %s", tc.name)
 			}
 		})
+	}
+}
+
+func TestRunAssuranceParsesMachineFlagsBeforeSubcommand(t *testing.T) {
+	root := t.TempDir()
+	_ = writeAssuranceConfigFixture(t, root)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "--json", "enable", "verified", "--path", root}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "\"command\":\"assurance enable\"") {
+		t.Fatalf("expected json output for assurance enable, got %q", stdout.String())
+	}
+}
+
+func TestRunAssuranceEnableExplainAddsExplainLines(t *testing.T) {
+	root := t.TempDir()
+	_ = writeAssuranceConfigFixture(t, root)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "enable", "verified", "--path", root, "--explain"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if fields["explain_scope"] == "" {
+		t.Fatalf("expected explain output, got %q", stdout.String())
 	}
 }
 

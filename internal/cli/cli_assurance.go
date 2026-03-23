@@ -1,11 +1,9 @@
 package cli
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"path/filepath"
-	"regexp"
 )
 
 const (
@@ -13,8 +11,6 @@ const (
 	assuranceEnableUsage   = "runectx assurance enable verified [--path PATH] [path]"
 	assuranceBackfillUsage = "runectx assurance backfill [--path PATH] [path]"
 )
-
-var assuranceTierRegex = regexp.MustCompile(`(?m)^(\s*assurance_tier:\s*).*$`)
 
 type assuranceEnableRequest struct {
 	root         string
@@ -27,17 +23,22 @@ type assuranceBackfillRequest struct {
 }
 
 func runAssurance(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 {
-		writeCommandUsageError(stderr, "assurance", assuranceCommandUsage, fmt.Errorf("missing subcommand"))
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowDryRun: true, allowExplain: true})
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance", assuranceCommandUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	switch args[0] {
+	if len(remaining) == 0 {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance", assuranceCommandUsage, fmt.Errorf("missing subcommand")), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
+	switch remaining[0] {
 	case "enable":
-		return runAssuranceEnable(args[1:], stdout, stderr)
+		return runAssuranceEnableWithMachine(remaining[1:], stdout, stderr, machine)
 	case "backfill":
-		return runAssuranceBackfill(args[1:], stdout, stderr)
+		return runAssuranceBackfillWithMachine(remaining[1:], stdout, stderr, machine)
 	default:
-		writeCommandUsageError(stderr, "assurance", assuranceCommandUsage, fmt.Errorf("unknown subcommand %q", args[0]))
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance", assuranceCommandUsage, fmt.Errorf("unknown subcommand %q", remaining[0])), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
 }
@@ -48,7 +49,11 @@ func runAssuranceEnable(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance enable", assuranceEnableUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	request, err := parseAssuranceEnableArgs(remaining)
+	return runAssuranceEnableWithMachine(remaining, stdout, stderr, machine)
+}
+
+func runAssuranceEnableWithMachine(args []string, stdout, stderr io.Writer, machine machineOptions) int {
+	request, err := parseAssuranceEnableArgs(args)
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance enable", assuranceEnableUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
@@ -69,6 +74,44 @@ func runAssuranceEnable(args []string, stdout, stderr io.Writer) int {
 	return executeAssuranceEnable(stdout, stderr, machine, resolvedRoot)
 }
 
+func runAssuranceBackfill(args []string, stdout, stderr io.Writer) int {
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, err), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
+	return runAssuranceBackfillWithMachine(remaining, stdout, stderr, machine)
+}
+
+func runAssuranceBackfillWithMachine(args []string, stdout, stderr io.Writer, machine machineOptions) int {
+	_ = stdout
+	if machine.dryRun {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, fmt.Errorf("--dry-run is not supported for assurance backfill")), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
+	request, err := parseAssuranceBackfillArgs(args)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, err), machine), exitUsage, failureClassUsage)
+		return exitUsage
+	}
+	msg := "assurance backfill is not implemented yet"
+	lines := []line{
+		{"result", "not_implemented"},
+		{"command", "assurance backfill"},
+		{"root", request.root},
+		{"error_message", msg},
+	}
+	if machine.explain {
+		lines = append(lines, line{"explain_scope", "deferred-command"})
+		lines = append(lines, line{"explain_backfill_status", "deferred_to_branch_cut_3"})
+	}
+	emitOutput(stderr, machine, appendMachineOptionLines(lines, machine), exitUsage, failureClassUsage)
+	if !machine.jsonOutput {
+		fmt.Fprintln(stderr, msg)
+	}
+	return exitUsage
+}
+
 func projectRootForAssurance(project *cliProject) string {
 	if project != nil && project.loaded != nil && project.loaded.Resolution != nil && project.loaded.Resolution.ProjectRoot != "" {
 		return project.loaded.Resolution.ProjectRoot
@@ -82,6 +125,9 @@ func projectRootForAssurance(project *cliProject) string {
 func emitAssuranceEnableDryRun(stdout, stderr io.Writer, machine machineOptions, root string, plans []string) int {
 	output := []line{{"result", "ok"}, {"command", "assurance enable"}, {"root", root}, {"mode", "verified"}}
 	output = appendStringItems(output, "plan_action", plans)
+	if machine.explain {
+		output = appendAssuranceEnableExplainLines(output, root, plans)
+	}
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	if !machine.jsonOutput {
 		fmt.Fprintln(stderr, "Dry run: would enable Verified mode and write baseline")
@@ -104,36 +150,18 @@ func executeAssuranceEnable(stdout, stderr io.Writer, machine machineOptions, ro
 		return exitInvalid
 	}
 	output := []line{{"result", "ok"}, {"command", "assurance enable"}, {"root", root}, {"baseline_path", result.baselinePath}}
+	if machine.explain {
+		plans := []string{
+			fmt.Sprintf("update %s", filepath.Join(root, "runecontext.yaml")),
+			fmt.Sprintf("write %s", filepath.Join(root, "assurance", "baseline.yaml")),
+		}
+		output = appendAssuranceEnableExplainLines(output, root, plans)
+	}
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	if !machine.jsonOutput {
 		fmt.Fprintf(stderr, "Enabled Verified mode and wrote baseline at %s\n", result.baselinePath)
 	}
 	return exitOK
-}
-
-func runAssuranceBackfill(args []string, stdout, stderr io.Writer) int {
-	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
-	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, err), machine), exitUsage, failureClassUsage)
-		return exitUsage
-	}
-	request, err := parseAssuranceBackfillArgs(remaining)
-	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, err), machine), exitUsage, failureClassUsage)
-		return exitUsage
-	}
-	msg := "assurance backfill is not implemented yet"
-	lines := []line{
-		{"result", "not_implemented"},
-		{"command", "assurance backfill"},
-		{"root", request.root},
-		{"error_message", msg},
-	}
-	emitOutput(stderr, machine, appendMachineOptionLines(lines, machine), exitUsage, failureClassUsage)
-	if !machine.jsonOutput {
-		fmt.Fprintln(stderr, msg)
-	}
-	return exitUsage
 }
 
 func parseAssuranceEnableArgs(args []string) (assuranceEnableRequest, error) {
@@ -203,26 +231,4 @@ func parseAssuranceBackfillArgs(args []string) (assuranceBackfillRequest, error)
 		request.explicitRoot = true
 	}
 	return request, nil
-}
-
-func ensureAssuranceTierConfig(data []byte) ([]byte, bool) {
-	replaced := false
-	replacer := func(match []byte) []byte {
-		replaced = true
-		submatches := assuranceTierRegex.FindSubmatch(match)
-		if len(submatches) >= 2 {
-			return append(submatches[1], []byte("verified")...)
-		}
-		return []byte("assurance_tier: verified")
-	}
-	updated := assuranceTierRegex.ReplaceAllFunc(data, replacer)
-	if replaced {
-		return updated, true
-	}
-	buffer := bytes.NewBuffer(updated)
-	if len(updated) > 0 && updated[len(updated)-1] != '\n' {
-		buffer.WriteByte('\n')
-	}
-	buffer.WriteString("assurance_tier: verified\n")
-	return buffer.Bytes(), false
 }
