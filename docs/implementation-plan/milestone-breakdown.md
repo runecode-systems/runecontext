@@ -1135,6 +1135,11 @@ monster, alpha.6 work is grouped into the following recommended branch cuts.
   attachment.
 - [ ] Issue: add fixtures RuneCode can reuse to test audited-workflow gating and
   provenance ingestion.
+- Branch Cut 3 hardening (post-review): `runectx assurance backfill` must
+  reject imported-history evidence paths that escape the repository root, and
+  alpha.6 keeps `adoption_commit` strict as a canonical lowercase 40-character
+  SHA rather than accepting non-canonical refs through implicit `rev-parse`
+  normalization.
 
 ### Exit Criteria
 

@@ -34,6 +34,22 @@ func TestRunAssuranceBackfillRequiresVerifiedTier(t *testing.T) {
 	}
 }
 
+func TestRunAssuranceBackfillRejectsNonCanonicalAdoptionCommit(t *testing.T) {
+	repoRoot, _ := createAssuranceBackfillRepo(t)
+	writeBackfillConfigFixture(t, repoRoot, "verified")
+	writeAssuranceBackfillBaselineFixture(t, repoRoot, "HEAD")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "backfill", "--path", repoRoot}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "canonical lowercase 40-char hex SHA") {
+		t.Fatalf("expected canonical adoption_commit error, got %q", stderr.String())
+	}
+}
+
 func TestRunAssuranceBackfillCreatesHistoryAndUpdatesBaselineAdditively(t *testing.T) {
 	repoRoot, commits := createAssuranceBackfillRepo(t)
 	writeBackfillConfigFixture(t, repoRoot, "verified")
@@ -199,6 +215,18 @@ func assertBackfillReceiptUntouched(t *testing.T, receiptPath, expectedContent s
 	}
 	if string(receiptAfter) != expectedContent {
 		t.Fatalf("expected receipts to remain untouched; got %q", string(receiptAfter))
+	}
+}
+
+func TestBackfillRelativePathWithinRootRejectsEscape(t *testing.T) {
+	repoRoot := t.TempDir()
+	escapePath := filepath.Join(filepath.Dir(repoRoot), "outside.json")
+	_, err := backfillRelativePathWithinRoot(repoRoot, escapePath)
+	if err == nil {
+		t.Fatalf("expected escape path error")
+	}
+	if !strings.Contains(err.Error(), "escapes repository root") {
+		t.Fatalf("unexpected error %q", err)
 	}
 }
 

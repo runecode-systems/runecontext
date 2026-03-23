@@ -43,9 +43,14 @@ func buildImportedGitHistory(root string, adoptionCommit string) ([]importedGitH
 func gitLogForBackfill(root string) ([]importedGitHistoryCommit, error) {
 	const format = "%H%x1f%ct%x1f%an%x1f%ae%x1f%s"
 	command := exec.Command("git", "-C", root, "log", "--reverse", "--format="+format, "HEAD")
-	output, err := command.Output()
+	// Use CombinedOutput so stderr is captured and propagated in errors.
+	output, err := command.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("git history traversal failed: %w", err)
+		trimmed := strings.TrimSpace(string(output))
+		if trimmed == "" {
+			return nil, fmt.Errorf("git history traversal failed: %w", err)
+		}
+		return nil, fmt.Errorf("git history traversal failed: %s: %w", trimmed, err)
 	}
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	commits := make([]importedGitHistoryCommit, 0, len(lines))

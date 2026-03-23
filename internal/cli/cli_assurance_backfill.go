@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -64,9 +65,9 @@ func buildAndWriteImportedHistory(root, adoptionCommit string) (string, int, err
 }
 
 func appendImportedEvidenceAndWriteBaseline(root, baselinePath string, baselineMap map[string]any, historyPath string) (bool, error) {
-	relativeHistoryPath, err := filepath.Rel(root, historyPath)
+	relativeHistoryPath, err := backfillRelativePathWithinRoot(root, historyPath)
 	if err != nil {
-		return false, fmt.Errorf("resolve relative history path: %w", err)
+		return false, err
 	}
 	baselineUpdated, err := appendImportedEvidenceToBaseline(baselineMap, relativeHistoryPath)
 	if err != nil {
@@ -112,6 +113,11 @@ func baselineAdoptionCommit(envelope contracts.AssuranceEnvelope) (string, error
 	adoptionCommit := readOptionalString(value, "adoption_commit")
 	if adoptionCommit == "" {
 		return "", fmt.Errorf("assurance baseline adoption_commit is required for backfill")
+	}
+	// Require a canonical lowercase 40-char hex SHA to avoid path-traversal
+	// and ambiguity; this matches existing git-source validation elsewhere.
+	if !isCanonicalLowerHex40(adoptionCommit) {
+		return "", fmt.Errorf("assurance baseline adoption_commit must be a canonical lowercase 40-char hex SHA")
 	}
 	return adoptionCommit, nil
 }
@@ -159,4 +165,37 @@ func importedEvidenceExists(evidence []any, historyPath string) bool {
 		}
 	}
 	return false
+}
+
+func isCanonicalLowerHex40(s string) bool {
+	if len(s) != 40 {
+		return false
+	}
+	for _, r := range s {
+		if !(('0' <= r && r <= '9') || ('a' <= r && r <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
+func backfillRelativePathWithinRoot(root, targetPath string) (string, error) {
+	if strings.TrimSpace(root) == "" {
+		return "", fmt.Errorf("backfill path resolution requires a repository root")
+	}
+	if strings.TrimSpace(targetPath) == "" {
+		return "", fmt.Errorf("backfill path resolution requires a history path")
+	}
+	rel, err := filepath.Rel(root, targetPath)
+	if err != nil {
+		return "", fmt.Errorf("resolve relative history path: %w", err)
+	}
+	rel = filepath.ToSlash(rel)
+	if rel == "" || rel == "." {
+		return "", fmt.Errorf("resolve relative history path for %q: empty relative output", targetPath)
+	}
+	if strings.HasPrefix(rel, "../") || rel == ".." || filepath.IsAbs(rel) || strings.HasPrefix(rel, "/") {
+		return "", fmt.Errorf("path %q escapes repository root", targetPath)
+	}
+	return rel, nil
 }

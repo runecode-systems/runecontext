@@ -67,6 +67,12 @@ historical cleanup from new feature design work.
   instruction-module work should compile into tool-native skills/prompts/
   instructions without turning capability-bearing tool config into RuneContext
   core semantics.
+- 2026-03-23: Recorded Branch Cut 3 assurance-backfill hardening: imported
+  history evidence paths must fail closed if they escape the repository root,
+  and baseline `adoption_commit` values remain strict canonical lowercase
+  40-character SHAs for alpha.6. Any broader `rev-parse`-based normalization
+  path is deferred for later design review instead of being added implicitly in
+  backfill.
 
 ## MVP Definition
 
