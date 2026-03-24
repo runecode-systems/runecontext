@@ -6,7 +6,9 @@ func buildFishCompletionScript(index completionIndex) string {
 	var out strings.Builder
 	writeFishHeader(&out)
 	for _, command := range index.topCommands {
-		out.WriteString("complete -c runectx -f -n '__fish_use_subcommand' -a ")
+		out.WriteString("complete -c ")
+		out.WriteString(fishToken(index.binary))
+		out.WriteString(" -f -n '__fish_use_subcommand' -a ")
 		out.WriteString(fishSingleQuote(command))
 		out.WriteString("\n")
 	}
@@ -35,7 +37,9 @@ func writeFishSubcommands(out *strings.Builder, index completionIndex) {
 		}
 		condition := fishConditionForPath(path)
 		for _, command := range subcommands {
-			out.WriteString("complete -c runectx -f -n ")
+			out.WriteString("complete -c ")
+			out.WriteString(fishToken(index.binary))
+			out.WriteString(" -f -n ")
 			out.WriteString(fishSingleQuote(condition))
 			out.WriteString(" -a ")
 			out.WriteString(fishSingleQuote(command))
@@ -50,7 +54,9 @@ func writeFishFlags(out *strings.Builder, index completionIndex) {
 		condition := fishConditionForPath(path)
 		for _, flag := range flags {
 			name := strings.TrimPrefix(flag.Name, "--")
-			out.WriteString("complete -c runectx -n ")
+			out.WriteString("complete -c ")
+			out.WriteString(fishToken(index.binary))
+			out.WriteString(" -n ")
 			out.WriteString(fishSingleQuote(condition))
 			out.WriteString(" -l ")
 			out.WriteString(name)
@@ -59,7 +65,9 @@ func writeFishFlags(out *strings.Builder, index completionIndex) {
 			}
 			out.WriteString("\n")
 			if flag.Value.Kind == ValueKindEnum {
-				out.WriteString("complete -c runectx -f -n ")
+				out.WriteString("complete -c ")
+				out.WriteString(fishToken(index.binary))
+				out.WriteString(" -f -n ")
 				out.WriteString(fishSingleQuote("(" + condition + "); and __runectx_prev_token_is " + flag.Name))
 				out.WriteString(" -a ")
 				out.WriteString(fishSingleQuote(strings.Join(flag.Value.EnumValues, " ")))
@@ -80,7 +88,9 @@ func writeFishPositionalEnums(out *strings.Builder, index completionIndex) {
 				continue
 			}
 			condition := fishConditionForPath(path)
-			out.WriteString("complete -c runectx -f -n ")
+			out.WriteString("complete -c ")
+			out.WriteString(fishToken(index.binary))
+			out.WriteString(" -f -n ")
 			out.WriteString(fishSingleQuote(condition))
 			out.WriteString(" -a ")
 			out.WriteString(fishSingleQuote(strings.Join(item.EnumValues, " ")))

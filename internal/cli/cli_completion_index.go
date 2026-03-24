@@ -18,7 +18,7 @@ type completionIndex struct {
 }
 
 func buildCompletionIndex(registry MetadataRegistry) completionIndex {
-	metadata := CompletionMetadataRegistry()
+	metadata := CompletionMetadataFromRegistry(registry)
 	index := newCompletionIndex(registry.Binary)
 	collectCompletionCommands(&index, metadata)
 	collectCompletionFlags(&index, metadata)

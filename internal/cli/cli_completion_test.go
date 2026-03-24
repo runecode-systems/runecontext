@@ -143,6 +143,71 @@ func TestCompletionMetadataIncludesPositionalEnums(t *testing.T) {
 	}
 }
 
+func TestCompletionScriptUsesRegistryBinary(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	registry.Binary = "runectx custom"
+	quotedBinary := shellSingleQuote(registry.Binary)
+
+	bashScript, err := generateCompletionScript(registry, "bash")
+	if err != nil {
+		t.Fatalf("generate bash completion script: %v", err)
+	}
+	if !strings.Contains(bashScript, "complete -F _runectx_complete "+quotedBinary) {
+		t.Fatalf("expected bash completion registration to use custom binary, got %q", bashScript)
+	}
+
+	zshScript, err := generateCompletionScript(registry, "zsh")
+	if err != nil {
+		t.Fatalf("generate zsh completion script: %v", err)
+	}
+	if !strings.Contains(zshScript, "complete -F _runectx_complete "+quotedBinary) {
+		t.Fatalf("expected zsh completion registration to use custom binary")
+	}
+
+	fishScript, err := generateCompletionScript(registry, "fish")
+	if err != nil {
+		t.Fatalf("generate fish completion script: %v", err)
+	}
+	if !strings.Contains(fishScript, "complete -c "+quotedBinary+" -f -n '__fish_use_subcommand'") {
+		t.Fatalf("expected fish completion script to use custom binary")
+	}
+}
+
+func TestBashCompletionSupportsFlagEqualsForm(t *testing.T) {
+	registry := MetadataRegistry{
+		Binary: "runectx",
+		Commands: []CommandMetadata{
+			{
+				Name:  "test",
+				Path:  "test",
+				Usage: "runectx test",
+				Flags: []FlagMetadata{
+					{Name: "--mode", Value: enumValueSpec("fast", "safe")},
+				},
+			},
+		},
+	}
+
+	script, err := generateCompletionScript(registry, "bash")
+	if err != nil {
+		t.Fatalf("generate bash completion script: %v", err)
+	}
+
+	checks := []string{
+		"token_flag=\"${token%%=*}\"",
+		"if _runectx_flag_takes_value \"$cmd\" \"$token_flag\"; then",
+		"if [[ -n \"$token_inline\" ]]; then",
+		"if [[ \"$cur\" == *=* ]]; then",
+		"enums=$(_runectx_enum_for_flag \"$cmd|$cur_flag\")",
+		"COMPREPLY[$idx]=\"$cur_flag=${COMPREPLY[$idx]}\"",
+	}
+	for _, check := range checks {
+		if !strings.Contains(script, check) {
+			t.Fatalf("expected bash completion script to contain %q", check)
+		}
+	}
+}
+
 func assertEnumValues(t *testing.T, values map[string][]string, key string, want []string) {
 	t.Helper()
 	got, ok := values[key]

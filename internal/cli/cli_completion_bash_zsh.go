@@ -20,7 +20,7 @@ func buildBashCompletionScript(index completionIndex) string {
 	writeBashFlagValueFunction(&out, index.flagKinds)
 	writeCaseEcho(&out, "_runectx_enum_for_flag", index.enumFlags, "")
 	writeCaseEcho(&out, "_runectx_positional_enum", mapFromPositionalEnums(index.positionalEnums), "")
-	writeBashRuntime(&out)
+	writeBashRuntime(&out, index.binary)
 	return out.String()
 }
 
@@ -63,8 +63,11 @@ func writeBashFlagValueFunction(out *strings.Builder, flagKinds map[string]Value
 	out.WriteString("}\n\n")
 }
 
-func writeBashRuntime(out *strings.Builder) {
+func writeBashRuntime(out *strings.Builder, binary string) {
 	out.WriteString(bashRuntimeScript)
+	out.WriteString("\ncomplete -F _runectx_complete ")
+	out.WriteString(shellToken(binary))
+	out.WriteString("\n")
 }
 
 func writeCaseEcho(out *strings.Builder, functionName string, values map[string][]string, defaultValue string) {
@@ -92,7 +95,7 @@ func writeCaseEcho(out *strings.Builder, functionName string, values map[string]
 }
 
 const bashRuntimeScript = `_runectx_complete() {
-  local cur prev cmd token candidate idx positional subcommands flags enums
+  local cur prev cmd token token_flag token_inline prev_flag prev_has_inline cur_flag cur_value candidate idx positional subcommands flags enums
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev=""
   if (( COMP_CWORD > 0 )); then
@@ -103,9 +106,19 @@ const bashRuntimeScript = `_runectx_complete() {
   idx=1
   while (( idx < COMP_CWORD )); do
     token="${COMP_WORDS[idx]}"
+    token_flag="$token"
+    token_inline=""
+    if [[ "$token" == *=* ]]; then
+      token_flag="${token%%=*}"
+      token_inline="${token#*=}"
+    fi
     if [[ "$token" == --* ]]; then
-      if _runectx_flag_takes_value "$cmd" "$token"; then
-        idx=$((idx+2))
+      if _runectx_flag_takes_value "$cmd" "$token_flag"; then
+        if [[ -n "$token_inline" ]]; then
+          idx=$((idx+1))
+        else
+          idx=$((idx+2))
+        fi
       else
         idx=$((idx+1))
       fi
@@ -123,15 +136,37 @@ const bashRuntimeScript = `_runectx_complete() {
     idx=$((idx+1))
   done
 
-  if [[ "$prev" == --* ]]; then
-    enums=$(_runectx_enum_for_flag "$cmd|$prev")
+  prev_flag="$prev"
+  prev_has_inline=0
+  if [[ "$prev" == *=* ]]; then
+    prev_flag="${prev%%=*}"
+    prev_has_inline=1
+  fi
+
+  if [[ "$prev_flag" == --* && $prev_has_inline -eq 0 ]]; then
+    enums=$(_runectx_enum_for_flag "$cmd|$prev_flag")
     if [[ -n "$enums" ]]; then
       COMPREPLY=( $(compgen -W "$enums" -- "$cur") )
       return
     fi
   fi
 
-  if [[ "$cur" == --* ]]; then
+  cur_flag="$cur"
+  if [[ "$cur" == *=* ]]; then
+    cur_flag="${cur%%=*}"
+  fi
+  if [[ "$cur_flag" == --* ]]; then
+    if [[ "$cur" == *=* ]]; then
+      enums=$(_runectx_enum_for_flag "$cmd|$cur_flag")
+      if [[ -n "$enums" ]]; then
+        cur_value="${cur#*=}"
+        COMPREPLY=( $(compgen -W "$enums" -- "$cur_value") )
+        for idx in "${!COMPREPLY[@]}"; do
+          COMPREPLY[$idx]="$cur_flag=${COMPREPLY[$idx]}"
+        done
+        return
+      fi
+    fi
     flags=$(_runectx_flags_for "$cmd")
     COMPREPLY=( $(compgen -W "$flags" -- "$cur") )
     return
@@ -152,6 +187,4 @@ const bashRuntimeScript = `_runectx_complete() {
   flags=$(_runectx_flags_for "$cmd")
   COMPREPLY=( $(compgen -W "$flags" -- "$cur") )
 }
-
-complete -F _runectx_complete runectx
 `

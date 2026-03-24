@@ -39,6 +39,11 @@ type CompletionPositionalEnumMetadata struct {
 // CompletionMetadataRegistry returns completion metadata derived from the command registry.
 func CompletionMetadataRegistry() CompletionMetadata {
 	registry := CommandMetadataRegistry()
+	return CompletionMetadataFromRegistry(registry)
+}
+
+// CompletionMetadataFromRegistry returns completion metadata derived from the provided registry.
+func CompletionMetadataFromRegistry(registry MetadataRegistry) CompletionMetadata {
 	builder := completionMetadataBuilder{binary: registry.Binary}
 	builder.walkCommands("", registry.Commands)
 	return builder.build()
