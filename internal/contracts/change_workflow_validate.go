@@ -73,6 +73,43 @@ func validateRelatedChangeReciprocity(index *ProjectIndex) error {
 	return nil
 }
 
+func validateChangeDependencyCycles(index *ProjectIndex) error {
+	if index == nil {
+		return nil
+	}
+	state := map[string]int{}
+	for _, id := range SortedKeys(index.Changes) {
+		if err := visitChangeDependencyNode(id, index.Changes, state); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func visitChangeDependencyNode(id string, changes map[string]*ChangeRecord, state map[string]int) error {
+	record := changes[id]
+	if record == nil {
+		return nil
+	}
+	switch state[id] {
+	case 1:
+		return &ValidationError{Path: record.StatusPath, Message: fmt.Sprintf("depends_on relationships contain a cycle involving %q", id)}
+	case 2:
+		return nil
+	}
+	state[id] = 1
+	for _, dependencyID := range record.DependsOn {
+		if _, ok := changes[dependencyID]; !ok {
+			continue
+		}
+		if err := visitChangeDependencyNode(dependencyID, changes, state); err != nil {
+			return err
+		}
+	}
+	state[id] = 2
+	return nil
+}
+
 func validateSupersessionConsistency(index *ProjectIndex) error {
 	for _, id := range SortedKeys(index.Changes) {
 		if err := validateSuccessorConsistency(index, index.Changes[id]); err != nil {

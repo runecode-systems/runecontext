@@ -182,6 +182,7 @@ func validateResolvedProjectReferences(index *ProjectIndex) error {
 		validateBundleStandardSelections,
 		validateStandardReferenceBodies,
 		validateChangeLifecycleConsistency,
+		validateChangeDependencyCycles,
 		validateRelatedChangeReciprocity,
 		validateSupersessionConsistency,
 		validateArtifactTraceabilityConsistency,
