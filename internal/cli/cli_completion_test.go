@@ -167,6 +167,9 @@ func TestCompletionMetadataIncludesPositionalEnums(t *testing.T) {
 	if !slices.Equal(checks["completion|1"], []string{"bash", "fish", "zsh"}) {
 		t.Fatalf("expected completion shell positional enums, got %#v", checks["completion|1"])
 	}
+	if !slices.Equal(checks["completion suggest|1"], []string{"adapter-names", "bundle-ids", "change-ids", "promotion-targets"}) {
+		t.Fatalf("expected completion suggest provider enums, got %#v", checks["completion suggest|1"])
+	}
 	if !slices.Equal(checks["assurance enable|1"], []string{"verified"}) {
 		t.Fatalf("expected assurance enable mode enum, got %#v", checks["assurance enable|1"])
 	}

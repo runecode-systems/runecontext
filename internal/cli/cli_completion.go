@@ -22,6 +22,9 @@ func runCompletion(args []string, stdout, stderr io.Writer) int {
 		)
 		return exitOK
 	}
+	if args[0] == "suggest" {
+		return runCompletionSuggest(args[1:], stdout, stderr)
+	}
 	if len(args) != 1 {
 		writeCommandUsageError(stderr, "completion", completionUsage, fmt.Errorf("completion expects exactly one shell argument"))
 		return exitUsage
