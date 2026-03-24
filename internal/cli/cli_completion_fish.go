@@ -27,6 +27,34 @@ func writeFishHeader(out *strings.Builder) {
 	out.WriteString("  end\n")
 	out.WriteString("  test $tokens[-1] = $argv[1]\n")
 	out.WriteString("end\n\n")
+	out.WriteString("function __runectx_root_path\n")
+	out.WriteString("  set -l tokens (commandline -opc)\n")
+	out.WriteString("  for i in (seq 1 (count $tokens))\n")
+	out.WriteString("    set -l token $tokens[$i]\n")
+	out.WriteString("    if test \"$token\" = \"--path\"\n")
+	out.WriteString("      set -l next_index (math $i + 1)\n")
+	out.WriteString("      if test $next_index -le (count $tokens)\n")
+	out.WriteString("        echo $tokens[$next_index]\n")
+	out.WriteString("        return 0\n")
+	out.WriteString("      end\n")
+	out.WriteString("    end\n")
+	out.WriteString("    if string match -q -- '--path=*' $token\n")
+	out.WriteString("      echo (string replace -- '--path=' '' $token)\n")
+	out.WriteString("      return 0\n")
+	out.WriteString("    end\n")
+	out.WriteString("  end\n")
+	out.WriteString("  return 1\n")
+	out.WriteString("end\n\n")
+	out.WriteString("function __runectx_dynamic_suggest\n")
+	out.WriteString("  set -l provider $argv[1]\n")
+	out.WriteString("  set -l prefix (commandline -ct)\n")
+	out.WriteString("  set -l root (__runectx_root_path)\n")
+	out.WriteString("  if test -n \"$root\"\n")
+	out.WriteString("    command (commandline -poc)[1] completion suggest --path $root --prefix $prefix $provider 2>/dev/null\n")
+	out.WriteString("    return\n")
+	out.WriteString("  end\n")
+	out.WriteString("  command (commandline -poc)[1] completion suggest --prefix $prefix $provider 2>/dev/null\n")
+	out.WriteString("end\n\n")
 }
 
 func writeFishSubcommands(out *strings.Builder, index completionIndex) {
@@ -50,34 +78,66 @@ func writeFishSubcommands(out *strings.Builder, index completionIndex) {
 
 func writeFishFlags(out *strings.Builder, index completionIndex) {
 	for _, path := range sortedMapKeys(index.flagsByPath) {
-		flags := index.flagsByPath[path]
-		condition := fishConditionForPath(path)
-		for _, flag := range flags {
-			name := strings.TrimPrefix(flag.Name, "--")
-			out.WriteString("complete -c ")
-			out.WriteString(fishToken(index.binary))
-			out.WriteString(" -n ")
-			out.WriteString(fishSingleQuote(condition))
-			out.WriteString(" -l ")
-			out.WriteString(name)
-			if flag.Value.Kind != ValueKindNone {
-				out.WriteString(" -r")
-			}
-			out.WriteString("\n")
-			if flag.Value.Kind == ValueKindEnum {
-				out.WriteString("complete -c ")
-				out.WriteString(fishToken(index.binary))
-				out.WriteString(" -f -n ")
-				out.WriteString(fishSingleQuote("(" + condition + "); and __runectx_prev_token_is " + flag.Name))
-				out.WriteString(" -a ")
-				out.WriteString(fishSingleQuote(strings.Join(flag.Value.EnumValues, " ")))
-				out.WriteString("\n")
-			}
-		}
+		writeFishFlagsForPath(out, index, path)
 	}
 }
 
+func writeFishFlagsForPath(out *strings.Builder, index completionIndex, path string) {
+	condition := fishConditionForPath(path)
+	for _, flag := range index.flagsByPath[path] {
+		writeFishBaseFlagCompletion(out, index.binary, condition, flag)
+		writeFishEnumFlagCompletion(out, index.binary, condition, flag)
+		writeFishDynamicFlagCompletion(out, index.binary, condition, path, flag, index.suggestionFlags)
+	}
+}
+
+func writeFishBaseFlagCompletion(out *strings.Builder, binary, condition string, flag FlagMetadata) {
+	name := strings.TrimPrefix(flag.Name, "--")
+	out.WriteString("complete -c ")
+	out.WriteString(fishToken(binary))
+	out.WriteString(" -n ")
+	out.WriteString(fishSingleQuote(condition))
+	out.WriteString(" -l ")
+	out.WriteString(name)
+	if flag.Value.Kind != ValueKindNone {
+		out.WriteString(" -r")
+	}
+	out.WriteString("\n")
+}
+
+func writeFishEnumFlagCompletion(out *strings.Builder, binary, condition string, flag FlagMetadata) {
+	if flag.Value.Kind != ValueKindEnum {
+		return
+	}
+	out.WriteString("complete -c ")
+	out.WriteString(fishToken(binary))
+	out.WriteString(" -f -n ")
+	out.WriteString(fishSingleQuote("(" + condition + "); and __runectx_prev_token_is " + flag.Name))
+	out.WriteString(" -a ")
+	out.WriteString(fishSingleQuote(strings.Join(flag.Value.EnumValues, " ")))
+	out.WriteString("\n")
+}
+
+func writeFishDynamicFlagCompletion(out *strings.Builder, binary, condition, path string, flag FlagMetadata, providers map[string]string) {
+	provider := providers[completionFlagKey(path, flag.Name)]
+	if provider == "" {
+		return
+	}
+	out.WriteString("complete -c ")
+	out.WriteString(fishToken(binary))
+	out.WriteString(" -f -n ")
+	out.WriteString(fishSingleQuote("(" + condition + "); and __runectx_prev_token_is " + flag.Name))
+	out.WriteString(" -a ")
+	out.WriteString(fishSingleQuote("(__runectx_dynamic_suggest " + provider + ")"))
+	out.WriteString("\n")
+}
+
 func writeFishPositionalEnums(out *strings.Builder, index completionIndex) {
+	writeFishPositionalEnumEntries(out, index)
+	writeFishDynamicPositionalEntries(out, index)
+}
+
+func writeFishPositionalEnumEntries(out *strings.Builder, index completionIndex) {
 	for _, path := range sortedMapKeys(index.positionalEnums) {
 		items := index.positionalEnums[path]
 		if len(items) == 0 {
@@ -97,4 +157,40 @@ func writeFishPositionalEnums(out *strings.Builder, index completionIndex) {
 			out.WriteString("\n")
 		}
 	}
+}
+
+func writeFishDynamicPositionalEntries(out *strings.Builder, index completionIndex) {
+	for _, key := range sortedMapKeys(index.positionalSuggest) {
+		provider := index.positionalSuggest[key]
+		path, position, ok := parsePositionalSuggestionKey(key)
+		if !ok || position != 1 || provider == "" {
+			continue
+		}
+		condition := fishConditionForPath(path)
+		out.WriteString("complete -c ")
+		out.WriteString(fishToken(index.binary))
+		out.WriteString(" -f -n ")
+		out.WriteString(fishSingleQuote(condition))
+		out.WriteString(" -a ")
+		out.WriteString(fishSingleQuote("(__runectx_dynamic_suggest " + provider + ")"))
+		out.WriteString("\n")
+	}
+}
+
+func parsePositionalSuggestionKey(key string) (string, int, bool) {
+	path, rawPosition, ok := strings.Cut(key, "|")
+	if !ok || rawPosition == "" {
+		return "", 0, false
+	}
+	position := 0
+	for _, ch := range rawPosition {
+		if ch < '0' || ch > '9' {
+			return "", 0, false
+		}
+		position = position*10 + int(ch-'0')
+	}
+	if position <= 0 {
+		return "", 0, false
+	}
+	return path, position, true
 }

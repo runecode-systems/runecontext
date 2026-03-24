@@ -13,8 +13,9 @@ const (
 
 // ValueSpec describes accepted value metadata for completion/documentation.
 type ValueSpec struct {
-	Kind       ValueKind
-	EnumValues []string
+	Kind               ValueKind
+	EnumValues         []string
+	SuggestionProvider string
 }
 
 // FlagMetadata describes one CLI flag.
@@ -85,9 +86,9 @@ func changeCommandMetadata() CommandMetadata {
 		Flags: writeMachineFlags(),
 		Subcommands: []CommandMetadata{
 			{Name: "new", Path: "change new", Usage: changeNewUsage, Flags: writeCommandFlags(changeNewFlags())},
-			{Name: "shape", Path: "change shape", Usage: changeShapeUsage, Flags: writeCommandFlags(changeShapeFlags()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueSpec()}}},
-			{Name: "close", Path: "change close", Usage: changeCloseUsage, Flags: writeCommandFlags(changeCloseFlags()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueSpec()}}},
-			{Name: "reallocate", Path: "change reallocate", Usage: changeReallocateUsage, Flags: writeCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueSpec()}}},
+			{Name: "shape", Path: "change shape", Usage: changeShapeUsage, Flags: writeCommandFlags(changeShapeFlags()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
+			{Name: "close", Path: "change close", Usage: changeCloseUsage, Flags: writeCommandFlags(changeCloseFlags()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
+			{Name: "reallocate", Path: "change reallocate", Usage: changeReallocateUsage, Flags: writeCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
 		},
 	}
 }
@@ -111,7 +112,7 @@ func bundleCommandMetadata() CommandMetadata {
 		Usage: bundleUsage,
 		Flags: readMachineFlags(),
 		Subcommands: []CommandMetadata{
-			{Name: "resolve", Path: "bundle resolve", Usage: bundleResolveUsage, Flags: readOnlyCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "bundle-id", Value: textValueSpec(), Variadic: true}}},
+			{Name: "resolve", Path: "bundle resolve", Usage: bundleResolveUsage, Flags: readOnlyCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "bundle-id", Value: textValueWithSuggestionSpec(suggestionProviderBundleIDs), Variadic: true}}},
 		},
 	}
 }
@@ -137,18 +138,7 @@ func assuranceCommandMetadata() CommandMetadata {
 		Subcommands: []CommandMetadata{
 			{Name: "enable", Path: "assurance enable", Usage: assuranceEnableUsage, Flags: writeCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "mode", Value: enumValueSpec("verified")}}},
 			{Name: "backfill", Path: "assurance backfill", Usage: assuranceBackfillUsage, Flags: writeCommandFlags(pathOnlyFlag())},
-			{Name: "capture", Path: "assurance capture", Usage: assuranceCaptureUsage, Flags: writeCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "subject", Value: enumValueSpec("context-pack")}, {Name: "bundle-id", Value: textValueSpec(), Variadic: true}}},
-		},
-	}
-}
-
-func completionCommandMetadata() CommandMetadata {
-	return CommandMetadata{
-		Name:  "completion",
-		Path:  "completion",
-		Usage: completionUsage,
-		Positionals: []PositionalMetadata{
-			{Name: "shell", Value: enumValueSpec("bash", "zsh", "fish")},
+			{Name: "capture", Path: "assurance capture", Usage: assuranceCaptureUsage, Flags: writeCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "subject", Value: enumValueSpec("context-pack")}, {Name: "bundle-id", Value: textValueWithSuggestionSpec(suggestionProviderBundleIDs), Variadic: true}}},
 		},
 	}
 }
@@ -178,7 +168,7 @@ func changeShapeFlags() []FlagMetadata {
 func changeCloseFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--verification-status", Value: enumValueSpec("pending", "passed", "failed", "skipped")},
-		{Name: "--superseded-by", Value: textValueSpec(), Repeatable: true},
+		{Name: "--superseded-by", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs), Repeatable: true},
 		{Name: "--closed-at", Value: textValueSpec()},
 		{Name: "--path", Value: textValueSpec()},
 	}
@@ -203,7 +193,7 @@ func promoteFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--accept", Value: noValueSpec()},
 		{Name: "--complete", Value: noValueSpec()},
-		{Name: "--target", Value: textValueSpec(), Repeatable: true},
+		{Name: "--target", Value: textValueWithSuggestionSpec(suggestionProviderPromotionTargets), Repeatable: true},
 		{Name: "--path", Value: textValueSpec()},
 	}
 }
@@ -211,9 +201,9 @@ func promoteFlags() []FlagMetadata {
 func standardDiscoverFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--path", Value: textValueSpec()},
-		{Name: "--change", Value: textValueSpec()},
+		{Name: "--change", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)},
 		{Name: "--confirm-handoff", Value: noValueSpec()},
-		{Name: "--target", Value: textValueSpec()},
+		{Name: "--target", Value: textValueWithSuggestionSpec(suggestionProviderPromotionTargets)},
 	}
 }
 
@@ -259,6 +249,10 @@ func noValueSpec() ValueSpec {
 
 func textValueSpec() ValueSpec {
 	return ValueSpec{Kind: ValueKindText}
+}
+
+func textValueWithSuggestionSpec(provider string) ValueSpec {
+	return ValueSpec{Kind: ValueKindText, SuggestionProvider: provider}
 }
 
 func enumValueSpec(values ...string) ValueSpec {

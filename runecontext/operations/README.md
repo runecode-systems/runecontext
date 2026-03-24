@@ -9,6 +9,8 @@ This directory is the canonical in-repository operations reference for the
 - Documents how command metadata is represented in a typed command registry.
 - Documents how shell completion and machine-readable completion metadata are
   derived from that registry.
+- Documents shared repo-aware suggestion providers used by shell completion and
+  adapter-native UX.
 
 ## Source Of Truth
 

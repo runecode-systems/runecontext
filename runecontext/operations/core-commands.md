@@ -14,6 +14,7 @@ RuneContext exposes a stable CLI operation surface through `runectx`:
 - `standard discover`
 - `assurance enable|backfill|capture`
 - `completion <bash|zsh|fish>`
+- `completion suggest <change-ids|bundle-ids|promotion-targets|adapter-names>`
 
 ## Operation Boundaries
 
@@ -24,6 +25,8 @@ RuneContext exposes a stable CLI operation surface through `runectx`:
   reviewable write operations.
 - `completion`: read-only script generation derived from the CLI metadata
   registry.
+- `completion suggest`: read-only, repo-aware dynamic suggestions for command
+  values.
 
 ## Adapter Mapping Rule
 

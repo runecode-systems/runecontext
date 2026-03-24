@@ -96,6 +96,13 @@ func (p *ProjectIndex) ResolveBundle(id string) (*BundleResolution, error) {
 	return p.Bundles.Resolve(id)
 }
 
+func (p *ProjectIndex) BundleIDs() []string {
+	if p == nil || p.Bundles == nil {
+		return nil
+	}
+	return SortedKeys(p.Bundles.bundles)
+}
+
 func (v *Validator) ValidateTraceabilityProject(root string) error {
 	index, err := v.ValidateProject(root)
 	if err != nil {

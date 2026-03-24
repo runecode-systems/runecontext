@@ -16,6 +16,7 @@ _runectx_has_command() {
     'change reallocate') return 0 ;;
     'change shape') return 0 ;;
     'completion') return 0 ;;
+    'completion suggest') return 0 ;;
     'doctor') return 0 ;;
     'generate') return 0 ;;
     'generate indexes') return 0 ;;
@@ -44,7 +45,8 @@ _runectx_subcommands_for() {
     'change new') echo '' ;;
     'change reallocate') echo '' ;;
     'change shape') echo '' ;;
-    'completion') echo '' ;;
+    'completion') echo 'suggest' ;;
+    'completion suggest') echo '' ;;
     'doctor') echo '' ;;
     'generate') echo 'indexes' ;;
     'generate indexes') echo '' ;;
@@ -72,6 +74,7 @@ _runectx_flags_for() {
     'change new') echo '--bundle --description --dry-run --explain --json --non-interactive --path --shape --size --title --type' ;;
     'change reallocate') echo '--dry-run --explain --json --non-interactive --path' ;;
     'change shape') echo '--design --dry-run --explain --json --non-interactive --path --reference --task --verification' ;;
+    'completion suggest') echo '--path --prefix' ;;
     'doctor') echo '--explain --json --non-interactive --path' ;;
     'generate') echo '--explain --json --non-interactive' ;;
     'generate indexes') echo '--explain --json --non-interactive --path' ;;
@@ -108,6 +111,8 @@ _runectx_flag_takes_value() {
     'change shape|--reference') return 0 ;;
     'change shape|--task') return 0 ;;
     'change shape|--verification') return 0 ;;
+    'completion suggest|--path') return 0 ;;
+    'completion suggest|--prefix') return 0 ;;
     'doctor|--path') return 0 ;;
     'generate indexes|--path') return 0 ;;
     'init|--mode') return 0 ;;
@@ -136,17 +141,55 @@ _runectx_enum_for_flag() {
   esac
 }
 
+_runectx_suggest_provider_for_flag() {
+  case "$1" in
+    'change close|--superseded-by') echo 'change-ids' ;;
+    'promote|--target') echo 'promotion-targets' ;;
+    'standard discover|--change') echo 'change-ids' ;;
+    'standard discover|--target') echo 'promotion-targets' ;;
+    *) echo '' ;;
+  esac
+}
+
 _runectx_positional_enum() {
   case "$1" in
     'assurance capture|1') echo 'context-pack' ;;
     'assurance enable|1') echo 'verified' ;;
+    'completion suggest|1') echo 'adapter-names bundle-ids change-ids promotion-targets' ;;
     'completion|1') echo 'bash fish zsh' ;;
     *) echo '' ;;
   esac
 }
 
+_runectx_suggest_provider_for_positional() {
+  case "$1" in
+    'assurance capture|2') echo 'bundle-ids' ;;
+    'bundle resolve|1') echo 'bundle-ids' ;;
+    'change close|1') echo 'change-ids' ;;
+    'change reallocate|1') echo 'change-ids' ;;
+    'change shape|1') echo 'change-ids' ;;
+    *) echo '' ;;
+  esac
+}
+
+_runectx_dynamic_suggest() {
+  local provider prefix root cli
+  provider="$1"
+  prefix="$2"
+  root="$3"
+  cli="${COMP_WORDS[0]}"
+  if [[ -z "$provider" ]]; then
+    return
+  fi
+  if [[ -n "$root" ]]; then
+    "$cli" completion suggest --path "$root" --prefix "$prefix" "$provider" 2>/dev/null
+    return
+  fi
+  "$cli" completion suggest --prefix "$prefix" "$provider" 2>/dev/null
+}
+
 _runectx_complete() {
-  local cur prev cmd token token_flag token_inline prev_flag prev_has_inline cur_flag cur_value candidate idx positional subcommands flags enums
+  local cur prev cmd token token_flag token_inline prev_flag prev_has_inline cur_flag cur_value candidate idx positional subcommands flags enums provider root_path
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev=""
   if (( COMP_CWORD > 0 )); then
@@ -154,6 +197,7 @@ _runectx_complete() {
   fi
   cmd=""
   positional=0
+  root_path=""
   idx=1
   while (( idx < COMP_CWORD )); do
     token="${COMP_WORDS[idx]}"
@@ -165,6 +209,13 @@ _runectx_complete() {
     fi
     if [[ "$token" == --* ]]; then
       if _runectx_flag_takes_value "$cmd" "$token_flag"; then
+        if [[ "$token_flag" == "--path" ]]; then
+          if [[ -n "$token_inline" ]]; then
+            root_path="$token_inline"
+          elif (( idx + 1 < COMP_CWORD )); then
+            root_path="${COMP_WORDS[idx+1]}"
+          fi
+        fi
         if [[ -n "$token_inline" ]]; then
           idx=$((idx+1))
         else
@@ -200,6 +251,11 @@ _runectx_complete() {
       COMPREPLY=( $(compgen -W "$enums" -- "$cur") )
       return
     fi
+    provider=$(_runectx_suggest_provider_for_flag "$cmd|$prev_flag")
+    if [[ -n "$provider" ]]; then
+      COMPREPLY=( $(_runectx_dynamic_suggest "$provider" "$cur" "$root_path") )
+      return
+    fi
   fi
 
   cur_flag="$cur"
@@ -212,6 +268,15 @@ _runectx_complete() {
       if [[ -n "$enums" ]]; then
         cur_value="${cur#*=}"
         COMPREPLY=( $(compgen -W "$enums" -- "$cur_value") )
+        for idx in "${!COMPREPLY[@]}"; do
+          COMPREPLY[$idx]="$cur_flag=${COMPREPLY[$idx]}"
+        done
+        return
+      fi
+      provider=$(_runectx_suggest_provider_for_flag "$cmd|$cur_flag")
+      if [[ -n "$provider" ]]; then
+        cur_value="${cur#*=}"
+        COMPREPLY=( $(_runectx_dynamic_suggest "$provider" "$cur_value" "$root_path") )
         for idx in "${!COMPREPLY[@]}"; do
           COMPREPLY[$idx]="$cur_flag=${COMPREPLY[$idx]}"
         done
@@ -232,6 +297,12 @@ _runectx_complete() {
   enums=$(_runectx_positional_enum "$cmd|$((positional+1))")
   if [[ -n "$enums" ]]; then
     COMPREPLY=( $(compgen -W "$enums" -- "$cur") )
+    return
+  fi
+
+  provider=$(_runectx_suggest_provider_for_positional "$cmd|$((positional+1))")
+  if [[ -n "$provider" ]]; then
+    COMPREPLY=( $(_runectx_dynamic_suggest "$provider" "$cur" "$root_path") )
     return
   fi
 

@@ -8,10 +8,11 @@ import (
 
 // CompletionMetadata is machine-readable completion metadata derived from the CLI registry.
 type CompletionMetadata struct {
-	Binary          string
-	Commands        []CompletionCommandMetadata
-	Flags           []CompletionFlagMetadata
-	PositionalEnums []CompletionPositionalEnumMetadata
+	Binary                string
+	Commands              []CompletionCommandMetadata
+	Flags                 []CompletionFlagMetadata
+	PositionalEnums       []CompletionPositionalEnumMetadata
+	PositionalSuggestions []CompletionPositionalSuggestionMetadata
 }
 
 // CompletionCommandMetadata records a command path and direct subcommands.
@@ -22,11 +23,12 @@ type CompletionCommandMetadata struct {
 
 // CompletionFlagMetadata records one flag with optional enum values.
 type CompletionFlagMetadata struct {
-	CommandPath string
-	Name        string
-	ValueKind   ValueKind
-	EnumValues  []string
-	Repeatable  bool
+	CommandPath        string
+	Name               string
+	ValueKind          ValueKind
+	EnumValues         []string
+	SuggestionProvider string
+	Repeatable         bool
 }
 
 // CompletionPositionalEnumMetadata records enum completions for positional slots.
@@ -34,6 +36,13 @@ type CompletionPositionalEnumMetadata struct {
 	CommandPath string
 	Position    int
 	EnumValues  []string
+}
+
+// CompletionPositionalSuggestionMetadata records dynamic suggestion provider for positional slots.
+type CompletionPositionalSuggestionMetadata struct {
+	CommandPath        string
+	Position           int
+	SuggestionProvider string
 }
 
 // CompletionMetadataRegistry returns completion metadata derived from the command registry.
@@ -50,10 +59,11 @@ func CompletionMetadataFromRegistry(registry MetadataRegistry) CompletionMetadat
 }
 
 type completionMetadataBuilder struct {
-	binary      string
-	commands    []CompletionCommandMetadata
-	flags       []CompletionFlagMetadata
-	positionals []CompletionPositionalEnumMetadata
+	binary                string
+	commands              []CompletionCommandMetadata
+	flags                 []CompletionFlagMetadata
+	positionals           []CompletionPositionalEnumMetadata
+	positionalSuggestions []CompletionPositionalSuggestionMetadata
 }
 
 func (builder *completionMetadataBuilder) walkCommands(parentPath string, commands []CommandMetadata) {
@@ -69,11 +79,12 @@ func (builder *completionMetadataBuilder) walkCommands(parentPath string, comman
 func (builder *completionMetadataBuilder) appendFlags(path string, flags []FlagMetadata) {
 	for _, flag := range flags {
 		item := CompletionFlagMetadata{
-			CommandPath: path,
-			Name:        flag.Name,
-			ValueKind:   flag.Value.Kind,
-			EnumValues:  append([]string(nil), flag.Value.EnumValues...),
-			Repeatable:  flag.Repeatable,
+			CommandPath:        path,
+			Name:               flag.Name,
+			ValueKind:          flag.Value.Kind,
+			EnumValues:         append([]string(nil), flag.Value.EnumValues...),
+			SuggestionProvider: flag.Value.SuggestionProvider,
+			Repeatable:         flag.Repeatable,
 		}
 		builder.flags = append(builder.flags, item)
 	}
@@ -83,7 +94,17 @@ func (builder *completionMetadataBuilder) appendPositionalEnums(path string, pos
 	position := 0
 	for _, positional := range positionals {
 		position++
+		if positional.Value.SuggestionProvider != "" {
+			builder.positionalSuggestions = append(builder.positionalSuggestions, CompletionPositionalSuggestionMetadata{
+				CommandPath:        path,
+				Position:           position,
+				SuggestionProvider: positional.Value.SuggestionProvider,
+			})
+		}
 		if positional.Value.Kind != ValueKindEnum {
+			if positional.Variadic {
+				break
+			}
 			continue
 		}
 		builder.positionals = append(builder.positionals, CompletionPositionalEnumMetadata{
@@ -112,7 +133,13 @@ func (builder completionMetadataBuilder) build() CompletionMetadata {
 		right := fmt.Sprintf("%s|%03d", positionals[j].CommandPath, positionals[j].Position)
 		return left < right
 	})
-	return CompletionMetadata{Binary: builder.binary, Commands: commands, Flags: flags, PositionalEnums: positionals}
+	positionalsSuggestions := append([]CompletionPositionalSuggestionMetadata(nil), builder.positionalSuggestions...)
+	sort.Slice(positionalsSuggestions, func(i, j int) bool {
+		left := fmt.Sprintf("%s|%03d", positionalsSuggestions[i].CommandPath, positionalsSuggestions[i].Position)
+		right := fmt.Sprintf("%s|%03d", positionalsSuggestions[j].CommandPath, positionalsSuggestions[j].Position)
+		return left < right
+	})
+	return CompletionMetadata{Binary: builder.binary, Commands: commands, Flags: flags, PositionalEnums: positionals, PositionalSuggestions: positionalsSuggestions}
 }
 
 func commandNames(commands []CommandMetadata) []string {

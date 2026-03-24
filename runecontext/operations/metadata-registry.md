@@ -13,6 +13,7 @@ The typed model includes:
 - Flags with value kind (`none`, `text`, `enum`)
 - Stable enum values for flags and positionals
 - Positional argument metadata
+- Optional dynamic suggestion provider names for text flags/positionals
 
 ## Derivations
 
@@ -21,6 +22,7 @@ From this one registry, RuneContext derives:
 - Human-readable operation docs in `runecontext/operations/`
 - Machine-readable completion metadata (`CLICompletionMetadata`)
 - Static shell completion scripts (`runectx completion <shell>`)
+- Shared dynamic suggestion surfaces (`runectx completion suggest ...`)
 
 ## Drift Prevention
 

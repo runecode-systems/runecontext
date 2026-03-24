@@ -14,7 +14,9 @@ type completionIndex struct {
 	flagsByPath       map[string][]FlagMetadata
 	flagKinds         map[string]ValueKind
 	enumFlags         map[string][]string
+	suggestionFlags   map[string]string
 	positionalEnums   map[string][]CompletionPositionalEnumMetadata
+	positionalSuggest map[string]string
 }
 
 func buildCompletionIndex(registry MetadataRegistry) completionIndex {
@@ -34,7 +36,9 @@ func newCompletionIndex(binary string) completionIndex {
 		flagsByPath:       map[string][]FlagMetadata{},
 		flagKinds:         map[string]ValueKind{},
 		enumFlags:         map[string][]string{},
+		suggestionFlags:   map[string]string{},
 		positionalEnums:   map[string][]CompletionPositionalEnumMetadata{},
+		positionalSuggest: map[string]string{},
 	}
 }
 
@@ -52,7 +56,7 @@ func collectCompletionFlags(index *completionIndex, metadata CompletionMetadata)
 	for _, flag := range metadata.Flags {
 		index.flagsByPath[flag.CommandPath] = append(index.flagsByPath[flag.CommandPath], FlagMetadata{
 			Name:       flag.Name,
-			Value:      ValueSpec{Kind: flag.ValueKind, EnumValues: append([]string(nil), flag.EnumValues...)},
+			Value:      ValueSpec{Kind: flag.ValueKind, EnumValues: append([]string(nil), flag.EnumValues...), SuggestionProvider: flag.SuggestionProvider},
 			Repeatable: flag.Repeatable,
 		})
 		key := completionFlagKey(flag.CommandPath, flag.Name)
@@ -60,12 +64,19 @@ func collectCompletionFlags(index *completionIndex, metadata CompletionMetadata)
 		if flag.ValueKind == ValueKindEnum {
 			index.enumFlags[key] = append([]string(nil), flag.EnumValues...)
 		}
+		if flag.SuggestionProvider != "" {
+			index.suggestionFlags[key] = flag.SuggestionProvider
+		}
 	}
 }
 
 func collectCompletionPositionalEnums(index *completionIndex, metadata CompletionMetadata) {
 	for _, positional := range metadata.PositionalEnums {
 		index.positionalEnums[positional.CommandPath] = append(index.positionalEnums[positional.CommandPath], positional)
+	}
+	for _, positional := range metadata.PositionalSuggestions {
+		key := positional.CommandPath + "|" + strconv.Itoa(positional.Position)
+		index.positionalSuggest[key] = positional.SuggestionProvider
 	}
 }
 

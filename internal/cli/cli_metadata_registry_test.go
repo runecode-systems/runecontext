@@ -26,6 +26,9 @@ func TestCommandMetadataRegistryHasCompletionCommand(t *testing.T) {
 	if got := completion.Positionals[0].Value.EnumValues; !slices.Equal(got, []string{"bash", "fish", "zsh"}) {
 		t.Fatalf("expected shell enums [bash fish zsh], got %#v", got)
 	}
+	if len(completion.Subcommands) != 1 || completion.Subcommands[0].Path != "completion suggest" {
+		t.Fatalf("expected completion suggest subcommand, got %#v", completion.Subcommands)
+	}
 }
 
 func TestCommandMetadataRegistryDefensiveCopy(t *testing.T) {
