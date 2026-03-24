@@ -404,7 +404,7 @@ func createSignedGitSourceRepo(t *testing.T) (string, signedGitSourceDetails) {
 	unsignedTagName := "v1.0.0-unsigned"
 	badSignatureTagName := "v1.0.0-bad-signature"
 	runGitTest(t, repoDir, "-c", "gpg.format=ssh", "-c", "user.signingkey="+keyPath, "-c", "user.name=RuneContext Tests", "-c", "user.email=tests@example.com", "tag", "-s", "-m", "signed tag", signedTagName)
-	runGitTest(t, repoDir, "-c", "user.name=RuneContext Tests", "-c", "user.email=tests@example.com", "tag", "-a", "-m", "unsigned tag", unsignedTagName)
+	runGitTest(t, repoDir, "tag", unsignedTagName)
 	corruptSignedTagForTest(t, repoDir, signedTagName, badSignatureTagName)
 	verifier := newSSHAllowedSignersVerifierForTest(t, allowedSigners)
 	verification, err := verifier.VerifySignedTag(repoDir, signedTagName)

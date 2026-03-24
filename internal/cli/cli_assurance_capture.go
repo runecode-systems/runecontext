@@ -15,6 +15,14 @@ type assuranceCaptureRequest struct {
 }
 
 func runAssuranceCaptureWithMachine(args []string, stdout, stderr io.Writer, machine machineOptions) int {
+	if len(args) > 0 && isHelpToken(args[0]) {
+		if len(args) != 1 {
+			emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance capture", assuranceCaptureUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+			return exitUsage
+		}
+		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "assurance capture"}, {"usage", assuranceCaptureUsage}}, machine), exitOK, failureClassNone)
+		return exitOK
+	}
 	request, err := parseAssuranceCaptureArgs(args)
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance capture", assuranceCaptureUsage, err), machine), exitUsage, failureClassUsage)

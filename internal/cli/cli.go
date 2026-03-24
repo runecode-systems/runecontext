@@ -12,9 +12,11 @@ const (
 )
 
 const (
-	validateUsage         = "runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [path]"
-	statusUsage           = "runectx status [--json] [--non-interactive] [--explain] [path]"
+	validateUsage         = "runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [--path PATH] [path]"
+	statusUsage           = "runectx status [--json] [--non-interactive] [--explain] [--path PATH] [path]"
 	changeUsage           = "runectx change [--json] [--non-interactive] [--dry-run] [--explain] <new|shape|close|reallocate> ..."
+	generateUsage         = "runectx generate [--json] [--non-interactive] [--explain] <indexes>"
+	generateIndexesUsage  = "runectx generate indexes [--json] [--non-interactive] [--explain] [--path PATH] [path]"
 	bundleUsage           = "runectx bundle [--json] [--non-interactive] [--explain] <resolve>"
 	bundleResolveUsage    = "runectx bundle resolve [--json] [--non-interactive] [--explain] [--path PATH] <bundle-id>..."
 	doctorUsage           = "runectx doctor [--json] [--non-interactive] [--explain] [--path PATH] [path]"
@@ -42,6 +44,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return runStatus(args[1:], stdout, stderr)
 	case "change":
 		return runChange(args[1:], stdout, stderr)
+	case "generate":
+		return runGenerate(args[1:], stdout, stderr)
 	case "bundle":
 		return runBundle(args[1:], stdout, stderr)
 	case "doctor":
@@ -70,6 +74,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  help       Show CLI usage")
 	fmt.Fprintln(w, "  status     Report active, closed, and superseded changes")
 	fmt.Fprintln(w, "  change     Create, shape, close, and reallocate changes")
+	fmt.Fprintln(w, "  generate   Write optional generated indexes and manifest")
 	fmt.Fprintln(w, "  bundle     Resolve context bundles")
 	fmt.Fprintln(w, "  validate   Validate RuneContext contracts for a project root")
 	fmt.Fprintln(w, "  doctor     Run environment and resolution diagnostics")
@@ -85,6 +90,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+changeShapeUsage)
 	fmt.Fprintln(w, "  "+changeCloseUsage)
 	fmt.Fprintln(w, "  "+changeReallocateUsage)
+	fmt.Fprintln(w, "  "+generateIndexesUsage)
 	fmt.Fprintln(w, "  "+validateUsage)
 	fmt.Fprintln(w, "  "+bundleResolveUsage)
 	fmt.Fprintln(w, "  "+doctorUsage)
@@ -92,4 +98,13 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+promoteUsage)
 	fmt.Fprintln(w, "  "+standardDiscoverUsage)
 	fmt.Fprintln(w, "  "+assuranceUsage)
+}
+
+func isHelpToken(arg string) bool {
+	switch arg {
+	case "help", "--help", "-h":
+		return true
+	default:
+		return false
+	}
 }

@@ -66,10 +66,16 @@ func loadBundleDefinition(v *Validator, rootConfigPath string, rootData []byte, 
 	if err := v.ValidateYAMLFile("bundle.schema.json", bundlePath, data); err != nil {
 		return nil, err
 	}
-	if err := v.ValidateExtensionOptIn(rootConfigPath, rootData, bundlePath, data); err != nil {
+	hasExtensions, err := v.ValidateExtensionUsage(rootConfigPath, rootData, bundlePath, data)
+	if err != nil {
 		return nil, err
 	}
-	return parseBundleDefinition(bundlePath, data)
+	bundle, err := parseBundleDefinition(bundlePath, data)
+	if err != nil {
+		return nil, err
+	}
+	bundle.HasExtensions = hasExtensions
+	return bundle, nil
 }
 
 func validateBundleParents(catalog *BundleCatalog) error {

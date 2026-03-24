@@ -2,14 +2,18 @@ package cli
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
-	"strings"
-
-	"gopkg.in/yaml.v3"
-
-	"github.com/runecode-systems/runecontext/internal/contracts"
 )
+
+type assuranceBackfillRequest struct {
+	root         string
+	explicitRoot bool
+}
+
+type assuranceBackfillContext struct {
+	baselinePath string
+}
 
 type assuranceBackfillResult struct {
 	baselinePath   string
@@ -19,15 +23,111 @@ type assuranceBackfillResult struct {
 	importedAdded  bool
 }
 
+func runAssuranceBackfillWithMachine(args []string, stdout, stderr io.Writer, machine machineOptions) int {
+	if handled, code := maybeHandleAssuranceBackfillHelp(args, stdout, stderr, machine); handled {
+		return code
+	}
+	if machine.dryRun {
+		return runAssuranceBackfillDryRun(args, stdout, stderr, machine)
+	}
+	return runAssuranceBackfillExecute(args, stdout, stderr, machine)
+}
+
+func maybeHandleAssuranceBackfillHelp(args []string, stdout, stderr io.Writer, machine machineOptions) (bool, int) {
+	if len(args) == 0 || !isHelpToken(args[0]) {
+		return false, exitOK
+	}
+	if len(args) != 1 {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+		return true, exitUsage
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "assurance backfill"}, {"usage", assuranceBackfillUsage}}, machine), exitOK, failureClassNone)
+	return true, exitOK
+}
+
+func runAssuranceBackfillDryRun(args []string, stdout, stderr io.Writer, machine machineOptions) int {
+	project, resolvedRoot, code := loadAssuranceBackfillProject(args, stderr, machine)
+	if code != exitOK {
+		return code
+	}
+	defer project.close()
+	plan, err := buildAssuranceBackfillDryRunPlan(resolvedRoot)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("assurance backfill", resolvedRoot, err), machine), exitInvalid, failureClassInvalid)
+		return exitInvalid
+	}
+	output := []line{{"result", "ok"}, {"command", "assurance backfill"}, {"root", resolvedRoot}, {"mode", "imported-git-history"}}
+	output = appendStringItems(output, "plan_action", plan)
+	if machine.explain {
+		output = append(output,
+			line{"explain_scope", "assurance-backfill"},
+			line{"explain_provenance_class", "imported_git_history"},
+			line{"explain_receipts_mutation", "none"},
+		)
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
+	if !machine.jsonOutput {
+		fmt.Fprintln(stderr, "Dry run: would run assurance backfill validation and planned updates")
+		for _, action := range plan {
+			fmt.Fprintf(stderr, "  - %s\n", action)
+		}
+	}
+	return exitOK
+}
+
+func runAssuranceBackfillExecute(args []string, stdout, stderr io.Writer, machine machineOptions) int {
+	project, resolvedRoot, code := loadAssuranceBackfillProject(args, stderr, machine)
+	if code != exitOK {
+		return code
+	}
+	defer project.close()
+	result, err := executeAssuranceBackfill(resolvedRoot)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("assurance backfill", resolvedRoot, err), machine), exitInvalid, failureClassInvalid)
+		return exitInvalid
+	}
+	return emitAssuranceBackfillSuccess(stdout, stderr, machine, resolvedRoot, result)
+}
+
+func loadAssuranceBackfillProject(args []string, stderr io.Writer, machine machineOptions) (*cliProject, string, int) {
+	request, err := parseAssuranceBackfillArgs(args)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, err), machine), exitUsage, failureClassUsage)
+		return nil, "", exitUsage
+	}
+	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "assurance backfill", machine)
+	if code != exitOK {
+		return nil, "", code
+	}
+	resolvedRoot := projectRootForAssurance(project)
+	return project, resolvedRoot, exitOK
+}
+
+func buildAssuranceBackfillDryRunPlan(root string) ([]string, error) {
+	context, baselineMap, adoptionCommit, err := loadBackfillInputs(root)
+	if err != nil {
+		return nil, err
+	}
+	if skip, existing := shouldSkipRebuild(root, baselineMap, adoptionCommit); skip {
+		return []string{
+			fmt.Sprintf("reuse %s", existing),
+			fmt.Sprintf("leave %s unchanged", context.baselinePath),
+		}, nil
+	}
+	if _, err := buildImportedGitHistory(root, adoptionCommit); err != nil {
+		return nil, err
+	}
+	return []string{
+		fmt.Sprintf("write %s", filepath.Join(root, "assurance", "backfill", fmt.Sprintf("imported-git-history-%s.json", adoptionCommit))),
+		fmt.Sprintf("update %s", context.baselinePath),
+	}, nil
+}
+
 func executeAssuranceBackfill(root string) (assuranceBackfillResult, error) {
 	context, baselineMap, adoptionCommit, err := loadBackfillInputs(root)
 	if err != nil {
 		return assuranceBackfillResult{}, err
 	}
-
-	// Avoid rebuilding the history if the baseline already references an
-	// existing artifact and the file is present on disk. This keeps backfill
-	// reruns idempotent and prevents trivial updates to generated_at.
 	if skip, existing := shouldSkipRebuild(root, baselineMap, adoptionCommit); skip {
 		return assuranceBackfillResult{
 			baselinePath:   context.baselinePath,
@@ -37,12 +137,15 @@ func executeAssuranceBackfill(root string) (assuranceBackfillResult, error) {
 			importedAdded:  false,
 		}, nil
 	}
-	// Otherwise build and write the history as before.
-	historyPath, commitCount, err := buildAndWriteImportedHistory(root, adoptionCommit)
+	commits, err := buildImportedGitHistory(root, adoptionCommit)
 	if err != nil {
 		return assuranceBackfillResult{}, err
 	}
-	baselineUpdated, err := appendImportedEvidenceAndWriteBaseline(root, context.baselinePath, baselineMap, historyPath)
+	historyPath, err := writeImportedGitHistory(root, adoptionCommit, commits)
+	if err != nil {
+		return assuranceBackfillResult{}, err
+	}
+	importedAdded, err := appendImportedEvidence(context.baselinePath, baselineMap, root, historyPath)
 	if err != nil {
 		return assuranceBackfillResult{}, err
 	}
@@ -50,197 +153,68 @@ func executeAssuranceBackfill(root string) (assuranceBackfillResult, error) {
 		baselinePath:   context.baselinePath,
 		historyPath:    historyPath,
 		adoptionCommit: adoptionCommit,
-		commitCount:    commitCount,
-		importedAdded:  baselineUpdated,
+		commitCount:    len(commits),
+		importedAdded:  importedAdded,
 	}, nil
 }
 
-func buildAndWriteImportedHistory(root, adoptionCommit string) (string, int, error) {
-	history, err := buildImportedGitHistory(root, adoptionCommit)
-	if err != nil {
-		return "", 0, err
+func emitAssuranceBackfillSuccess(stdout, stderr io.Writer, machine machineOptions, root string, result assuranceBackfillResult) int {
+	output := []line{
+		{"result", "ok"},
+		{"command", "assurance backfill"},
+		{"root", root},
+		{"baseline_path", result.baselinePath},
+		{"history_path", result.historyPath},
+		{"adoption_commit", result.adoptionCommit},
+		{"history_commit_count", fmt.Sprintf("%d", result.commitCount)},
 	}
-	historyPath, err := writeImportedGitHistory(root, adoptionCommit, history)
-	if err != nil {
-		return "", 0, err
+	if result.importedAdded {
+		output = append(output, line{"imported_evidence_added", "true"})
+	} else {
+		output = append(output, line{"imported_evidence_added", "false"})
 	}
-	return historyPath, len(history), nil
-}
-
-func appendImportedEvidenceAndWriteBaseline(root, baselinePath string, baselineMap map[string]any, historyPath string) (bool, error) {
-	relativeHistoryPath, err := backfillRelativePathWithinRoot(root, historyPath)
-	if err != nil {
-		return false, err
+	if machine.explain {
+		output = append(output,
+			line{"explain_scope", "assurance-backfill"},
+			line{"explain_provenance_class", "imported_git_history"},
+			line{"explain_receipts_mutation", "none"},
+		)
 	}
-	baselineUpdated, err := appendImportedEvidenceToBaseline(baselineMap, relativeHistoryPath)
-	if err != nil {
-		return false, err
-	}
-	if !baselineUpdated {
-		return false, nil
-	}
-	updatedBaseline, err := yaml.Marshal(baselineMap)
-	if err != nil {
-		return false, fmt.Errorf("marshal updated baseline: %w", err)
-	}
-	if err := writeAtomicFile(baselinePath, updatedBaseline, 0o644); err != nil {
-		return false, fmt.Errorf("write updated baseline: %w", err)
-	}
-	return true, nil
-}
-
-func loadAssuranceBaseline(path string) (contracts.AssuranceEnvelope, map[string]any, error) {
-	baselineData, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return contracts.AssuranceEnvelope{}, nil, fmt.Errorf("assurance baseline not found: %s", path)
+	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
+	if !machine.jsonOutput {
+		if result.importedAdded || result.commitCount > 0 {
+			fmt.Fprintf(stderr, "Backfilled imported git history at %s and updated %s\n", result.historyPath, result.baselinePath)
+		} else {
+			fmt.Fprintf(stderr, "Backfill is up to date at %s; no baseline changes were needed\n", result.baselinePath)
 		}
-		return contracts.AssuranceEnvelope{}, nil, fmt.Errorf("read assurance baseline: %w", err)
 	}
-	var envelope contracts.AssuranceEnvelope
-	if err := yaml.Unmarshal(baselineData, &envelope); err != nil {
-		return contracts.AssuranceEnvelope{}, nil, fmt.Errorf("parse assurance baseline: %w", err)
-	}
-	var baselineMap map[string]any
-	if err := yaml.Unmarshal(baselineData, &baselineMap); err != nil {
-		return contracts.AssuranceEnvelope{}, nil, fmt.Errorf("parse baseline object: %w", err)
-	}
-	return envelope, baselineMap, nil
+	return exitOK
 }
 
-func baselineAdoptionCommit(envelope contracts.AssuranceEnvelope) (string, error) {
-	value, ok := envelope.Value.(map[string]any)
-	if !ok {
-		return "", fmt.Errorf("assurance baseline value must be an object")
-	}
-	adoptionCommit := readOptionalString(value, "adoption_commit")
-	if adoptionCommit == "" {
-		return "", fmt.Errorf("assurance baseline adoption_commit is required for backfill")
-	}
-	// Require a canonical lowercase 40-char hex SHA to avoid path-traversal
-	// and ambiguity; this matches existing git-source validation elsewhere.
-	if !isCanonicalLowerHex40(adoptionCommit) {
-		return "", fmt.Errorf("assurance baseline adoption_commit must be a canonical lowercase 40-char hex SHA")
-	}
-	return adoptionCommit, nil
-}
-
-func appendImportedEvidenceToBaseline(baseline map[string]any, historyPath string) (bool, error) {
-	valueRaw, ok := baseline["value"]
-	if !ok || valueRaw == nil {
-		valueRaw = map[string]any{}
-	}
-	value, ok := valueRaw.(map[string]any)
-	if !ok {
-		return false, fmt.Errorf("assurance baseline value must be an object")
-	}
-	evidenceRaw, ok := value["imported_evidence"]
-	if !ok || evidenceRaw == nil {
-		evidenceRaw = make([]any, 0)
-	}
-	evidence, ok := evidenceRaw.([]any)
-	if !ok {
-		return false, fmt.Errorf("assurance baseline imported_evidence must be a list")
-	}
-	if importedEvidenceExists(evidence, historyPath) {
-		return false, nil
-	}
-	evidence = append(evidence, map[string]any{
-		"provenance": "imported_git_history",
-		"path":       filepath.ToSlash(historyPath),
+func parseAssuranceBackfillArgs(args []string) (assuranceBackfillRequest, error) {
+	request := assuranceBackfillRequest{root: "."}
+	positionals := make([]string, 0, len(args))
+	err := consumeArgs(args, func(flag parsedFlag) (int, error) {
+		if flag.name != "--path" {
+			return flag.next, fmt.Errorf("unknown assurance backfill flag %q", flag.raw)
+		}
+		return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
+	}, func(arg string) error {
+		positionals = append(positionals, arg)
+		return nil
 	})
-	value["imported_evidence"] = evidence
-	baseline["value"] = value
-	return true, nil
-}
-
-func importedEvidenceExists(evidence []any, historyPath string) bool {
-	for _, raw := range evidence {
-		entry, ok := raw.(map[string]any)
-		if !ok {
-			continue
-		}
-		if readOptionalString(entry, "provenance") != "imported_git_history" {
-			continue
-		}
-		if filepath.ToSlash(readOptionalString(entry, "path")) == filepath.ToSlash(historyPath) {
-			return true
-		}
-	}
-	return false
-}
-
-func isCanonicalLowerHex40(s string) bool {
-	if len(s) != 40 {
-		return false
-	}
-	for _, r := range s {
-		if !(('0' <= r && r <= '9') || ('a' <= r && r <= 'f')) {
-			return false
-		}
-	}
-	return true
-}
-
-// loadBackfillInputs loads and validates the baseline, adoption commit, and
-// assurance context needed for backfill operations.
-func loadBackfillInputs(root string) (*assuranceEnableContext, map[string]any, string, error) {
-	context, err := newAssuranceEnableContext(root, nil)
 	if err != nil {
-		return nil, nil, "", err
+		return assuranceBackfillRequest{}, err
 	}
-	if fmt.Sprint(context.rootCfg["assurance_tier"]) != "verified" {
-		return nil, nil, "", fmt.Errorf("assurance_tier must be verified before running backfill")
+	if len(positionals) > 1 {
+		return assuranceBackfillRequest{}, fmt.Errorf("assurance backfill accepts at most one positional path")
 	}
-	baselineEnvelope, baselineMap, err := loadAssuranceBaseline(context.baselinePath)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	adoptionCommit, err := baselineAdoptionCommit(baselineEnvelope)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	return context, baselineMap, adoptionCommit, nil
-}
-
-func backfillRelativePathWithinRoot(root, targetPath string) (string, error) {
-	if strings.TrimSpace(root) == "" {
-		return "", fmt.Errorf("backfill path resolution requires a repository root")
-	}
-	if strings.TrimSpace(targetPath) == "" {
-		return "", fmt.Errorf("backfill path resolution requires a history path")
-	}
-	rel, err := filepath.Rel(root, targetPath)
-	if err != nil {
-		return "", fmt.Errorf("resolve relative history path: %w", err)
-	}
-	rel = filepath.ToSlash(rel)
-	if rel == "" || rel == "." {
-		return "", fmt.Errorf("resolve relative history path for %q: empty relative output", targetPath)
-	}
-	if strings.HasPrefix(rel, "../") || rel == ".." || filepath.IsAbs(rel) || strings.HasPrefix(rel, "/") {
-		return "", fmt.Errorf("path %q escapes repository root", targetPath)
-	}
-	return rel, nil
-}
-
-// shouldSkipRebuild inspects the baseline map for an imported_evidence entry
-// that references the history file for adoptionCommit and returns (true,
-// path) when the file exists on disk and the rebuild can be safely skipped.
-func shouldSkipRebuild(root string, baselineMap map[string]any, adoptionCommit string) (bool, string) {
-	intendedHistoryPath := filepath.Join(root, "assurance", "backfill", fmt.Sprintf("imported-git-history-%s.json", adoptionCommit))
-	relPath, err := backfillRelativePathWithinRoot(root, intendedHistoryPath)
-	if err != nil {
-		return false, ""
-	}
-	valueRaw, _ := baselineMap["value"]
-	value, _ := valueRaw.(map[string]any)
-	evidenceRaw, _ := value["imported_evidence"]
-	evidence, _ := evidenceRaw.([]any)
-	if importedEvidenceExists(evidence, relPath) {
-		if _, err := os.Stat(intendedHistoryPath); err == nil {
-			return true, intendedHistoryPath
+	if len(positionals) == 1 {
+		if request.explicitRoot {
+			return assuranceBackfillRequest{}, fmt.Errorf("cannot specify both --path and positional path")
 		}
+		request.root = positionals[0]
+		request.explicitRoot = true
 	}
-	return false, ""
+	return request, nil
 }

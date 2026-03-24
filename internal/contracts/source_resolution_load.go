@@ -2,8 +2,10 @@ package contracts
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -49,6 +51,9 @@ func loadValidatedRootConfig(v *Validator, configPath string) ([]byte, map[strin
 	if err != nil {
 		return nil, nil, &ValidationError{Path: configPath, Message: err.Error()}
 	}
+	if err := validateRootSourceShape(configPath, rootData); err != nil {
+		return nil, nil, err
+	}
 	if err := v.ValidateYAMLFile("runecontext.schema.json", configPath, rootData); err != nil {
 		return nil, nil, err
 	}
@@ -63,7 +68,38 @@ func loadValidatedRootConfig(v *Validator, configPath string) ([]byte, map[strin
 	return rootData, rootConfig, nil
 }
 
+func validateRootSourceShape(configPath string, rootData []byte) error {
+	parsed, err := parseYAML(rootData)
+	if err != nil {
+		return &ValidationError{Path: configPath, Message: err.Error()}
+	}
+	rootMap, err := expectObject(configPath, parsed, "root config")
+	if err != nil {
+		return err
+	}
+	sourceMap, ok := rootMap["source"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	if _, hasSignedTag := sourceMap["signed_tag"]; !hasSignedTag {
+		return nil
+	}
+	expectCommit, ok := sourceMap["expect_commit"]
+	if !ok || strings.TrimSpace(fmt.Sprint(expectCommit)) != "" {
+		return nil
+	}
+	return &ValidationError{Path: configPath, Message: "git expect_commit must not be empty"}
+}
+
 func (v *Validator) ValidateLoadedProject(loaded *LoadedProject) (*ProjectIndex, error) {
+	return v.validateLoadedProjectWithGeneratedIndexValidation(loaded, true)
+}
+
+func (v *Validator) ValidateLoadedProjectAllowMalformedGeneratedIndexes(loaded *LoadedProject) (*ProjectIndex, error) {
+	return v.validateLoadedProjectWithGeneratedIndexValidation(loaded, false)
+}
+
+func (v *Validator) validateLoadedProjectWithGeneratedIndexValidation(loaded *LoadedProject, validateGeneratedIndexes bool) (*ProjectIndex, error) {
 	contentRoot, rootConfigPath, rootData, rootConfig, projectRoot, err := validateLoadedProjectInputs(loaded)
 	if err != nil {
 		return nil, err
@@ -78,10 +114,42 @@ func (v *Validator) ValidateLoadedProject(loaded *LoadedProject) (*ProjectIndex,
 	if err := validateResolvedStatusFiles(v, index, rootConfigPath, rootData); err != nil {
 		return nil, err
 	}
+	if validateGeneratedIndexes {
+		if err := validateGeneratedIndexesIfPresent(v, index); err != nil {
+			return nil, err
+		}
+	}
 	if err := validateResolvedProjectReferences(index); err != nil {
 		return nil, err
 	}
 	return index, nil
+}
+
+func validateGeneratedIndexesIfPresent(v *Validator, index *ProjectIndex) error {
+	if v == nil || index == nil {
+		return nil
+	}
+	for _, artifact := range []struct {
+		relativePath string
+		schema       string
+	}{
+		{relativePath: generatedManifestRelativePath, schema: "manifest.schema.json"},
+		{relativePath: generatedChangesIndexRelativePath, schema: "changes-by-status-index.schema.json"},
+		{relativePath: generatedBundlesIndexRelativePath, schema: "bundles-index.schema.json"},
+	} {
+		path := filepath.Join(index.ContentRoot, filepath.FromSlash(artifact.relativePath))
+		data, err := readProjectFile(index.ContentRoot, path)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return err
+		}
+		if err := v.ValidateYAMLFile(artifact.schema, path, data); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func validateLoadedProjectInputs(loaded *LoadedProject) (string, string, []byte, map[string]any, string, error) {
@@ -116,14 +184,25 @@ func buildResolvedProjectIndex(v *Validator, contentRoot, rootConfigPath string,
 
 func validateResolvedStatusFiles(v *Validator, index *ProjectIndex, rootConfigPath string, rootData []byte) error {
 	for path, record := range index.StatusFiles {
-		if err := v.ValidateExtensionOptIn(rootConfigPath, rootData, path, record.Raw); err != nil {
+		hasExtensions, err := v.ValidateExtensionUsage(rootConfigPath, rootData, path, record.Raw)
+		if err != nil {
 			return err
+		}
+		if hasExtensions {
+			appendProjectWarning(index, ValidationDiagnostic{Severity: DiagnosticSeverityWarning, Code: "extensions_present", Message: "extensions are non-authoritative metadata and must not alter RuneContext semantics", Path: path})
 		}
 		if err := validateResolvedStatusFileReferences(path, record, index); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func appendProjectWarning(index *ProjectIndex, warning ValidationDiagnostic) {
+	if index == nil {
+		return
+	}
+	index.Warnings = append(index.Warnings, warning)
 }
 
 func validateResolvedStatusFileReferences(path string, record StatusFileRecord, index *ProjectIndex) error {
@@ -145,6 +224,7 @@ func validateResolvedProjectReferences(index *ProjectIndex) error {
 		validateBundleStandardSelections,
 		validateStandardReferenceBodies,
 		validateChangeLifecycleConsistency,
+		validateChangeDependencyCycles,
 		validateRelatedChangeReciprocity,
 		validateSupersessionConsistency,
 		validateArtifactTraceabilityConsistency,

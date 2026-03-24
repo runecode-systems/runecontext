@@ -34,6 +34,100 @@ func TestRunAssuranceBackfillRequiresVerifiedTier(t *testing.T) {
 	}
 }
 
+func TestRunAssuranceBackfillHelpTokens(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "backfill", "--help"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected help exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "usage=runectx assurance backfill") {
+		t.Fatalf("expected assurance backfill usage output, got %q", stdout.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestRunAssuranceBackfillHelpRejectsExtraArgs(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "backfill", "--help", "extra"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected usage exit code, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "help does not accept additional arguments") {
+		t.Fatalf("expected help extra-arg error, got %q", stderr.String())
+	}
+	if stdout.String() != "" {
+		t.Fatalf("expected empty stdout, got %q", stdout.String())
+	}
+}
+
+func TestRunAssuranceBackfillDryRun(t *testing.T) {
+	repoRoot, commits := createAssuranceBackfillRepo(t)
+	writeBackfillConfigFixture(t, repoRoot, "verified")
+	writeAssuranceBackfillBaselineFixture(t, repoRoot, commits[1])
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "backfill", "--dry-run", "--path", repoRoot}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected dry-run success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got := fields["command"]; got != "assurance backfill" {
+		t.Fatalf("unexpected command %q", got)
+	}
+	if got := fields["mode"]; got != "imported-git-history" {
+		t.Fatalf("unexpected mode %q", got)
+	}
+	if got := fields["plan_action_1"]; got == "" {
+		t.Fatalf("expected first plan action, got %#v", fields)
+	}
+	if got := fields["dry_run"]; got != "true" {
+		t.Fatalf("expected dry_run=true, got %q", got)
+	}
+	if !strings.Contains(stderr.String(), "Dry run: would run assurance backfill validation") {
+		t.Fatalf("expected dry-run stderr message, got %q", stderr.String())
+	}
+	if _, err := os.Stat(filepath.Join(repoRoot, "assurance", "backfill")); !os.IsNotExist(err) {
+		t.Fatalf("expected no backfill artifacts created during dry-run")
+	}
+}
+
+func TestRunAssuranceBackfillDryRunFailsInNonGitRepo(t *testing.T) {
+	root := t.TempDir()
+	writeBackfillConfigFixture(t, root, "verified")
+	writeAssuranceBackfillBaselineFixture(t, root, "1234567890abcdef1234567890abcdef12345678")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "backfill", "--dry-run", "--path", root}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "assurance backfill requires a git repository") {
+		t.Fatalf("expected non-git repository error, got %q", stderr.String())
+	}
+}
+
+func TestRunAssuranceBackfillNonGitRepoError(t *testing.T) {
+	root := t.TempDir()
+	writeBackfillConfigFixture(t, root, "verified")
+	writeAssuranceBackfillBaselineFixture(t, root, "1234567890abcdef1234567890abcdef12345678")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "backfill", "--path", root}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "assurance backfill requires a git repository") {
+		t.Fatalf("expected non-git repository error, got %q", stderr.String())
+	}
+}
+
 func TestRunAssuranceBackfillRejectsNonCanonicalAdoptionCommit(t *testing.T) {
 	repoRoot, _ := createAssuranceBackfillRepo(t)
 	writeBackfillConfigFixture(t, repoRoot, "verified")
@@ -204,6 +298,27 @@ func assertBackfillSecondRunState(t *testing.T, repoRoot string, fields map[stri
 	baselinePath := filepath.Join(repoRoot, "assurance", "baseline.yaml")
 	if len(readImportedEvidence(t, readBaselineMapForBackfill(t, baselinePath))) != 1 {
 		t.Fatalf("expected imported evidence to remain de-duplicated")
+	}
+}
+
+func TestEmitAssuranceBackfillSuccessNoChangesMessage(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	machine := machineOptions{}
+	result := assuranceBackfillResult{
+		baselinePath:   "/tmp/project/assurance/baseline.yaml",
+		historyPath:    "/tmp/project/assurance/backfill/imported-git-history-abc.json",
+		adoptionCommit: "1234567890abcdef1234567890abcdef12345678",
+		commitCount:    0,
+		importedAdded:  false,
+	}
+
+	code := emitAssuranceBackfillSuccess(&stdout, &stderr, machine, "/tmp/project", result)
+	if code != exitOK {
+		t.Fatalf("expected exitOK, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "Backfill is up to date") {
+		t.Fatalf("expected idempotent backfill message, got %q", stderr.String())
 	}
 }
 

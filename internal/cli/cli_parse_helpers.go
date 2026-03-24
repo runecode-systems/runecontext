@@ -119,6 +119,9 @@ func finalizeOptionalPath(root string, explicitRoot bool, positionals []string) 
 	}
 	request := statusRequest{root: root, explicitRoot: explicitRoot}
 	if len(positionals) == 1 {
+		if request.explicitRoot {
+			return statusRequest{}, fmt.Errorf("cannot use both --path and a positional path argument")
+		}
 		request.root = positionals[0]
 		request.explicitRoot = true
 	}

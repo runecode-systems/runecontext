@@ -41,16 +41,19 @@ func buildImportedGitHistory(root string, adoptionCommit string) ([]importedGitH
 }
 
 func gitLogForBackfill(root string) ([]importedGitHistoryCommit, error) {
+	insideRepo, err := isGitWorkTree(root)
+	if err != nil {
+		return nil, fmt.Errorf("check git repository state: %w", err)
+	}
+	if !insideRepo {
+		return nil, fmt.Errorf("assurance backfill requires a git repository at %q", root)
+	}
 	const format = "%H%x1f%ct%x1f%an%x1f%ae%x1f%s"
 	command := exec.Command("git", "-C", root, "log", "--reverse", "--format="+format, "HEAD")
 	// Use CombinedOutput so stderr is captured and propagated in errors.
 	output, err := command.CombinedOutput()
 	if err != nil {
-		trimmed := strings.TrimSpace(string(output))
-		if trimmed == "" {
-			return nil, fmt.Errorf("git history traversal failed: %w", err)
-		}
-		return nil, fmt.Errorf("git history traversal failed: %s: %w", trimmed, err)
+		return nil, formatGitLogTraversalError(output, err)
 	}
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	commits := make([]importedGitHistoryCommit, 0, len(lines))
@@ -75,6 +78,25 @@ func gitLogForBackfill(root string) ([]importedGitHistoryCommit, error) {
 		})
 	}
 	return commits, nil
+}
+
+func isGitWorkTree(root string) (bool, error) {
+	output, err := exec.Command("git", "-C", root, "rev-parse", "--is-inside-work-tree").CombinedOutput()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); ok {
+			return false, nil
+		}
+		return false, err
+	}
+	return strings.TrimSpace(string(output)) == "true", nil
+}
+
+func formatGitLogTraversalError(output []byte, err error) error {
+	trimmed := strings.TrimSpace(string(output))
+	if trimmed == "" {
+		return fmt.Errorf("git history traversal failed: %w", err)
+	}
+	return fmt.Errorf("git history traversal failed: %s: %w", trimmed, err)
 }
 
 func trimHistoryAtAdoptionCommit(commits []importedGitHistoryCommit, adoptionCommit string) ([]importedGitHistoryCommit, bool) {

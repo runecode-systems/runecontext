@@ -18,6 +18,10 @@ func runStatus(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("status", statusUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
+	if request.explicitRoot && isHelpToken(request.root) {
+		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "status"}, {"usage", statusUsage}}, machine), exitOK, failureClassNone)
+		return exitOK
+	}
 	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "status", machine)
 	if code != exitOK {
 		return code

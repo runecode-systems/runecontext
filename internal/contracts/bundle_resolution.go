@@ -92,11 +92,12 @@ type bundleRule struct {
 }
 
 type bundleDefinition struct {
-	ID       string
-	Path     string
-	Extends  []string
-	Includes map[BundleAspect][]bundleRule
-	Excludes map[BundleAspect][]bundleRule
+	ID            string
+	Path          string
+	Extends       []string
+	Includes      map[BundleAspect][]bundleRule
+	Excludes      map[BundleAspect][]bundleRule
+	HasExtensions bool
 }
 
 type BundleCatalog struct {
@@ -179,6 +180,17 @@ func (c *BundleCatalog) buildResolution(id string, ordered []*bundleDefinition) 
 		}
 		resolution.Aspects[aspect] = aspectResolution
 		resolution.Diagnostics = append(resolution.Diagnostics, diagnostics...)
+	}
+	for _, bundle := range ordered {
+		if !bundle.HasExtensions {
+			continue
+		}
+		resolution.Diagnostics = append(resolution.Diagnostics, BundleDiagnostic{
+			Severity: DiagnosticSeverityWarning,
+			Code:     "extensions_present",
+			Message:  "extensions are non-authoritative metadata and must not alter RuneContext semantics",
+			Bundle:   bundle.ID,
+		})
 	}
 	return resolution, nil
 }

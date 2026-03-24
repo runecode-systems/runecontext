@@ -421,6 +421,33 @@ func TestRunStatusRejectsUnknownFlag(t *testing.T) {
 	}
 }
 
+func TestRunStatusAcceptsPathFlag(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"status", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["command"], "status"; got != want {
+		t.Fatalf("expected command %q, got %q", want, got)
+	}
+}
+
+func TestRunStatusRejectsPathConflict(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"status", "--path", projectRoot, projectRoot}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for --path conflict, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "cannot use both --path and a positional path argument") {
+		t.Fatalf("expected --path conflict output, got %q", stderr.String())
+	}
+}
+
 func TestRunStatusRejectsDryRunFlag(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

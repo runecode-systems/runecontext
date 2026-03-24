@@ -33,6 +33,14 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return emitInitUsage(stderr, machine, err)
 	}
+	if len(remaining) > 0 && isHelpToken(remaining[0]) {
+		if len(remaining) != 1 {
+			emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("init", initUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+			return exitUsage
+		}
+		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "init"}, {"usage", initUsage}}, machine), exitOK, failureClassNone)
+		return exitOK
+	}
 	state, err := parseInitState(remaining)
 	if err != nil {
 		return emitInitUsage(stderr, machine, err)

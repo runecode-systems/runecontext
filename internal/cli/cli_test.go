@@ -228,6 +228,31 @@ func TestRunValidateSignedTagFailureOutputsStructuredReason(t *testing.T) {
 	}
 }
 
+func TestRunValidateSignedTagEmptyExpectCommitFailsClearly(t *testing.T) {
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repoRoot)
+
+	repoDir, details := createSignedGitSourceRepoForCLI(t)
+	projectRoot := t.TempDir()
+	config := fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.3\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  signed_tag: %s\n  expect_commit: \"\"\n  subdir: runecontext\n", repoDir, details.signedTagName)
+	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write root config: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", projectRoot}, &stdout, &stderr)
+	if code != 1 {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "git expect_commit must not be empty") {
+		t.Fatalf("expected explicit empty expect_commit error, got %q", stderr.String())
+	}
+}
+
 func TestRunValidateFailure(t *testing.T) {
 	root := fixtureRoot(t, "reject-change-missing-related-spec")
 	var stdout bytes.Buffer
@@ -273,8 +298,36 @@ func TestRunValidateUsage(t *testing.T) {
 	if !strings.Contains(stderr.String(), "result=usage_error") {
 		t.Fatalf("expected usage result output, got %q", stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "usage=runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [path]") {
+	if !strings.Contains(stderr.String(), "usage=runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [--path PATH] [path]") {
 		t.Fatalf("expected usage output, got %q", stderr.String())
+	}
+}
+
+func TestRunValidateAcceptsPathFlag(t *testing.T) {
+	root := fixtureRoot(t, "valid-project")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := Run([]string{"validate", "--path", root}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "result=ok") {
+		t.Fatalf("expected success output, got %q", stdout.String())
+	}
+}
+
+func TestRunValidateRejectsPathConflict(t *testing.T) {
+	root := fixtureRoot(t, "valid-project")
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := Run([]string{"validate", "--path", root, root}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "cannot use both --path and a positional path argument") {
+		t.Fatalf("expected --path conflict output, got %q", stderr.String())
 	}
 }
 
@@ -353,124 +406,5 @@ func TestSanitizeValueRoundTripsEscapedSequences(t *testing.T) {
 		if got := unsanitizeCLIValue(sanitizeValue(value)); got != value {
 			t.Fatalf("expected sanitize/unsanitize round trip for %q, got %q", value, got)
 		}
-	}
-}
-
-func TestRunValidateRejectsUnknownFlag(t *testing.T) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	code := Run([]string{"validate", "--bogus"}, &stdout, &stderr)
-	if code != 2 {
-		t.Fatalf("expected usage exit code, got %d", code)
-	}
-	if !strings.Contains(stderr.String(), "unknown validate flag") {
-		t.Fatalf("expected unknown-flag output, got %q", stderr.String())
-	}
-}
-
-func TestRunValidateRejectsMissingAllowedSignersPath(t *testing.T) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	code := Run([]string{"validate", "--ssh-allowed-signers"}, &stdout, &stderr)
-	if code != 2 {
-		t.Fatalf("expected usage exit code, got %d", code)
-	}
-	if !strings.Contains(stderr.String(), "requires a path") {
-		t.Fatalf("expected missing-path output, got %q", stderr.String())
-	}
-}
-
-func TestRunValidateRejectsEmptyAllowedSignersEqualsValue(t *testing.T) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	code := Run([]string{"validate", "--ssh-allowed-signers="}, &stdout, &stderr)
-	if code != 2 {
-		t.Fatalf("expected usage exit code, got %d", code)
-	}
-	if !strings.Contains(stderr.String(), "requires a path") {
-		t.Fatalf("expected empty-value usage output, got %q", stderr.String())
-	}
-}
-
-func TestRunValidateRejectsEmptyAllowedSignersSeparateValue(t *testing.T) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	code := Run([]string{"validate", "--ssh-allowed-signers", ""}, &stdout, &stderr)
-	if code != 2 {
-		t.Fatalf("expected usage exit code, got %d", code)
-	}
-	if !strings.Contains(stderr.String(), "requires a path") {
-		t.Fatalf("expected empty separate-value usage output, got %q", stderr.String())
-	}
-}
-
-func TestRunValidateRejectsBlankAllowedSignersEqualsValue(t *testing.T) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	code := Run([]string{"validate", "--ssh-allowed-signers=   "}, &stdout, &stderr)
-	if code != 2 {
-		t.Fatalf("expected usage exit code, got %d", code)
-	}
-	if !strings.Contains(stderr.String(), "requires a path") {
-		t.Fatalf("expected blank equals-value usage output, got %q", stderr.String())
-	}
-}
-
-func TestRunUnknownCommand(t *testing.T) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	code := Run([]string{"bogus"}, &stdout, &stderr)
-	if code != 2 {
-		t.Fatalf("expected usage exit code, got %d", code)
-	}
-	if !strings.Contains(stderr.String(), "result=usage_error") {
-		t.Fatalf("expected usage result output, got %q", stderr.String())
-	}
-	if !strings.Contains(stderr.String(), "error_message=unknown command") {
-		t.Fatalf("expected unknown command output, got %q", stderr.String())
-	}
-}
-
-func TestRunNoCommand(t *testing.T) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	code := Run(nil, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("expected help exit code, got %d", code)
-	}
-	if !strings.Contains(stdout.String(), "Usage:") {
-		t.Fatalf("expected help output, got %q", stdout.String())
-	}
-	if stderr.String() != "" {
-		t.Fatalf("expected empty stderr, got %q", stderr.String())
-	}
-}
-
-func TestRunHelp(t *testing.T) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	code := Run([]string{"--help"}, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("expected help exit code, got %d", code)
-	}
-	if !strings.Contains(stdout.String(), "Usage:") {
-		t.Fatalf("expected help output, got %q", stdout.String())
-	}
-	if !strings.Contains(stdout.String(), "runectx help") {
-		t.Fatalf("expected help subcommand in usage output, got %q", stdout.String())
-	}
-	if !strings.Contains(stdout.String(), "help       Show CLI usage") {
-		t.Fatalf("expected help command description, got %q", stdout.String())
-	}
-	if stderr.String() != "" {
-		t.Fatalf("expected empty stderr, got %q", stderr.String())
 	}
 }

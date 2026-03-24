@@ -135,6 +135,9 @@ func collectDiagnostics(index *contracts.ProjectIndex) []emittedDiagnostic {
 	for _, diagnostic := range index.Diagnostics {
 		items = append(items, emittedDiagnostic{Severity: diagnostic.Severity, Code: diagnostic.Code, Message: diagnostic.Message, Path: diagnostic.Path})
 	}
+	for _, warning := range index.Warnings {
+		items = append(items, emittedDiagnostic{Severity: warning.Severity, Code: warning.Code, Message: warning.Message, Path: warning.Path})
+	}
 	if index.Bundles != nil {
 		for _, diagnostic := range index.Bundles.Diagnostics() {
 			items = append(items, emittedDiagnostic{

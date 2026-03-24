@@ -39,6 +39,8 @@ func classifySignedTagFailure(output string) SignedTagFailureReason {
 	switch {
 	case strings.Contains(lower, "no signature found"):
 		return SignedTagFailureUnsignedTag
+	case strings.Contains(lower, "[gnupg:] no_pubkey"):
+		return SignedTagFailureVerificationFailed
 	case strings.Contains(lower, "could not verify signature") || strings.Contains(lower, "couldn't verify signature") || strings.Contains(lower, "bad signature") || strings.Contains(lower, "invalid format"):
 		return SignedTagFailureInvalidSignature
 	case strings.Contains(lower, "no principal matched"):

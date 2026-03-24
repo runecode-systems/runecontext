@@ -27,6 +27,14 @@ func runStandard(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("standard", standardUsage, fmt.Errorf("standard subcommand is required")), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
+	if isHelpToken(remaining[0]) {
+		if len(remaining) != 1 {
+			emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("standard", standardUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+			return exitUsage
+		}
+		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "standard"}, {"usage", standardUsage}}, machine), exitOK, failureClassNone)
+		return exitOK
+	}
 	switch remaining[0] {
 	case "discover":
 		return runStandardDiscover(remaining[1:], machine, stdout, stderr)

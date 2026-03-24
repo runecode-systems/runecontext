@@ -33,21 +33,27 @@ func (v *Validator) ValidateValue(schemaName, path string, value any) error {
 }
 
 func (v *Validator) ValidateExtensionOptIn(rootConfigPath string, rootData []byte, artifactPath string, artifactData []byte) error {
+	_, err := v.ValidateExtensionUsage(rootConfigPath, rootData, artifactPath, artifactData)
+	return err
+}
+
+func (v *Validator) ValidateExtensionUsage(rootConfigPath string, rootData []byte, artifactPath string, artifactData []byte) (bool, error) {
 	rootMap, err := parseRequiredYAMLMap(rootConfigPath, rootData, "root config")
 	if err != nil {
-		return err
+		return false, err
 	}
 	artifactMap, err := parseRequiredYAMLMap(artifactPath, artifactData, "artifact")
 	if err != nil {
-		return err
+		return false, err
 	}
 	if _, hasExtensions := artifactMap["extensions"]; hasExtensions {
 		allow, _ := rootMap["allow_extensions"].(bool)
 		if !allow {
-			return &ValidationError{Path: artifactPath, Message: "extensions require `allow_extensions: true` in runecontext.yaml"}
+			return false, &ValidationError{Path: artifactPath, Message: "extensions require `allow_extensions: true` in runecontext.yaml"}
 		}
+		return true, nil
 	}
-	return nil
+	return false, nil
 }
 
 func parseRequiredYAMLMap(path string, data []byte, context string) (map[string]any, error) {

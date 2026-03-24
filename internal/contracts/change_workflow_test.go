@@ -228,6 +228,19 @@ func TestValidateProjectRejectsNonReciprocalRelatedChanges(t *testing.T) {
 	}
 }
 
+func TestValidateProjectRejectsDependsOnCycle(t *testing.T) {
+	root := copyTraceabilityFixtureProject(t, "valid-project")
+	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")
+	rewriteFile(t, statusPath, func(text string) string {
+		return strings.Replace(text, "depends_on: []", "depends_on:\n  - CHG-2026-002-b4c3-auth-revision", 1)
+	})
+	v := NewValidator(schemaRoot(t))
+	_, err := v.ValidateProject(root)
+	if err == nil || !strings.Contains(err.Error(), "depends_on relationships contain a cycle") {
+		t.Fatalf("expected depends_on cycle failure, got %v", err)
+	}
+}
+
 func TestValidateProjectRejectsSupersessionInconsistency(t *testing.T) {
 	root := copyTraceabilityFixtureProject(t, "valid-project")
 	statusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-001-a3f2-auth-gateway", "status.yaml")

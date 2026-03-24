@@ -23,6 +23,36 @@ func TestRunAssuranceCaptureRequiresVerifiedTier(t *testing.T) {
 	}
 }
 
+func TestRunAssuranceCaptureHelpTokens(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "capture", "--help"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected help exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "usage=runectx assurance capture context-pack") {
+		t.Fatalf("expected assurance capture usage output, got %q", stdout.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestRunAssuranceCaptureHelpRejectsExtraArgs(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"assurance", "capture", "--help", "extra"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected usage exit code, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "help does not accept additional arguments") {
+		t.Fatalf("expected help extra-arg error, got %q", stderr.String())
+	}
+	if stdout.String() != "" {
+		t.Fatalf("expected empty stdout, got %q", stdout.String())
+	}
+}
+
 func TestRunAssuranceCaptureContextPackWritesReceipt(t *testing.T) {
 	projectRoot := prepareCLIWorkflowProject(t)
 	runAssuranceEnableVerified(t, projectRoot)

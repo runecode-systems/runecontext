@@ -11,16 +11,11 @@ import (
 const (
 	assuranceCommandUsage  = "runectx assurance <enable|backfill|capture>"
 	assuranceEnableUsage   = "runectx assurance enable verified [--path PATH] [path]"
-	assuranceBackfillUsage = "runectx assurance backfill [--path PATH] [path]"
+	assuranceBackfillUsage = "runectx assurance backfill [--json] [--non-interactive] [--dry-run] [--explain] [--path PATH] [path]"
 	assuranceCaptureUsage  = "runectx assurance capture context-pack [--json] [--non-interactive] [--dry-run] [--explain] [--path PATH] <bundle-id>..."
 )
 
 type assuranceEnableRequest struct {
-	root         string
-	explicitRoot bool
-}
-
-type assuranceBackfillRequest struct {
 	root         string
 	explicitRoot bool
 }
@@ -30,6 +25,14 @@ func runAssurance(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance", assuranceCommandUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
+	}
+	if len(remaining) > 0 && isHelpToken(remaining[0]) {
+		if len(remaining) != 1 {
+			emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance", assuranceCommandUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+			return exitUsage
+		}
+		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "assurance"}, {"usage", assuranceCommandUsage}}, machine), exitOK, failureClassNone)
+		return exitOK
 	}
 	if len(remaining) == 0 {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance", assuranceCommandUsage, fmt.Errorf("missing subcommand")), machine), exitUsage, failureClassUsage)
@@ -77,68 +80,6 @@ func runAssuranceEnableWithMachine(args []string, stdout, stderr io.Writer, mach
 		return emitAssuranceEnableDryRun(stdout, stderr, machine, resolvedRoot, plans)
 	}
 	return executeAssuranceEnable(stdout, stderr, machine, resolvedRoot, project.loaded)
-}
-
-func runAssuranceBackfill(args []string, stdout, stderr io.Writer) int {
-	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
-	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, err), machine), exitUsage, failureClassUsage)
-		return exitUsage
-	}
-	return runAssuranceBackfillWithMachine(remaining, stdout, stderr, machine)
-}
-
-func runAssuranceBackfillWithMachine(args []string, stdout, stderr io.Writer, machine machineOptions) int {
-	if machine.dryRun {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, fmt.Errorf("--dry-run is not supported for assurance backfill")), machine), exitUsage, failureClassUsage)
-		return exitUsage
-	}
-	request, err := parseAssuranceBackfillArgs(args)
-	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("assurance backfill", assuranceBackfillUsage, err), machine), exitUsage, failureClassUsage)
-		return exitUsage
-	}
-	project, code := loadProjectOrReport(request.root, request.explicitRoot, stderr, "assurance backfill", machine)
-	if code != exitOK {
-		return code
-	}
-	defer project.close()
-	resolvedRoot := projectRootForAssurance(project)
-	result, err := executeAssuranceBackfill(resolvedRoot)
-	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("assurance backfill", resolvedRoot, err), machine), exitInvalid, failureClassInvalid)
-		return exitInvalid
-	}
-	return emitAssuranceBackfillSuccess(stdout, stderr, machine, resolvedRoot, result)
-}
-
-func emitAssuranceBackfillSuccess(stdout, stderr io.Writer, machine machineOptions, root string, result assuranceBackfillResult) int {
-	output := []line{
-		{"result", "ok"},
-		{"command", "assurance backfill"},
-		{"root", root},
-		{"baseline_path", result.baselinePath},
-		{"history_path", result.historyPath},
-		{"adoption_commit", result.adoptionCommit},
-		{"history_commit_count", fmt.Sprintf("%d", result.commitCount)},
-	}
-	if result.importedAdded {
-		output = append(output, line{"imported_evidence_added", "true"})
-	} else {
-		output = append(output, line{"imported_evidence_added", "false"})
-	}
-	if machine.explain {
-		output = append(output,
-			line{"explain_scope", "assurance-backfill"},
-			line{"explain_provenance_class", "imported_git_history"},
-			line{"explain_receipts_mutation", "none"},
-		)
-	}
-	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
-	if !machine.jsonOutput {
-		fmt.Fprintf(stderr, "Backfilled imported git history at %s and updated %s\n", result.historyPath, result.baselinePath)
-	}
-	return exitOK
 }
 
 func projectRootForAssurance(project *cliProject) string {
@@ -231,33 +172,5 @@ func applyAssuranceEnablePositionals(request assuranceEnableRequest, positionals
 	}
 	request.root = positionals[1]
 	request.explicitRoot = true
-	return request, nil
-}
-
-func parseAssuranceBackfillArgs(args []string) (assuranceBackfillRequest, error) {
-	request := assuranceBackfillRequest{root: "."}
-	positionals := make([]string, 0, len(args))
-	err := consumeArgs(args, func(flag parsedFlag) (int, error) {
-		if flag.name != "--path" {
-			return flag.next, fmt.Errorf("unknown assurance backfill flag %q", flag.raw)
-		}
-		return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
-	}, func(arg string) error {
-		positionals = append(positionals, arg)
-		return nil
-	})
-	if err != nil {
-		return assuranceBackfillRequest{}, err
-	}
-	if len(positionals) > 1 {
-		return assuranceBackfillRequest{}, fmt.Errorf("assurance backfill accepts at most one positional path")
-	}
-	if len(positionals) == 1 {
-		if request.explicitRoot {
-			return assuranceBackfillRequest{}, fmt.Errorf("cannot specify both --path and positional path")
-		}
-		request.root = positionals[0]
-		request.explicitRoot = true
-	}
 	return request, nil
 }

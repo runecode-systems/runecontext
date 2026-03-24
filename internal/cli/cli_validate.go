@@ -23,6 +23,14 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
+	if len(remaining) > 0 && isHelpToken(remaining[0]) {
+		if len(remaining) != 1 {
+			emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+			return exitUsage
+		}
+		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "validate"}, {"usage", validateUsage}}, machine), exitOK, failureClassNone)
+		return exitOK
+	}
 	request, err := parseValidateArgs(remaining)
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, err), machine), exitUsage, failureClassUsage)
@@ -52,19 +60,23 @@ func parseValidateArgs(args []string) (validateRequest, error) {
 	request := validateRequest{root: "."}
 	positionals := make([]string, 0, 1)
 	err := consumeArgs(args, func(flag parsedFlag) (int, error) {
-		if flag.name != "--ssh-allowed-signers" {
+		switch flag.name {
+		case "--ssh-allowed-signers":
+			value, next, err := requireAllowedSignersPath(args, flag)
+			if err != nil {
+				return flag.next, err
+			}
+			verifier, err := loadSignedTagVerifier(value)
+			if err != nil {
+				return flag.next, err
+			}
+			request.gitTrust.SignedTagVerifier = verifier
+			return next, nil
+		case "--path":
+			return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
+		default:
 			return flag.next, fmt.Errorf("unknown validate flag %q", flag.raw)
 		}
-		value, next, err := requireAllowedSignersPath(args, flag)
-		if err != nil {
-			return flag.next, err
-		}
-		verifier, err := loadSignedTagVerifier(value)
-		if err != nil {
-			return flag.next, err
-		}
-		request.gitTrust.SignedTagVerifier = verifier
-		return next, nil
 	}, func(arg string) error {
 		positionals = append(positionals, arg)
 		return nil
@@ -88,6 +100,9 @@ func finalizeValidateRequest(request validateRequest, positionals []string) (val
 		return validateRequest{}, fmt.Errorf("expected at most one path argument")
 	}
 	if len(positionals) == 1 {
+		if request.explicitRoot {
+			return validateRequest{}, fmt.Errorf("cannot use both --path and a positional path argument")
+		}
 		request.root = positionals[0]
 		request.explicitRoot = true
 	}

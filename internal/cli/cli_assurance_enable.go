@@ -198,6 +198,18 @@ func syntheticAdoptionCommit(source map[string]any) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func isCanonicalLowerHex40(value string) bool {
+	if len(value) != 40 {
+		return false
+	}
+	for _, r := range value {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
 func readOptionalString(values map[string]any, key string) string {
 	raw, ok := values[key]
 	if !ok || raw == nil {

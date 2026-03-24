@@ -51,6 +51,7 @@ type ProjectIndex struct {
 	Resolution            *SourceResolution
 	Bundles               *BundleCatalog
 	Diagnostics           []ValidationDiagnostic
+	Warnings              []ValidationDiagnostic
 	AssuranceBaseline     *AssuranceEnvelope
 	AssuranceBaselinePath string
 	AssuranceBaselineMap  map[string]any
