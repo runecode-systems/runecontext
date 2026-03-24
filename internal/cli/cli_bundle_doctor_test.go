@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/runecode-systems/runecontext/internal/contracts"
 )
 
 func TestRunBundleUsageMissingSubcommand(t *testing.T) {
@@ -124,5 +127,31 @@ func TestRunDoctorPathConflict(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "cannot use both --path and a positional path argument") {
 		t.Fatalf("expected --path conflict error, got %q", stderr.String())
+	}
+}
+
+func TestBuildBundleResolveContextPackReportUsesCurrentTime(t *testing.T) {
+	v := contracts.NewValidator(schemaRoot(t))
+	index, err := v.ValidateProject(repoFixtureRoot(t, "bundle-resolution", "valid-project"))
+	if err != nil {
+		t.Fatalf("validate fixture project: %v", err)
+	}
+	defer index.Close()
+
+	before := time.Now().UTC().Add(-1 * time.Second)
+	report, err := buildBundleResolveContextPackReport(index, []string{"child-reinclude"}, false)
+	if err != nil {
+		t.Fatalf("build context-pack report: %v", err)
+	}
+	after := time.Now().UTC().Add(1 * time.Second)
+	if report == nil || report.Pack == nil {
+		t.Fatalf("expected report pack, got %#v", report)
+	}
+	generatedAt, err := time.Parse(time.RFC3339, report.Pack.GeneratedAt)
+	if err != nil {
+		t.Fatalf("parse generated_at: %v", err)
+	}
+	if generatedAt.Before(before) || generatedAt.After(after) {
+		t.Fatalf("expected generated_at to be near now, got %s", generatedAt.Format(time.RFC3339))
 	}
 }

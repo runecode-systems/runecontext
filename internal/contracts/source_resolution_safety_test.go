@@ -221,6 +221,42 @@ func TestSSHAllowedSignersVerifierSurfacesGitTimeoutsAsStructuredFailures(t *tes
 	}
 }
 
+func TestSSHAllowedSignersVerifierClassifiesNonGitRepoAsVerificationFailed(t *testing.T) {
+	verifier, err := NewSSHAllowedSignersVerifier([]byte("alice@example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE5XQmFkRHVtbXlLZXlNYXRlcmlhbEZvclRlc3Rz\n"))
+	if err != nil {
+		t.Fatalf("create verifier: %v", err)
+	}
+
+	_, err = verifier.VerifySignedTag(t.TempDir(), "v1.0.0")
+	var verificationErr *SignedTagVerificationError
+	if !errors.As(err, &verificationErr) {
+		t.Fatalf("expected signed-tag verification error, got %v", err)
+	}
+	if verificationErr.Reason != SignedTagFailureVerificationFailed {
+		t.Fatalf("expected verification_failed reason, got %q", verificationErr.Reason)
+	}
+}
+
+func TestSSHAllowedSignersVerifierClassifiesMissingTagAsVerificationFailed(t *testing.T) {
+	verifier, err := NewSSHAllowedSignersVerifier([]byte("alice@example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE5XQmFkRHVtbXlLZXlNYXRlcmlhbEZvclRlc3Rz\n"))
+	if err != nil {
+		t.Fatalf("create verifier: %v", err)
+	}
+	repoDir, _ := createGitSourceRepo(t)
+
+	_, err = verifier.VerifySignedTag(repoDir, "missing-tag")
+	var verificationErr *SignedTagVerificationError
+	if !errors.As(err, &verificationErr) {
+		t.Fatalf("expected signed-tag verification error, got %v", err)
+	}
+	if verificationErr.Reason != SignedTagFailureVerificationFailed {
+		t.Fatalf("expected verification_failed reason, got %q", verificationErr.Reason)
+	}
+	if strings.Contains(strings.ToLower(verificationErr.Message), "unsigned") {
+		t.Fatalf("expected missing tag to avoid unsigned classification, got %q", verificationErr.Message)
+	}
+}
+
 func TestParseTrustedSSHVerifyTagOutputAcceptsIdentityContainingWith(t *testing.T) {
 	identity, fingerprint, err := parseTrustedSSHVerifyTagOutput(`Good "git" signature for Team with Ops <ops@example.com> with ED25519 key SHA256:abc123`)
 	if err != nil {

@@ -20,6 +20,36 @@ func TestRunGenerateUsageMissingSubcommand(t *testing.T) {
 	}
 }
 
+func TestRunGenerateHelpTokens(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"generate", "--help"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected help exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "usage=runectx generate") {
+		t.Fatalf("expected generate usage output, got %q", stdout.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestRunGenerateHelpRejectsExtraArgs(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"generate", "--help", "extra"}, &stdout, &stderr)
+	if code != exitUsage {
+		t.Fatalf("expected usage exit code, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "help does not accept additional arguments") {
+		t.Fatalf("expected help extra-arg error, got %q", stderr.String())
+	}
+	if stdout.String() != "" {
+		t.Fatalf("expected empty stdout, got %q", stdout.String())
+	}
+}
+
 func TestRunGenerateIndexesWritesArtifacts(t *testing.T) {
 	projectRoot := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "traceability", "valid-project"), projectRoot)

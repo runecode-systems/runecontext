@@ -25,6 +25,14 @@ func runGenerate(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("generate", generateUsage, fmt.Errorf("generate subcommand is required")), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
+	if isHelpToken(remaining[0]) {
+		if len(remaining) != 1 {
+			emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("generate", generateUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+			return exitUsage
+		}
+		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "generate"}, {"usage", generateUsage}}, machine), exitOK, failureClassNone)
+		return exitOK
+	}
 	switch remaining[0] {
 	case "indexes":
 		return runGenerateIndexes(remaining[1:], machine, stdout, stderr)

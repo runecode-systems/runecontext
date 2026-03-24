@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,5 +59,37 @@ func TestGeneratedRelativeArtifactPathReturnsSlashCanonicalRelativePaths(t *test
 	want := "changes/CHG-2026-125-a1b2-canonical/status.yaml"
 	if rel != want {
 		t.Fatalf("expected %s, got %s", want, rel)
+	}
+}
+
+func TestValidateLoadedProjectRejectsGeneratedIndexEscapeViaSymlink(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	projectRoot := t.TempDir()
+	copyDirForTest(t, fixturePath(t, "traceability", "valid-project"), projectRoot)
+	contentRoot := filepath.Join(projectRoot, "runecontext")
+	outsideDir := t.TempDir()
+	outsideManifest := filepath.Join(outsideDir, "manifest.yaml")
+	if err := os.WriteFile(outsideManifest, []byte("schema_version: 1\nentries: []\n"), 0o644); err != nil {
+		t.Fatalf("write outside manifest: %v", err)
+	}
+	if err := os.Symlink(outsideManifest, filepath.Join(contentRoot, "manifest.yaml")); err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			t.Skipf("symlink creation not permitted: %v", err)
+		}
+		t.Fatalf("create manifest symlink: %v", err)
+	}
+
+	loaded, err := v.LoadProject(projectRoot, ResolveOptions{ConfigDiscovery: ConfigDiscoveryExplicitRoot, ExecutionMode: ExecutionModeLocal})
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	defer loaded.Close()
+
+	_, err = v.ValidateLoadedProject(loaded)
+	if err == nil {
+		t.Fatal("expected generated index escape validation error")
+	}
+	if !strings.Contains(err.Error(), "escapes the selected project subtree") {
+		t.Fatalf("expected subtree escape error, got %v", err)
 	}
 }

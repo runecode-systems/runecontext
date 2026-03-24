@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -137,12 +138,12 @@ func validateGeneratedIndexesIfPresent(v *Validator, index *ProjectIndex) error 
 		{relativePath: generatedBundlesIndexRelativePath, schema: "bundles-index.schema.json"},
 	} {
 		path := filepath.Join(index.ContentRoot, filepath.FromSlash(artifact.relativePath))
-		data, err := os.ReadFile(path)
+		data, err := readProjectFile(index.ContentRoot, path)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}
-			return &ValidationError{Path: path, Message: err.Error()}
+			return err
 		}
 		if err := v.ValidateYAMLFile(artifact.schema, path, data); err != nil {
 			return err

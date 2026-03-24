@@ -93,7 +93,7 @@ func buildBundleResolveContextPackReport(index *contracts.ProjectIndex, bundleID
 	return index.BuildContextPackReport(contracts.ContextPackReportOptions{
 		ContextPackOptions: contracts.ContextPackOptions{
 			BundleIDs:   append([]string(nil), bundleIDs...),
-			GeneratedAt: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+			GeneratedAt: time.Now().UTC().Truncate(time.Second),
 		},
 		Explain: explain,
 	})
