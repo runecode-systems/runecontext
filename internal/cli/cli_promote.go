@@ -13,6 +13,9 @@ func runPromote(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("promote", promoteUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
+	if handled, code := maybeHandlePromoteHelp(remaining, machine, stdout, stderr); handled {
+		return code
+	}
 	request, err := parsePromoteArgs(remaining)
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("promote", promoteUsage, err), machine), exitUsage, failureClassUsage)
@@ -41,6 +44,18 @@ func runPromote(args []string, stdout, stderr io.Writer) int {
 	}
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
+}
+
+func maybeHandlePromoteHelp(remaining []string, machine machineOptions, stdout, stderr io.Writer) (bool, int) {
+	if len(remaining) == 0 || !isHelpToken(remaining[0]) {
+		return false, exitOK
+	}
+	if len(remaining) != 1 {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("promote", promoteUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+		return true, exitUsage
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "promote"}, {"usage", promoteUsage}}, machine), exitOK, failureClassNone)
+	return true, exitOK
 }
 
 func buildPromoteOutput(absRoot string, loaded *contracts.LoadedProject, result *contracts.ChangeOperationResult) []line {

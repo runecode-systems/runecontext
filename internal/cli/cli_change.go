@@ -17,6 +17,14 @@ func runChange(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change", changeUsage, fmt.Errorf("change subcommand is required")), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
+	if isHelpToken(remaining[0]) {
+		if len(remaining) != 1 {
+			emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change", changeUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+			return exitUsage
+		}
+		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "change"}, {"usage", changeUsage}}, machine), exitOK, failureClassNone)
+		return exitOK
+	}
 
 	switch remaining[0] {
 	case "new":

@@ -12,8 +12,8 @@ const (
 )
 
 const (
-	validateUsage         = "runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [path]"
-	statusUsage           = "runectx status [--json] [--non-interactive] [--explain] [path]"
+	validateUsage         = "runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [--path PATH] [path]"
+	statusUsage           = "runectx status [--json] [--non-interactive] [--explain] [--path PATH] [path]"
 	changeUsage           = "runectx change [--json] [--non-interactive] [--dry-run] [--explain] <new|shape|close|reallocate> ..."
 	generateUsage         = "runectx generate [--json] [--non-interactive] [--explain] <indexes>"
 	generateIndexesUsage  = "runectx generate indexes [--json] [--non-interactive] [--explain] [--path PATH] [path]"
@@ -98,4 +98,13 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+promoteUsage)
 	fmt.Fprintln(w, "  "+standardDiscoverUsage)
 	fmt.Fprintln(w, "  "+assuranceUsage)
+}
+
+func isHelpToken(arg string) bool {
+	switch arg {
+	case "help", "--help", "-h":
+		return true
+	default:
+		return false
+	}
 }
