@@ -43,6 +43,7 @@ type CompletionPositionalSuggestionMetadata struct {
 	CommandPath        string
 	Position           int
 	SuggestionProvider string
+	Variadic           bool
 }
 
 // CompletionMetadataRegistry returns completion metadata derived from the command registry.
@@ -99,6 +100,7 @@ func (builder *completionMetadataBuilder) appendPositionalEnums(path string, pos
 				CommandPath:        path,
 				Position:           position,
 				SuggestionProvider: positional.Value.SuggestionProvider,
+				Variadic:           positional.Variadic,
 			})
 		}
 		if positional.Value.Kind != ValueKindEnum {

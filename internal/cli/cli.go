@@ -29,7 +29,7 @@ const (
 	standardUsage          = "runectx standard [--json] [--non-interactive] [--explain] <discover>"
 	standardDiscoverUsage  = "runectx standard discover [--json] [--non-interactive] [--explain] [--path PATH] [--change CHANGE_ID] [--confirm-handoff] [--target TYPE:PATH]"
 	assuranceUsage         = "runectx assurance [--json] [--non-interactive] [--dry-run] [--explain] <enable|backfill|capture> ..."
-	completionUsage        = "runectx completion <bash|zsh|fish|suggest ...>"
+	completionUsage        = "runectx completion <bash|zsh|fish>"
 	completionSuggestUsage = "runectx completion suggest [--path PATH] [--prefix PREFIX] <change-ids|bundle-ids|promotion-targets|adapter-names>"
 )
 

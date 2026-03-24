@@ -50,10 +50,10 @@ func writeFishHeader(out *strings.Builder) {
 	out.WriteString("  set -l prefix (commandline -ct)\n")
 	out.WriteString("  set -l root (__runectx_root_path)\n")
 	out.WriteString("  if test -n \"$root\"\n")
-	out.WriteString("    command (commandline -poc)[1] completion suggest --path $root --prefix $prefix $provider 2>/dev/null\n")
+	out.WriteString("    command (commandline -poc)[1] completion suggest --path \"${root}\" --prefix \"${prefix}\" $provider 2>/dev/null\n")
 	out.WriteString("    return\n")
 	out.WriteString("  end\n")
-	out.WriteString("  command (commandline -poc)[1] completion suggest --prefix $prefix $provider 2>/dev/null\n")
+	out.WriteString("  command (commandline -poc)[1] completion suggest --prefix \"${prefix}\" $provider 2>/dev/null\n")
 	out.WriteString("end\n\n")
 }
 

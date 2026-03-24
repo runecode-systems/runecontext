@@ -31,10 +31,10 @@ function __runectx_dynamic_suggest
   set -l prefix (commandline -ct)
   set -l root (__runectx_root_path)
   if test -n "$root"
-    command (commandline -poc)[1] completion suggest --path $root --prefix $prefix $provider 2>/dev/null
+    command (commandline -poc)[1] completion suggest --path "${root}" --prefix "${prefix}" $provider 2>/dev/null
     return
   end
-  command (commandline -poc)[1] completion suggest --prefix $prefix $provider 2>/dev/null
+  command (commandline -poc)[1] completion suggest --prefix "${prefix}" $provider 2>/dev/null
 end
 
 complete -c runectx -f -n '__fish_use_subcommand' -a 'assurance'

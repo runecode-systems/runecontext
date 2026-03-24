@@ -169,6 +169,22 @@ _runectx_suggest_provider_for_positional() {
   esac
 }
 
+_runectx_variadic_suggest_provider_for_command() {
+  case "$1" in
+    'assurance capture') echo 'bundle-ids' ;;
+    'bundle resolve') echo 'bundle-ids' ;;
+    *) echo '' ;;
+  esac
+}
+
+_runectx_variadic_suggest_start_for_command() {
+  case "$1" in
+    'assurance capture') echo '2' ;;
+    'bundle resolve') echo '1' ;;
+    *) echo '' ;;
+  esac
+}
+
 _runectx_dynamic_suggest() {
   local provider prefix root cli
   provider="$1"
@@ -186,7 +202,7 @@ _runectx_dynamic_suggest() {
 }
 
 _runectx_complete() {
-  local cur prev cmd token token_flag token_inline prev_flag prev_has_inline cur_flag cur_value candidate idx positional subcommands flags enums provider root_path
+  local cur prev cmd token token_flag token_inline prev_flag prev_has_inline cur_flag cur_value candidate idx positional subcommands flags enums provider root_path variadic_start
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev=""
   if (( COMP_CWORD > 0 )); then
@@ -287,7 +303,12 @@ _runectx_complete() {
 
   subcommands=$(_runectx_subcommands_for "$cmd")
   if [[ -n "$subcommands" && $positional -eq 0 ]]; then
-    COMPREPLY=( $(compgen -W "$subcommands" -- "$cur") )
+    candidate="$subcommands"
+    enums=$(_runectx_positional_enum "$cmd|1")
+    if [[ -n "$enums" ]]; then
+      candidate="$candidate $enums"
+    fi
+    COMPREPLY=( $(compgen -W "$candidate" -- "$cur") )
     return
   fi
 
@@ -298,6 +319,15 @@ _runectx_complete() {
   fi
 
   provider=$(_runectx_suggest_provider_for_positional "$cmd|$((positional+1))")
+  if [[ -z "$provider" ]]; then
+    provider=$(_runectx_variadic_suggest_provider_for_command "$cmd")
+    if [[ -n "$provider" ]]; then
+      variadic_start=$(_runectx_variadic_suggest_start_for_command "$cmd")
+      if [[ -z "$variadic_start" || $((positional+1)) -lt "$variadic_start" ]]; then
+        provider=""
+      fi
+    fi
+  fi
   if [[ -n "$provider" ]]; then
     COMPREPLY=( $(_runectx_dynamic_suggest "$provider" "$cur" "$root_path") )
     return

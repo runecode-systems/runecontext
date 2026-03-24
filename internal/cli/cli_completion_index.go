@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+type variadicPositionalSuggestion struct {
+	StartPosition int
+	Provider      string
+}
+
 type completionIndex struct {
 	binary            string
 	allPaths          []string
@@ -17,6 +22,7 @@ type completionIndex struct {
 	suggestionFlags   map[string]string
 	positionalEnums   map[string][]CompletionPositionalEnumMetadata
 	positionalSuggest map[string]string
+	variadicSuggest   map[string]variadicPositionalSuggestion
 }
 
 func buildCompletionIndex(registry MetadataRegistry) completionIndex {
@@ -39,6 +45,7 @@ func newCompletionIndex(binary string) completionIndex {
 		suggestionFlags:   map[string]string{},
 		positionalEnums:   map[string][]CompletionPositionalEnumMetadata{},
 		positionalSuggest: map[string]string{},
+		variadicSuggest:   map[string]variadicPositionalSuggestion{},
 	}
 }
 
@@ -77,6 +84,12 @@ func collectCompletionPositionalEnums(index *completionIndex, metadata Completio
 	for _, positional := range metadata.PositionalSuggestions {
 		key := positional.CommandPath + "|" + strconv.Itoa(positional.Position)
 		index.positionalSuggest[key] = positional.SuggestionProvider
+		if positional.Variadic {
+			index.variadicSuggest[positional.CommandPath] = variadicPositionalSuggestion{
+				StartPosition: positional.Position,
+				Provider:      positional.SuggestionProvider,
+			}
+		}
 	}
 }
 
