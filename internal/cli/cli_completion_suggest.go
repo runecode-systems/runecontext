@@ -137,13 +137,16 @@ func rawCompletionSuggestions(request completionSuggestRequest) ([]string, error
 
 func loadSuggestionProjectIndex(request completionSuggestRequest) (*contracts.ProjectIndex, bool, error) {
 	project, code := loadProjectOrReport(request.root, request.explicitRoot, io.Discard, "completion suggest", machineOptions{})
-	if code != exitOK || project == nil {
+	if project == nil {
+		if code != exitOK && request.explicitRoot {
+			return nil, false, fmt.Errorf("failed to load project at %q", request.root)
+		}
 		return nil, false, nil
 	}
 	defer project.close()
 	index, err := project.validator.ValidateLoadedProject(project.loaded)
 	if err != nil {
-		return nil, false, nil
+		return nil, false, err
 	}
 	return index, true, nil
 }

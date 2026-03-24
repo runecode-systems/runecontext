@@ -51,6 +51,34 @@ func TestRunCompletionSuggestSoftFailsOutsideRuneContextProject(t *testing.T) {
 	}
 }
 
+func TestRunCompletionSuggestExplicitPathErrors(t *testing.T) {
+	t.Run("explicit path missing project config", func(t *testing.T) {
+		root := t.TempDir()
+		assertCompletionSuggestInvalid(t, []string{"completion", "suggest", "--path", root, suggestionProviderChangeIDs}, "failed to load project")
+	})
+
+	t.Run("explicit path malformed project surfaces validation", func(t *testing.T) {
+		root := repoFixtureRoot(t, "traceability", "reject-bundle-invalid")
+		assertCompletionSuggestInvalid(t, []string{"completion", "suggest", "--path", root, suggestionProviderBundleIDs}, "bundle")
+	})
+}
+
+func assertCompletionSuggestInvalid(t *testing.T, args []string, wantSubstring string) {
+	t.Helper()
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run(args, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "result=invalid") {
+		t.Fatalf("expected invalid result output, got %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), wantSubstring) {
+		t.Fatalf("expected error output containing %q, got %q", wantSubstring, stderr.String())
+	}
+}
+
 func TestRunCompletionSuggestAdapterNames(t *testing.T) {
 	root, err := repoRootForTests()
 	if err != nil {

@@ -1,6 +1,10 @@
 package cli
 
-import "strings"
+import (
+	"sort"
+	"strconv"
+	"strings"
+)
 
 func buildFishCompletionScript(index completionIndex) string {
 	var out strings.Builder
@@ -55,6 +59,37 @@ func writeFishHeader(out *strings.Builder) {
 	out.WriteString("  end\n")
 	out.WriteString("  command (commandline -poc)[1] completion suggest --prefix \"${prefix}\" $provider 2>/dev/null\n")
 	out.WriteString("end\n\n")
+}
+
+func writeFishFlagValueFunction(out *strings.Builder, index completionIndex) {
+	flags := map[string]struct{}{}
+	for key, kind := range index.flagKinds {
+		if kind == ValueKindNone {
+			continue
+		}
+		_, flag, ok := strings.Cut(key, "|")
+		if !ok || flag == "" {
+			continue
+		}
+		flags[flag] = struct{}{}
+	}
+	names := make([]string, 0, len(flags))
+	for flag := range flags {
+		names = append(names, flag)
+	}
+	sort.Strings(names)
+	out.WriteString("function __runectx_flag_name_takes_value\n")
+	out.WriteString("  switch $argv[1]\n")
+	for _, name := range names {
+		out.WriteString("  case ")
+		out.WriteString(name)
+		out.WriteString("\n")
+		out.WriteString("    return 0\n")
+	}
+	out.WriteString("  end\n")
+	out.WriteString("  return 1\n")
+	out.WriteString("end\n\n")
+	out.WriteString(fishPositionalRuntimeHelpers)
 }
 
 func writeFishSubcommands(out *strings.Builder, index completionIndex) {
@@ -133,6 +168,7 @@ func writeFishDynamicFlagCompletion(out *strings.Builder, binary, condition, pat
 }
 
 func writeFishPositionalEnums(out *strings.Builder, index completionIndex) {
+	writeFishFlagValueFunction(out, index)
 	writeFishPositionalEnumEntries(out, index)
 	writeFishDynamicPositionalEntries(out, index)
 }
@@ -160,19 +196,47 @@ func writeFishPositionalEnumEntries(out *strings.Builder, index completionIndex)
 }
 
 func writeFishDynamicPositionalEntries(out *strings.Builder, index completionIndex) {
+	writeFishDynamicPositionalEntriesByPosition(out, index)
+	writeFishDynamicVariadicPositionalEntries(out, index)
+}
+
+func writeFishDynamicPositionalEntriesByPosition(out *strings.Builder, index completionIndex) {
 	for _, key := range sortedMapKeys(index.positionalSuggest) {
 		provider := index.positionalSuggest[key]
 		path, position, ok := parsePositionalSuggestionKey(key)
-		if !ok || position != 1 || provider == "" {
+		if !ok || provider == "" {
+			continue
+		}
+		if _, hasVariadic := index.variadicSuggest[path]; hasVariadic {
 			continue
 		}
 		condition := fishConditionForPath(path)
+		if position > 1 {
+			condition += "; and __runectx_positional_index_at_least " + strconv.Itoa(position) + " " + path
+		}
 		out.WriteString("complete -c ")
 		out.WriteString(fishToken(index.binary))
 		out.WriteString(" -f -n ")
 		out.WriteString(fishSingleQuote(condition))
 		out.WriteString(" -a ")
 		out.WriteString(fishSingleQuote("(__runectx_dynamic_suggest " + provider + ")"))
+		out.WriteString("\n")
+	}
+}
+
+func writeFishDynamicVariadicPositionalEntries(out *strings.Builder, index completionIndex) {
+	for _, path := range sortedMapKeys(index.variadicSuggest) {
+		v := index.variadicSuggest[path]
+		if v.Provider == "" {
+			continue
+		}
+		condition := fishConditionForPath(path) + "; and __runectx_positional_index_at_least " + strconv.Itoa(v.StartPosition) + " " + path
+		out.WriteString("complete -c ")
+		out.WriteString(fishToken(index.binary))
+		out.WriteString(" -f -n ")
+		out.WriteString(fishSingleQuote(condition))
+		out.WriteString(" -a ")
+		out.WriteString(fishSingleQuote("(__runectx_dynamic_suggest " + v.Provider + ")"))
 		out.WriteString("\n")
 	}
 }
