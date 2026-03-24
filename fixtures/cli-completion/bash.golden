@@ -1,0 +1,207 @@
+# RuneContext completion for bash
+_runectx_has_command() {
+  case "$1" in
+    'assurance') return 0 ;;
+    'assurance backfill') return 0 ;;
+    'assurance capture') return 0 ;;
+    'assurance enable') return 0 ;;
+    'bundle') return 0 ;;
+    'bundle resolve') return 0 ;;
+    'change') return 0 ;;
+    'change close') return 0 ;;
+    'change new') return 0 ;;
+    'change reallocate') return 0 ;;
+    'change shape') return 0 ;;
+    'completion') return 0 ;;
+    'doctor') return 0 ;;
+    'generate') return 0 ;;
+    'generate indexes') return 0 ;;
+    'help') return 0 ;;
+    'init') return 0 ;;
+    'promote') return 0 ;;
+    'standard') return 0 ;;
+    'standard discover') return 0 ;;
+    'status') return 0 ;;
+    'validate') return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+_runectx_subcommands_for() {
+  case "$1" in
+    '') echo 'assurance bundle change completion doctor generate help init promote standard status validate' ;;
+    'assurance') echo 'backfill capture enable' ;;
+    'assurance backfill') echo '' ;;
+    'assurance capture') echo '' ;;
+    'assurance enable') echo '' ;;
+    'bundle') echo 'resolve' ;;
+    'bundle resolve') echo '' ;;
+    'change') echo 'close new reallocate shape' ;;
+    'change close') echo '' ;;
+    'change new') echo '' ;;
+    'change reallocate') echo '' ;;
+    'change shape') echo '' ;;
+    'completion') echo '' ;;
+    'doctor') echo '' ;;
+    'generate') echo 'indexes' ;;
+    'generate indexes') echo '' ;;
+    'help') echo '' ;;
+    'init') echo '' ;;
+    'promote') echo '' ;;
+    'standard') echo 'discover' ;;
+    'standard discover') echo '' ;;
+    'status') echo '' ;;
+    'validate') echo '' ;;
+    *) echo '' ;;
+  esac
+}
+
+_runectx_flags_for() {
+  case "$1" in
+    'assurance') echo '--dry-run --explain --json --non-interactive' ;;
+    'assurance backfill') echo '--dry-run --explain --json --non-interactive --path' ;;
+    'assurance capture') echo '--dry-run --explain --json --non-interactive --path' ;;
+    'assurance enable') echo '--dry-run --explain --json --non-interactive --path' ;;
+    'bundle') echo '--explain --json --non-interactive' ;;
+    'bundle resolve') echo '--explain --json --non-interactive --path' ;;
+    'change') echo '--dry-run --explain --json --non-interactive' ;;
+    'change close') echo '--closed-at --dry-run --explain --json --non-interactive --path --superseded-by --verification-status' ;;
+    'change new') echo '--bundle --description --dry-run --explain --json --non-interactive --path --shape --size --title --type' ;;
+    'change reallocate') echo '--dry-run --explain --json --non-interactive --path' ;;
+    'change shape') echo '--design --dry-run --explain --json --non-interactive --path --reference --task --verification' ;;
+    'doctor') echo '--explain --json --non-interactive --path' ;;
+    'generate') echo '--explain --json --non-interactive' ;;
+    'generate indexes') echo '--explain --json --non-interactive --path' ;;
+    'init') echo '--dry-run --explain --json --mode --non-interactive --path --seed-bundle' ;;
+    'promote') echo '--accept --complete --dry-run --explain --json --non-interactive --path --target' ;;
+    'standard') echo '--explain --json --non-interactive' ;;
+    'standard discover') echo '--change --confirm-handoff --explain --json --non-interactive --path --target' ;;
+    'status') echo '--explain --json --non-interactive --path' ;;
+    'validate') echo '--explain --json --non-interactive --path --ssh-allowed-signers' ;;
+    *) echo '' ;;
+  esac
+}
+
+_runectx_flag_takes_value() {
+  case "$1|$2" in
+    'assurance backfill|--path') return 0 ;;
+    'assurance capture|--path') return 0 ;;
+    'assurance enable|--path') return 0 ;;
+    'bundle resolve|--path') return 0 ;;
+    'change close|--closed-at') return 0 ;;
+    'change close|--path') return 0 ;;
+    'change close|--superseded-by') return 0 ;;
+    'change close|--verification-status') return 0 ;;
+    'change new|--bundle') return 0 ;;
+    'change new|--description') return 0 ;;
+    'change new|--path') return 0 ;;
+    'change new|--shape') return 0 ;;
+    'change new|--size') return 0 ;;
+    'change new|--title') return 0 ;;
+    'change new|--type') return 0 ;;
+    'change reallocate|--path') return 0 ;;
+    'change shape|--design') return 0 ;;
+    'change shape|--path') return 0 ;;
+    'change shape|--reference') return 0 ;;
+    'change shape|--task') return 0 ;;
+    'change shape|--verification') return 0 ;;
+    'doctor|--path') return 0 ;;
+    'generate indexes|--path') return 0 ;;
+    'init|--mode') return 0 ;;
+    'init|--path') return 0 ;;
+    'init|--seed-bundle') return 0 ;;
+    'promote|--path') return 0 ;;
+    'promote|--target') return 0 ;;
+    'standard discover|--change') return 0 ;;
+    'standard discover|--path') return 0 ;;
+    'standard discover|--target') return 0 ;;
+    'status|--path') return 0 ;;
+    'validate|--path') return 0 ;;
+    'validate|--ssh-allowed-signers') return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+_runectx_enum_for_flag() {
+  case "$1" in
+    'change close|--verification-status') echo 'failed passed pending skipped' ;;
+    'change new|--shape') echo 'full minimum' ;;
+    'change new|--size') echo 'large medium small' ;;
+    'change new|--type') echo 'bug chore feature project standard' ;;
+    'init|--mode') echo 'embedded linked' ;;
+    *) echo '' ;;
+  esac
+}
+
+_runectx_positional_enum() {
+  case "$1" in
+    'assurance capture|1') echo 'context-pack' ;;
+    'assurance enable|1') echo 'verified' ;;
+    'completion|1') echo 'bash fish zsh' ;;
+    *) echo '' ;;
+  esac
+}
+
+_runectx_complete() {
+  local cur prev cmd token candidate idx positional subcommands flags enums
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev=""
+  if (( COMP_CWORD > 0 )); then
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+  fi
+  cmd=""
+  positional=0
+  idx=1
+  while (( idx < COMP_CWORD )); do
+    token="${COMP_WORDS[idx]}"
+    if [[ "$token" == --* ]]; then
+      if _runectx_flag_takes_value "$cmd" "$token"; then
+        idx=$((idx+2))
+      else
+        idx=$((idx+1))
+      fi
+      continue
+    fi
+    candidate="$token"
+    if [[ -n "$cmd" ]]; then candidate="$cmd $token"; fi
+    if _runectx_has_command "$candidate"; then
+      cmd="$candidate"
+      positional=0
+      idx=$((idx+1))
+      continue
+    fi
+    positional=$((positional+1))
+    idx=$((idx+1))
+  done
+
+  if [[ "$prev" == --* ]]; then
+    enums=$(_runectx_enum_for_flag "$cmd|$prev")
+    if [[ -n "$enums" ]]; then
+      COMPREPLY=( $(compgen -W "$enums" -- "$cur") )
+      return
+    fi
+  fi
+
+  if [[ "$cur" == --* ]]; then
+    flags=$(_runectx_flags_for "$cmd")
+    COMPREPLY=( $(compgen -W "$flags" -- "$cur") )
+    return
+  fi
+
+  subcommands=$(_runectx_subcommands_for "$cmd")
+  if [[ -n "$subcommands" && $positional -eq 0 ]]; then
+    COMPREPLY=( $(compgen -W "$subcommands" -- "$cur") )
+    return
+  fi
+
+  enums=$(_runectx_positional_enum "$cmd|$((positional+1))")
+  if [[ -n "$enums" ]]; then
+    COMPREPLY=( $(compgen -W "$enums" -- "$cur") )
+    return
+  fi
+
+  flags=$(_runectx_flags_for "$cmd")
+  COMPREPLY=( $(compgen -W "$flags" -- "$cur") )
+}
+
+complete -F _runectx_complete runectx

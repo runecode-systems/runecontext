@@ -6,7 +6,7 @@ RuneContext is a portable, markdown-first, git-native system for project knowled
 
 ## Status
 
-RuneContext is still pre-MVP and not production-ready. The current repository now includes the alpha.1 contract foundation, the alpha.2 source-resolution and bundle-engine slice, the alpha.3 change-workflow slice, the alpha.4 context-pack slice, and the alpha.5 broadened CLI slice: frozen core contracts, versioned schemas, fixtures, Go validation code, embedded/git/path source resolution, monorepo discovery, signed-tag verification with explicit trusted-signer input, deterministic bundle semantics, standards linkage, traceability, stable change IDs, deterministic context-pack generation and hashing, generated indexes/manifests, reviewable promotion assessment, local-first `init` scaffolding, `bundle resolve`, `doctor`, explicit `promote`, advisory `standard discover`, and shared machine-facing CLI contracts with `--json`, `--non-interactive`, `--dry-run`, and `--explain`. Verified assurance flows, adapters, completion/sync surfaces, and release/install/update hardening remain in progress toward `v0.1.0`.
+RuneContext is still pre-MVP and not production-ready. The current repository now includes the alpha.1 contract foundation, the alpha.2 source-resolution and bundle-engine slice, the alpha.3 change-workflow slice, the alpha.4 context-pack slice, and the alpha.5 broadened CLI slice: frozen core contracts, versioned schemas, fixtures, Go validation code, embedded/git/path source resolution, monorepo discovery, signed-tag verification with explicit trusted-signer input, deterministic bundle semantics, standards linkage, traceability, stable change IDs, deterministic context-pack generation and hashing, generated indexes/manifests, reviewable promotion assessment, local-first `init` scaffolding, `bundle resolve`, `doctor`, explicit `promote`, advisory `standard discover`, shell completion scripts, and shared machine-facing CLI contracts with `--json`, `--non-interactive`, `--dry-run`, and `--explain`. Verified assurance flows, adapters, adapter sync/thin-pack surfaces, and release/install/update hardening remain in progress toward `v0.1.0`.
 
 ## Why RuneContext
 
@@ -36,7 +36,7 @@ RuneContext is still pre-MVP and not production-ready. The current repository no
 - Deterministic context bundle loading and evaluation with inheritance linearization, cycle/depth rejection, ordered include/exclude precedence, concrete per-rule match inventories, and fail-closed path/symlink containment.
 - Deterministic context-pack building and reporting with explicit whole-second `generated_at`, stable `pack_hash` output, normalized LF/CRLF hashing, persisted provenance, explanation output, advisory thresholds, and fail-closed rebuild checks.
 - Stable generated `manifest.yaml`, `indexes/changes-by-status.yaml`, and `indexes/bundles.yaml` artifacts plus reviewable close-time promotion assessment suggestions and explicit promotion transitions.
-- CLI support for `runectx init`, `runectx validate`, `runectx status`, `runectx change new`, `runectx change shape`, `runectx change close`, `runectx change reallocate`, `runectx bundle resolve`, `runectx doctor`, `runectx promote`, and `runectx standard discover`.
+- CLI support for `runectx init`, `runectx validate`, `runectx status`, `runectx change new`, `runectx change shape`, `runectx change close`, `runectx change reallocate`, `runectx bundle resolve`, `runectx doctor`, `runectx promote`, `runectx standard discover`, and `runectx completion <bash|zsh|fish>`.
 - Shared machine-facing CLI behavior across commands with stable `key=value` output by default plus `--json`, `--non-interactive`, `--dry-run` for write flows, and incremental `--explain` support.
 - Nix, `just`, and GitHub Actions scaffolding for repeatable development, checks, and release work.
 
@@ -44,7 +44,7 @@ Still incremental / not implemented end-to-end yet:
 
 - Verified assurance flows, baselines, receipts, and backfill.
 - Assurance enablement/backfill commands and the broader alpha.6 assurance surface.
-- Shell completion, adapter sync, thin adapter packs, and the later alpha adapter-management and automation surface.
+- Adapter sync, thin adapter packs, and the later alpha adapter-management and automation surface.
 - Release/install/update hardening and network-enabled init/update flows.
 
 ## What The MVP Includes
@@ -148,6 +148,9 @@ Current CLI scope:
 - `runectx standard discover [--path PATH] [--change CHANGE_ID] [--confirm-handoff] [--target TYPE:PATH]`
   - emits advisory standards candidates and reusable promotion-target data without mutating project state
   - supports `--json`, `--non-interactive`, and `--explain`
+- `runectx completion <bash|zsh|fish>`
+  - emits shell completion scripts derived from the canonical typed command metadata registry
+  - includes command/subcommand/flag completions plus stable enum value completions
 - The CLI emits stable line-oriented `key=value` output by default and supports one shared machine-facing `--json` envelope and failure taxonomy across commands.
 - For invalid command results, `root` identifies the selected project root and `error_path` is emitted when a specific failing artifact path is available.
 
@@ -201,6 +204,7 @@ If you copied or vendored RuneContext files into another repository from a relea
 - `docs/source-quality.md` - source-quality policy and protected review surfaces.
 - `docs/install-verify.md` - install and verification guidance.
 - `docs/release-process.md` - maintainer release workflow.
+- `runecontext/operations/README.md` - canonical operations reference, metadata registry, and completion derivation docs.
 
 ## Contributing
 

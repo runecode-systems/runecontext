@@ -29,6 +29,7 @@ const (
 	standardUsage         = "runectx standard [--json] [--non-interactive] [--explain] <discover>"
 	standardDiscoverUsage = "runectx standard discover [--json] [--non-interactive] [--explain] [--path PATH] [--change CHANGE_ID] [--confirm-handoff] [--target TYPE:PATH]"
 	assuranceUsage        = "runectx assurance [--json] [--non-interactive] [--dry-run] [--explain] <enable|backfill|capture> ..."
+	completionUsage       = "runectx completion <bash|zsh|fish>"
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -58,6 +59,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return runStandard(args[1:], stdout, stderr)
 	case "assurance":
 		return runAssurance(args[1:], stdout, stderr)
+	case "completion":
+		return runCompletion(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		printUsage(stdout)
 		return exitOK
@@ -82,6 +85,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  promote    Explicitly advance promotion assessment state (summary auto-filled for --target entries)")
 	fmt.Fprintln(w, "  standard   Discover advisory standards candidates for promotion handoff")
 	fmt.Fprintln(w, "  assurance  Enable, backfill, or capture Verified assurance artifacts")
+	fmt.Fprintln(w, "  completion Emit shell completion scripts")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  runectx help")
@@ -98,6 +102,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+promoteUsage)
 	fmt.Fprintln(w, "  "+standardDiscoverUsage)
 	fmt.Fprintln(w, "  "+assuranceUsage)
+	fmt.Fprintln(w, "  "+completionUsage)
 }
 
 func isHelpToken(arg string) bool {
