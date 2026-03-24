@@ -49,12 +49,15 @@ func buildCommandUsageErrorLines(command, usage string, err error) []line {
 }
 
 func buildCommandInvalidLines(command, root string, err error) []line {
-	return []line{
+	lines := []line{
 		{"result", "invalid"},
 		{"command", command},
-		{"root", root},
-		{"error_message", err.Error()},
 	}
+	if root != "" {
+		lines = append(lines, line{"root", root})
+	}
+	lines = append(lines, line{"error_message", err.Error()})
+	return lines
 }
 
 func sanitizeValue(value string) string {

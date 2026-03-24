@@ -1,0 +1,147 @@
+# RuneContext completion for fish
+function __runectx_prev_token_is
+  set -l tokens (commandline -opc)
+  if test (count $tokens) -lt 2
+    return 1
+  end
+  test $tokens[-1] = $argv[1]
+end
+
+complete -c runectx -f -n '__fish_use_subcommand' -a 'assurance'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'bundle'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'change'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'completion'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'doctor'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'generate'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'help'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'init'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'promote'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'standard'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'status'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'validate'
+complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'backfill'
+complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'capture'
+complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'enable'
+complete -c runectx -f -n '__fish_seen_subcommand_from bundle' -a 'resolve'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'close'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'new'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'reallocate'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'shape'
+complete -c runectx -f -n '__fish_seen_subcommand_from generate' -a 'indexes'
+complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'discover'
+complete -c runectx -n '__fish_seen_subcommand_from assurance' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from assurance' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from assurance' -l json
+complete -c runectx -n '__fish_seen_subcommand_from assurance' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from assurance backfill' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from assurance backfill' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from assurance backfill' -l json
+complete -c runectx -n '__fish_seen_subcommand_from assurance backfill' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from assurance backfill' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from assurance capture' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from assurance capture' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from assurance capture' -l json
+complete -c runectx -n '__fish_seen_subcommand_from assurance capture' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from assurance capture' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from assurance enable' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from assurance enable' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from assurance enable' -l json
+complete -c runectx -n '__fish_seen_subcommand_from assurance enable' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from assurance enable' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from bundle' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from bundle' -l json
+complete -c runectx -n '__fish_seen_subcommand_from bundle' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from bundle resolve' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from bundle resolve' -l json
+complete -c runectx -n '__fish_seen_subcommand_from bundle resolve' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from bundle resolve' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from change' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l closed-at -r
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l superseded-by -r
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l verification-status -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --verification-status' -a 'failed passed pending skipped'
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l bundle -r
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l description -r
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l shape -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change new); and __runectx_prev_token_is --shape' -a 'full minimum'
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l size -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change new); and __runectx_prev_token_is --size' -a 'large medium small'
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l title -r
+complete -c runectx -n '__fish_seen_subcommand_from change new' -l type -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change new); and __runectx_prev_token_is --type' -a 'bug chore feature project standard'
+complete -c runectx -n '__fish_seen_subcommand_from change reallocate' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from change reallocate' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change reallocate' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change reallocate' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change reallocate' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l design -r
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l reference -r
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l task -r
+complete -c runectx -n '__fish_seen_subcommand_from change shape' -l verification -r
+complete -c runectx -n '__fish_seen_subcommand_from doctor' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from doctor' -l json
+complete -c runectx -n '__fish_seen_subcommand_from doctor' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from doctor' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from generate' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from generate' -l json
+complete -c runectx -n '__fish_seen_subcommand_from generate' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from generate indexes' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from generate indexes' -l json
+complete -c runectx -n '__fish_seen_subcommand_from generate indexes' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from generate indexes' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from init' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from init' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from init' -l json
+complete -c runectx -n '__fish_seen_subcommand_from init' -l mode -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from init); and __runectx_prev_token_is --mode' -a 'embedded linked'
+complete -c runectx -n '__fish_seen_subcommand_from init' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from init' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from init' -l seed-bundle -r
+complete -c runectx -n '__fish_seen_subcommand_from promote' -l accept
+complete -c runectx -n '__fish_seen_subcommand_from promote' -l complete
+complete -c runectx -n '__fish_seen_subcommand_from promote' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from promote' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from promote' -l json
+complete -c runectx -n '__fish_seen_subcommand_from promote' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from promote' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from promote' -l target -r
+complete -c runectx -n '__fish_seen_subcommand_from standard' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from standard' -l json
+complete -c runectx -n '__fish_seen_subcommand_from standard' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l change -r
+complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l confirm-handoff
+complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l json
+complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l target -r
+complete -c runectx -n '__fish_seen_subcommand_from status' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from status' -l json
+complete -c runectx -n '__fish_seen_subcommand_from status' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from status' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from validate' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from validate' -l json
+complete -c runectx -n '__fish_seen_subcommand_from validate' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from validate' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from validate' -l ssh-allowed-signers -r
+complete -c runectx -f -n '__fish_seen_subcommand_from assurance capture' -a 'context-pack'
+complete -c runectx -f -n '__fish_seen_subcommand_from assurance enable' -a 'verified'
+complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'bash fish zsh'
