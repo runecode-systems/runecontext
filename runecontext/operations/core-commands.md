@@ -13,6 +13,7 @@ RuneContext exposes a stable CLI operation surface through `runectx`:
 - `promote`
 - `standard discover`
 - `assurance enable|backfill|capture`
+- `adapter sync <tool>`
 - `completion <bash|zsh|fish>`
 - `completion suggest <change-ids|bundle-ids|promotion-targets|adapter-names>`
 
@@ -27,6 +28,9 @@ RuneContext exposes a stable CLI operation surface through `runectx`:
   registry.
 - `completion suggest`: read-only, repo-aware dynamic suggestions for command
   values.
+- `adapter sync`: local-only materialization of tool adapter files into a
+  namespaced managed subtree (`.runecontext/adapters/<tool>/managed`) plus a
+  convenience sync manifest (`.runecontext/adapters/<tool>/sync-manifest.yaml`).
 
 ## Adapter Mapping Rule
 

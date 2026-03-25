@@ -74,6 +74,7 @@ func rootCommandsMetadata() []CommandMetadata {
 		{Name: "promote", Path: "promote", Usage: promoteUsage, Flags: writeCommandFlags(promoteFlags()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueSpec()}}},
 		standardCommandMetadata(),
 		assuranceCommandMetadata(),
+		adapterCommandMetadata(),
 		completionCommandMetadata(),
 	}
 }

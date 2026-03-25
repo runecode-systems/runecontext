@@ -37,6 +37,7 @@ function __runectx_dynamic_suggest
   command (commandline -poc)[1] completion suggest --prefix "${prefix}" $provider 2>/dev/null
 end
 
+complete -c runectx -f -n '__fish_use_subcommand' -a 'adapter'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'assurance'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'bundle'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'change'
@@ -49,6 +50,7 @@ complete -c runectx -f -n '__fish_use_subcommand' -a 'promote'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'standard'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'status'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'validate'
+complete -c runectx -f -n '__fish_seen_subcommand_from adapter' -a 'sync'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'backfill'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'capture'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'enable'
@@ -60,6 +62,15 @@ complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'shape'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'suggest'
 complete -c runectx -f -n '__fish_seen_subcommand_from generate' -a 'indexes'
 complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'discover'
+complete -c runectx -n '__fish_seen_subcommand_from adapter' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from adapter' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from adapter' -l json
+complete -c runectx -n '__fish_seen_subcommand_from adapter' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from adapter sync' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from adapter sync' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from adapter sync' -l json
+complete -c runectx -n '__fish_seen_subcommand_from adapter sync' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from adapter sync' -l path -r
 complete -c runectx -n '__fish_seen_subcommand_from assurance' -l dry-run
 complete -c runectx -n '__fish_seen_subcommand_from assurance' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from assurance' -l json
@@ -289,6 +300,7 @@ complete -c runectx -f -n '__fish_seen_subcommand_from assurance capture' -a 'co
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance enable' -a 'verified'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'bash fish zsh'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion suggest' -a 'adapter-names bundle-ids change-ids promotion-targets'
+complete -c runectx -f -n '__fish_seen_subcommand_from adapter sync' -a '(__runectx_dynamic_suggest adapter-names)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change close' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change reallocate' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change shape' -a '(__runectx_dynamic_suggest change-ids)'

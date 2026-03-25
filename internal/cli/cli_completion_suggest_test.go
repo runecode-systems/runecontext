@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -61,6 +62,20 @@ func TestRunCompletionSuggestExplicitPathErrors(t *testing.T) {
 		root := repoFixtureRoot(t, "traceability", "reject-bundle-invalid")
 		assertCompletionSuggestInvalid(t, []string{"completion", "suggest", "--path", root, suggestionProviderBundleIDs}, "bundle")
 	})
+}
+
+func TestHandleAdapterSuggestionReadErrorIncludesContextForExplicitRoot(t *testing.T) {
+	request := completionSuggestRequest{root: "/tmp/project", explicitRoot: true}
+	_, err := handleAdapterSuggestionReadError(request, os.ErrNotExist)
+	if err == nil {
+		t.Fatal("expected explicit-root read failure")
+	}
+	if !strings.Contains(err.Error(), "failed to load adapter packs for \"/tmp/project\"") {
+		t.Fatalf("expected contextual adapter-pack read error, got %q", err.Error())
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected wrapped not-exist cause, got %v", err)
+	}
 }
 
 func assertCompletionSuggestInvalid(t *testing.T, args []string, wantSubstring string) {

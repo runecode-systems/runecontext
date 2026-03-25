@@ -1,6 +1,8 @@
 # RuneContext completion for bash
 _runectx_has_command() {
   case "$1" in
+    'adapter') return 0 ;;
+    'adapter sync') return 0 ;;
     'assurance') return 0 ;;
     'assurance backfill') return 0 ;;
     'assurance capture') return 0 ;;
@@ -30,7 +32,9 @@ _runectx_has_command() {
 
 _runectx_subcommands_for() {
   case "$1" in
-    '') echo 'assurance bundle change completion doctor generate help init promote standard status validate' ;;
+    '') echo 'adapter assurance bundle change completion doctor generate help init promote standard status validate' ;;
+    'adapter') echo 'sync' ;;
+    'adapter sync') echo '' ;;
     'assurance') echo 'backfill capture enable' ;;
     'assurance backfill') echo '' ;;
     'assurance capture') echo '' ;;
@@ -60,6 +64,8 @@ _runectx_subcommands_for() {
 
 _runectx_flags_for() {
   case "$1" in
+    'adapter') echo '--dry-run --explain --json --non-interactive' ;;
+    'adapter sync') echo '--dry-run --explain --json --non-interactive --path' ;;
     'assurance') echo '--dry-run --explain --json --non-interactive' ;;
     'assurance backfill') echo '--dry-run --explain --json --non-interactive --path' ;;
     'assurance capture') echo '--dry-run --explain --json --non-interactive --path' ;;
@@ -87,6 +93,7 @@ _runectx_flags_for() {
 
 _runectx_flag_takes_value() {
   case "$1|$2" in
+    'adapter sync|--path') return 0 ;;
     'assurance backfill|--path') return 0 ;;
     'assurance capture|--path') return 0 ;;
     'assurance enable|--path') return 0 ;;
@@ -160,6 +167,7 @@ _runectx_positional_enum() {
 
 _runectx_suggest_provider_for_positional() {
   case "$1" in
+    'adapter sync|1') echo 'adapter-names' ;;
     'assurance capture|2') echo 'bundle-ids' ;;
     'bundle resolve|1') echo 'bundle-ids' ;;
     'change close|1') echo 'change-ids' ;;

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -108,7 +107,7 @@ func collectCompletionSuggestions(request completionSuggestRequest) ([]string, e
 func rawCompletionSuggestions(request completionSuggestRequest) ([]string, error) {
 	switch request.provider {
 	case suggestionProviderAdapterNames:
-		return adapterNameSuggestions()
+		return adapterNameSuggestions(request)
 	case suggestionProviderChangeIDs:
 		index, ok, err := loadSuggestionProjectIndex(request)
 		if err != nil || !ok {
@@ -164,18 +163,14 @@ func filterSuggestionPrefix(items []string, prefix string) []string {
 	return filtered
 }
 
-func adapterNameSuggestions() ([]string, error) {
-	repoRoot, err := repoRootForCompletion()
+func adapterNameSuggestions(request completionSuggestRequest) ([]string, error) {
+	adaptersRoot, err := locateAdaptersRoot()
 	if err != nil {
-		return nil, nil
+		return handleAdapterSuggestionRootError(request, err)
 	}
-	adaptersRoot := filepath.Join(repoRoot, "adapters")
 	entries, err := os.ReadDir(adaptersRoot)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
+		return handleAdapterSuggestionReadError(request, err)
 	}
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
@@ -188,21 +183,24 @@ func adapterNameSuggestions() ([]string, error) {
 	return names, nil
 }
 
-func repoRootForCompletion() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
+func handleAdapterSuggestionRootError(request completionSuggestRequest, err error) ([]string, error) {
+	if request.explicitRoot {
+		return nil, err
 	}
-	for {
-		if _, err := os.Stat(filepath.Join(wd, "go.mod")); err == nil {
-			return wd, nil
-		}
-		next := filepath.Dir(wd)
-		if next == wd {
-			return "", os.ErrNotExist
-		}
-		wd = next
+	if os.IsNotExist(err) {
+		return nil, nil
 	}
+	return nil, nil
+}
+
+func handleAdapterSuggestionReadError(request completionSuggestRequest, err error) ([]string, error) {
+	if !os.IsNotExist(err) {
+		return nil, err
+	}
+	if request.explicitRoot {
+		return nil, fmt.Errorf("failed to load adapter packs for %q: %w", request.root, err)
+	}
+	return nil, nil
 }
 
 func promotionTargetSuggestions(index *contracts.ProjectIndex) []string {
