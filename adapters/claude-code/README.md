@@ -27,3 +27,13 @@ See `capabilities.yaml` and `flows/conversational-parity.md`.
   - `flows/change-shape.md`
   - `flows/standard-discover.md`
   - `flows/promote.md`
+
+## Host-Native Sync Artifacts
+
+Claude Code sync writes additive host-native artifacts:
+
+- Canonical flow assets: `.claude/skills/runecontext-*.md`
+- Optional discoverability shim: `.claude/commands/runecontext.md`
+
+All generated host-native artifacts include `runecontext-managed-artifact:
+host-native-v1` so ownership is explicit for future uninstall and upgrade flows.

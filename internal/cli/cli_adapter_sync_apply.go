@@ -16,24 +16,36 @@ func applyAdapterSync(state adapterSyncState) error {
 	if err != nil {
 		return err
 	}
+	return applyAdapterSyncMutations(state, plannedWrites, writeManifest)
+}
+
+func applyAdapterSyncMutations(state adapterSyncState, plannedWrites map[string]struct{}, writeManifest bool) error {
 	if err := os.MkdirAll(state.managedRoot, 0o755); err != nil {
 		return err
 	}
 	if err := copyManagedFiles(state.sourceRoot, state.managedRoot, state.managedFiles, plannedWrites); err != nil {
 		return err
 	}
+	if err := applyHostNativeArtifactWrites(state.absRoot, state.hostNativeFiles, plannedWrites); err != nil {
+		return err
+	}
+	if err := applyHostNativeArtifactDeletes(state.absRoot, state.plan); err != nil {
+		return err
+	}
 	if err := removeStaleManagedFiles(state.managedRoot, state.managedFiles); err != nil {
 		return err
 	}
-	if writeManifest {
-		if err := os.MkdirAll(filepath.Dir(state.manifestPath), 0o755); err != nil {
-			return err
-		}
-		if err := writeAtomicFile(state.manifestPath, state.manifest, 0o644); err != nil {
-			return err
-		}
+	return writeAdapterManifestIfNeeded(state, writeManifest)
+}
+
+func writeAdapterManifestIfNeeded(state adapterSyncState, writeManifest bool) error {
+	if !writeManifest {
+		return nil
 	}
-	return nil
+	if err := os.MkdirAll(filepath.Dir(state.manifestPath), 0o755); err != nil {
+		return err
+	}
+	return writeAtomicFile(state.manifestPath, state.manifest, 0o644)
 }
 
 func plannedAdapterWrites(state adapterSyncState) (map[string]struct{}, bool, error) {
@@ -60,7 +72,9 @@ func plannedAdapterWrites(state adapterSyncState) (map[string]struct{}, bool, er
 		if strings.HasPrefix(mutation.Path, managedPrefix) {
 			rel := strings.TrimPrefix(mutation.Path, managedPrefix)
 			plannedWrites[filepath.ToSlash(rel)] = struct{}{}
+			continue
 		}
+		plannedWrites[mutation.Path] = struct{}{}
 	}
 	return plannedWrites, writeManifest, nil
 }
@@ -98,7 +112,14 @@ func copyManagedFile(sourceRoot, managedRoot, rel string) error {
 }
 
 func ensureAdapterSyncPathsSafe(state adapterSyncState) error {
-	return ensurePathsSafe(state.absRoot, state.managedRoot, filepath.Dir(state.manifestPath))
+	paths := []string{state.managedRoot, filepath.Dir(state.manifestPath)}
+	for _, artifact := range state.hostNativeFiles {
+		paths = append(paths, filepath.Join(state.absRoot, filepath.FromSlash(artifact.relPath)))
+	}
+	for _, mutation := range state.plan {
+		paths = append(paths, filepath.Join(state.absRoot, filepath.FromSlash(mutation.Path)))
+	}
+	return ensurePathsSafe(state.absRoot, paths...)
 }
 
 func ensurePathsSafe(root string, paths ...string) error {

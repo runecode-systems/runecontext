@@ -6,20 +6,20 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/runecode-systems/runecontext/internal/contracts"
 )
 
 type adapterSyncState struct {
-	absRoot      string
-	tool         string
-	sourceRoot   string
-	managedRoot  string
-	manifestPath string
-	manifest     []byte
-	managedFiles []string
-	plan         []contracts.FileMutation
+	absRoot         string
+	tool            string
+	sourceRoot      string
+	managedRoot     string
+	manifestPath    string
+	manifest        []byte
+	managedFiles    []string
+	hostNativeFiles []hostNativeArtifact
+	plan            []contracts.FileMutation
 }
 
 func buildAdapterSyncState(request adapterRequest) (adapterSyncState, error) {
@@ -41,20 +41,25 @@ func buildAdapterSyncState(request adapterRequest) (adapterSyncState, error) {
 	if err != nil {
 		return adapterSyncState{}, err
 	}
-	manifest := buildAdapterManifest(request.tool, managedFiles)
-	plan, err := buildAdapterSyncPlan(absRoot, sourceRoot, managedRoot, manifestPath, managedFiles, manifest)
+	hostNativeFiles, err := buildHostNativeArtifacts(request.tool)
+	if err != nil {
+		return adapterSyncState{}, err
+	}
+	manifest := buildAdapterManifest(request.tool, managedFiles, hostNativeFiles)
+	plan, err := buildAdapterSyncPlan(absRoot, sourceRoot, managedRoot, manifestPath, managedFiles, hostNativeFiles, manifest)
 	if err != nil {
 		return adapterSyncState{}, err
 	}
 	return adapterSyncState{
-		absRoot:      absRoot,
-		tool:         request.tool,
-		sourceRoot:   sourceRoot,
-		managedRoot:  managedRoot,
-		manifestPath: manifestPath,
-		manifest:     manifest,
-		managedFiles: managedFiles,
-		plan:         plan,
+		absRoot:         absRoot,
+		tool:            request.tool,
+		sourceRoot:      sourceRoot,
+		managedRoot:     managedRoot,
+		manifestPath:    manifestPath,
+		manifest:        manifest,
+		managedFiles:    managedFiles,
+		hostNativeFiles: hostNativeFiles,
+		plan:            plan,
 	}, nil
 }
 
@@ -109,26 +114,16 @@ func listRelativeFiles(root string) ([]string, error) {
 	return files, nil
 }
 
-func buildAdapterManifest(tool string, managedFiles []string) []byte {
-	lines := []string{
-		"schema_version: 1",
-		"adapter: " + tool,
-		"source: local_release",
-		"manifest_kind: convenience_metadata",
-		fmt.Sprintf("managed_file_count: %d", len(managedFiles)),
-		"managed_files:",
-	}
-	for _, rel := range managedFiles {
-		lines = append(lines, "  - managed/"+rel)
-	}
-	return []byte(strings.Join(lines, "\n") + "\n")
-}
-
-func buildAdapterSyncPlan(absRoot, sourceRoot, managedRoot, manifestPath string, sourceFiles []string, manifest []byte) ([]contracts.FileMutation, error) {
-	plan, err := plannedManagedWrites(absRoot, sourceRoot, managedRoot, sourceFiles)
+func buildAdapterSyncPlan(absRoot, sourceRoot, managedRoot, manifestPath string, sourceFiles []string, hostNativeFiles []hostNativeArtifact, manifest []byte) ([]contracts.FileMutation, error) {
+	plan, err := plannedAdapterWritesForSync(absRoot, sourceRoot, managedRoot, sourceFiles, hostNativeFiles)
 	if err != nil {
 		return nil, err
 	}
+	hostDeletes, err := plannedHostNativeDeletesFromManifest(absRoot, manifestPath, hostNativeFiles)
+	if err != nil {
+		return nil, err
+	}
+	plan = append(plan, hostDeletes...)
 	deletes, err := plannedManagedDeletes(absRoot, managedRoot, sourceFiles)
 	if err != nil {
 		return nil, err
@@ -152,6 +147,26 @@ func buildAdapterSyncPlan(absRoot, sourceRoot, managedRoot, manifestPath string,
 		return plan[i].Path < plan[j].Path
 	})
 	return plan, nil
+}
+
+func plannedAdapterWritesForSync(absRoot, sourceRoot, managedRoot string, sourceFiles []string, hostNativeFiles []hostNativeArtifact) ([]contracts.FileMutation, error) {
+	managedWrites, err := plannedManagedWrites(absRoot, sourceRoot, managedRoot, sourceFiles)
+	if err != nil {
+		return nil, err
+	}
+	hostWrites, err := plannedHostNativeWrites(absRoot, hostNativeFiles)
+	if err != nil {
+		return nil, err
+	}
+	return append(managedWrites, hostWrites...), nil
+}
+
+func plannedHostNativeDeletesFromManifest(absRoot, manifestPath string, hostNativeFiles []hostNativeArtifact) ([]contracts.FileMutation, error) {
+	previousHostNativeFiles, err := loadPreviousHostNativeFiles(absRoot, manifestPath)
+	if err != nil {
+		return nil, err
+	}
+	return plannedHostNativeDeletes(absRoot, previousHostNativeFiles, hostNativeFiles)
 }
 
 func plannedManagedWrites(absRoot, sourceRoot, managedRoot string, sourceFiles []string) ([]contracts.FileMutation, error) {
@@ -191,22 +206,6 @@ func plannedFileAction(srcPath, dstPath string) (string, error) {
 	return "updated", nil
 }
 
-func plannedManagedDeletes(absRoot, managedRoot string, sourceFiles []string) ([]contracts.FileMutation, error) {
-	stale, err := collectStaleManagedFiles(managedRoot, sourceFiles)
-	if err != nil {
-		return nil, err
-	}
-	deletes := make([]contracts.FileMutation, 0, len(stale))
-	for _, file := range stale {
-		out, relErr := filepath.Rel(absRoot, file.absPath)
-		if relErr != nil {
-			return nil, relErr
-		}
-		deletes = append(deletes, contracts.FileMutation{Path: filepath.ToSlash(out), Action: "deleted"})
-	}
-	return deletes, nil
-}
-
 func plannedManifestAction(path string, manifest []byte) (string, error) {
 	current, err := os.ReadFile(path)
 	if err != nil {
@@ -219,39 +218,4 @@ func plannedManifestAction(path string, manifest []byte) (string, error) {
 		return "", nil
 	}
 	return "updated", nil
-}
-
-type staleManagedFile struct {
-	absPath string
-	relPath string
-}
-
-func collectStaleManagedFiles(managedRoot string, sourceFiles []string) ([]staleManagedFile, error) {
-	if !isDirectory(managedRoot) {
-		return nil, nil
-	}
-	allowed := make(map[string]struct{}, len(sourceFiles))
-	for _, rel := range sourceFiles {
-		allowed[filepath.ToSlash(rel)] = struct{}{}
-	}
-	stale := make([]staleManagedFile, 0)
-	err := filepath.WalkDir(managedRoot, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil || entry.IsDir() {
-			return walkErr
-		}
-		rel, err := filepath.Rel(managedRoot, path)
-		if err != nil {
-			return err
-		}
-		rel = filepath.ToSlash(rel)
-		if _, ok := allowed[rel]; !ok {
-			stale = append(stale, staleManagedFile{absPath: path, relPath: rel})
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	sort.Slice(stale, func(i, j int) bool { return stale[i].relPath < stale[j].relPath })
-	return stale, nil
 }

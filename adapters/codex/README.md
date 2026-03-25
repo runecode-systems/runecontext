@@ -27,3 +27,14 @@ See `capabilities.yaml` and `flows/conversational-parity.md`.
   - `flows/change-shape.md`
   - `flows/standard-discover.md`
   - `flows/promote.md`
+
+## Host-Native Sync Artifacts
+
+Codex sync writes additive host-native artifacts:
+
+- Canonical flow assets: `.agents/skills/runecontext-*.md`
+
+Codex host-native integration remains skills-only.
+
+All generated host-native artifacts include `runecontext-managed-artifact:
+host-native-v1` so ownership is explicit for future uninstall and upgrade flows.

@@ -64,7 +64,7 @@ func runAdapterSync(args []string, machine machineOptions, stdout, stderr io.Wri
 
 	output := buildAdapterSyncOutput(state, machine.dryRun)
 	if machine.explain {
-		output = appendAdapterSyncExplainLines(output)
+		output = appendAdapterSyncExplainLines(output, state.tool)
 	}
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK

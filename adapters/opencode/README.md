@@ -49,3 +49,13 @@ The script enforces the alpha.7 authoritative-file boundary:
   authoritative RuneContext files.
 - It skips generated artifacts, adapter-managed files, and unrelated repository
   code.
+
+## Host-Native Sync Artifacts
+
+OpenCode sync also writes host-native additive artifacts for discoverability:
+
+- Canonical flow assets: `.opencode/skills/runecontext-*.md`
+- Discoverability shims: `.opencode/commands/runecontext-*.md`
+
+All generated host-native artifacts include `runecontext-managed-artifact:
+host-native-v1` so ownership is explicit for future uninstall and upgrade flows.
