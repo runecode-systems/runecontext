@@ -1237,6 +1237,36 @@ tools while preserving one core model.
 - Compatibility mode should be capability-based and explicit. Weaker hosts may
   fall back from prompts, hooks, or dynamic suggestions to docs and explicit CLI
   commands, but they must not redefine RuneContext semantics.
+- Compatibility-mode guidance should define the capability classes supported by
+  each adapter host and point to the stable contract in
+  `docs/implementation-plan/adapter-host-capabilities.md`. That contract spells out
+  how hosts declare `prompts`, `shell_access`, `hooks`, `dynamic_suggestions`,
+  and `structured_output` capabilities along with the downgrade behavior they
+  must document when any capability is absent.
+- Compatibility-mode guidance should spell out how adapters declare their host
+  capabilities (for example: `prompts`, `shell_access`, `hooks`, `dynamic_suggestions`
+  providers, and `structured_output`). Hosts that cannot offer a capability must
+  mark it absent so the tool-chain can avoid over-promising. When a capability is
+  unavailable, adapters simply fall back to reviewable docs and the explicit
+  CLI commands that already ship in RuneContext rather than inventing hidden
+  runtime behavior:
+  - Prompt-driven flows degrade into static guidance text plus direct `runectx`
+    commands for the same operations, so conversational skips do not lose
+    semantics.
+  - Shell access drops to documented command invocations; conversational hosts
+    that cannot launch shell helpers should show the CLI steps and candidate
+    data instead of trying to execute anything locally.
+  - Hook/run scripts become documented mutations tied to `runectx` operations when
+    hooks cannot run in the host; readers still see the same mutation intent,
+    but the host leaves execution to the CLI with explicit commands.
+  - Dynamic suggestions fall back to the canonical completion metadata and
+    manual CLI exploration guidance when a host cannot provide live inline
+    completion; adapters simply point back to `runectx completion` output and
+    stable candidate data to avoid hidden guesses.
+  - Structured-output integrations revert to publishing the CLI flag set and
+    machine-readable candidate metadata for the same operation so reviewable
+    artifacts cover any semantic payload even when the host cannot consume
+    structured JSON directly.
 - Alpha.7 should deliver local-only `runectx adapter sync <tool>` behavior
   against installed or pinned release contents; alpha.8 later hardens release
   packaging and broader sync/update behavior without changing that local-first

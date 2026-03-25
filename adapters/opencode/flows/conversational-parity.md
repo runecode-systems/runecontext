@@ -26,3 +26,12 @@ CLI inputs. No adapter-only lifecycle or mutation semantics are allowed.
 
 - Conversations should end with reviewable command proposals or emitted output.
 - Durable mutations remain `runectx` writes so standard diffs are visible in git.
+
+## Host Capabilities
+
+- Hosts must declare the interaction surface they expose for this adapter using the capability guidance gathered under "Recommended Branch Cut 4: Remaining tool-specific adapters, compatibility mode, and parity hardening" in `docs/implementation-plan/adapter-host-capabilities.md`. Keeping those declarations explicit ensures adapters remain compatible with every supported host.
+- Prompts: if the host does not support prompts, the adapter falls back to presenting CLI commands and asking for reviews, mirroring the same command-proposal cadence a shell user would follow.
+- Shell access: without shell execution privileges, the adapter never runs `runectx` commands itself and instead guides reviewers to run the corresponding CLI call manually.
+- Hooks: hosts that cannot register hooks are handled by deferring validation to the next `runectx validate` run and surfacing the same diagnostics as a hook-equipped host.
+- Dynamic suggestions: when suggestion APIs are unavailable, the adapter uses the stable completion metadata produced by RuneContext and renders it as static text or numbered choices written into the conversation history.
+- Structured output: hosts that only accept plain text do not receive structured JSON/diagnostic payloads; the adapter instead emits the same human-readable summary and reverts to the CLI contract for any required downstream automation.
