@@ -1,6 +1,8 @@
 # RuneContext completion for bash
 _runectx_has_command() {
   case "$1" in
+    '--version') return 0 ;;
+    '-v') return 0 ;;
     'adapter') return 0 ;;
     'adapter render-host-native') return 0 ;;
     'adapter sync') return 0 ;;
@@ -28,13 +30,16 @@ _runectx_has_command() {
     'standard discover') return 0 ;;
     'status') return 0 ;;
     'validate') return 0 ;;
+    'version') return 0 ;;
     *) return 1 ;;
   esac
 }
 
 _runectx_subcommands_for() {
   case "$1" in
-    '') echo 'adapter assurance bundle change completion doctor generate help init promote standard status validate' ;;
+    '') echo '--version -v adapter assurance bundle change completion doctor generate help init promote standard status validate version' ;;
+    '--version') echo '' ;;
+    '-v') echo '' ;;
     'adapter') echo 'render-host-native sync' ;;
     'adapter render-host-native') echo '' ;;
     'adapter sync') echo '' ;;
@@ -62,12 +67,15 @@ _runectx_subcommands_for() {
     'standard discover') echo '' ;;
     'status') echo '' ;;
     'validate') echo '' ;;
+    'version') echo '' ;;
     *) echo '' ;;
   esac
 }
 
 _runectx_flags_for() {
   case "$1" in
+    '--version') echo '--json --non-interactive' ;;
+    '-v') echo '--json --non-interactive' ;;
     'adapter') echo '--dry-run --explain --json --non-interactive' ;;
     'adapter render-host-native') echo '--dry-run --explain --json --non-interactive --role' ;;
     'adapter sync') echo '--dry-run --explain --json --non-interactive --path' ;;
@@ -92,6 +100,7 @@ _runectx_flags_for() {
     'standard discover') echo '--change --confirm-handoff --explain --focus --json --non-interactive --path --scope-path --target' ;;
     'status') echo '--explain --json --non-interactive --path' ;;
     'validate') echo '--explain --json --non-interactive --path --ssh-allowed-signers' ;;
+    'version') echo '--json --non-interactive' ;;
     *) echo '' ;;
   esac
 }

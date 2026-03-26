@@ -37,6 +37,8 @@ function __runectx_dynamic_suggest
   command (commandline -poc)[1] completion suggest --prefix "${prefix}" $provider 2>/dev/null
 end
 
+complete -c runectx -f -n '__fish_use_subcommand' -a '--version'
+complete -c runectx -f -n '__fish_use_subcommand' -a '-v'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'adapter'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'assurance'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'bundle'
@@ -50,6 +52,7 @@ complete -c runectx -f -n '__fish_use_subcommand' -a 'promote'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'standard'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'status'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'validate'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'version'
 complete -c runectx -f -n '__fish_seen_subcommand_from adapter' -a 'render-host-native'
 complete -c runectx -f -n '__fish_seen_subcommand_from adapter' -a 'sync'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'backfill'
@@ -64,6 +67,10 @@ complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'metadata'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'suggest'
 complete -c runectx -f -n '__fish_seen_subcommand_from generate' -a 'indexes'
 complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'discover'
+complete -c runectx -n '__fish_seen_subcommand_from --version' -l json
+complete -c runectx -n '__fish_seen_subcommand_from --version' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from -v' -l json
+complete -c runectx -n '__fish_seen_subcommand_from -v' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from adapter' -l dry-run
 complete -c runectx -n '__fish_seen_subcommand_from adapter' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from adapter' -l json
@@ -202,6 +209,8 @@ complete -c runectx -n '__fish_seen_subcommand_from validate' -l json
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l path -r
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l ssh-allowed-signers -r
+complete -c runectx -n '__fish_seen_subcommand_from version' -l json
+complete -c runectx -n '__fish_seen_subcommand_from version' -l non-interactive
 function __runectx_flag_name_takes_value
   switch $argv[1]
   case --bundle

@@ -345,19 +345,24 @@ func runCLIChangeNewForTest(t *testing.T, projectRoot, title string) string {
 func parseCLIKeyValueOutput(t *testing.T, output string) map[string]string {
 	t.Helper()
 	fields := map[string]string{}
+	foundKeyValue := false
 	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
 		if !strings.Contains(line, "=") {
-			t.Fatalf("CLI output line missing key=value: %q", line)
+			t.Fatalf("expected key=value output, got %q", line)
 		}
 		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
 			t.Fatalf("malformed CLI output line: %q", line)
 		}
+		foundKeyValue = true
 		fields[parts[0]] = unsanitizeCLIValue(parts[1])
+	}
+	if !foundKeyValue {
+		t.Fatalf("expected at least one key=value line in output: %q", output)
 	}
 	return fields
 }

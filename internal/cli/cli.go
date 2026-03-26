@@ -35,86 +35,129 @@ const (
 	completionUsage         = "runectx completion <bash|zsh|fish|suggest|metadata>"
 	completionSuggestUsage  = "runectx completion suggest [--path PATH] [--prefix PREFIX] <change-ids|bundle-ids|promotion-targets|adapter-names|adapter-names-shell-injection>"
 	completionMetadataUsage = "runectx completion metadata"
+	versionUsage            = "runectx version [--json] [--non-interactive] (aliases: --version, -v)"
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 {
+	command, remaining, ok := parseRootCommand(args)
+	if !ok {
 		printUsage(stdout)
 		return exitOK
 	}
-
-	switch args[0] {
-	case "validate":
-		return runValidate(args[1:], stdout, stderr)
-	case "status":
-		return runStatus(args[1:], stdout, stderr)
-	case "change":
-		return runChange(args[1:], stdout, stderr)
-	case "generate":
-		return runGenerate(args[1:], stdout, stderr)
-	case "bundle":
-		return runBundle(args[1:], stdout, stderr)
-	case "doctor":
-		return runDoctor(args[1:], stdout, stderr)
-	case "init":
-		return runInit(args[1:], stdout, stderr)
-	case "promote":
-		return runPromote(args[1:], stdout, stderr)
-	case "standard":
-		return runStandard(args[1:], stdout, stderr)
-	case "assurance":
-		return runAssurance(args[1:], stdout, stderr)
-	case "adapter":
-		return runAdapter(args[1:], stdout, stderr)
-	case "completion":
-		return runCompletion(args[1:], stdout, stderr)
-	case "help", "--help", "-h":
+	if isRootHelpCommand(command) {
 		printUsage(stdout)
 		return exitOK
-	default:
-		writeCommandUsageError(stderr, args[0], "runectx help", fmt.Errorf("unknown command %q", args[0]))
-		return exitUsage
 	}
+	if handler, found := rootCommandHandler(command); found {
+		return handler(remaining, stdout, stderr)
+	}
+	writeCommandUsageError(stderr, command, "runectx help", fmt.Errorf("unknown command %q", command))
+	return exitUsage
 }
 
 func printUsage(w io.Writer) {
+	printUsageHeader(w)
+	printUsageCommands(w)
+	printUsageExamples(w)
+}
+
+type rootCommandFunc func([]string, io.Writer, io.Writer) int
+
+func parseRootCommand(args []string) (string, []string, bool) {
+	if len(args) == 0 {
+		return "", nil, false
+	}
+	return args[0], args[1:], true
+}
+
+func isRootHelpCommand(command string) bool {
+	return isHelpToken(command)
+}
+
+func rootCommandHandler(command string) (rootCommandFunc, bool) {
+	handlers := map[string]rootCommandFunc{
+		"validate":   runValidate,
+		"status":     runStatus,
+		"change":     runChange,
+		"generate":   runGenerate,
+		"bundle":     runBundle,
+		"doctor":     runDoctor,
+		"init":       runInit,
+		"promote":    runPromote,
+		"standard":   runStandard,
+		"assurance":  runAssurance,
+		"adapter":    runAdapter,
+		"completion": runCompletion,
+		"version":    runVersion,
+		"--version":  runVersion,
+		"-v":         runVersion,
+	}
+	handler, ok := handlers[command]
+	return handler, ok
+}
+
+func printUsageHeader(w io.Writer) {
 	fmt.Fprintln(w, "RuneContext CLI")
-	fmt.Fprintln(w, "")
+	fmt.Fprintln(w)
+}
+
+func printUsageCommands(w io.Writer) {
 	fmt.Fprintln(w, "Commands:")
-	fmt.Fprintln(w, "  help       Show CLI usage")
-	fmt.Fprintln(w, "  status     Report active, closed, and superseded changes")
-	fmt.Fprintln(w, "  change     Create, shape, close, and reallocate changes")
-	fmt.Fprintln(w, "  generate   Write optional generated indexes and manifest")
-	fmt.Fprintln(w, "  bundle     Resolve context bundles")
-	fmt.Fprintln(w, "  validate   Validate RuneContext contracts for a project root")
-	fmt.Fprintln(w, "  doctor     Run environment and resolution diagnostics")
-	fmt.Fprintln(w, "  init       Scaffold a RuneContext project")
-	fmt.Fprintln(w, "  promote    Explicitly advance promotion assessment state (summary auto-filled for --target entries)")
-	fmt.Fprintln(w, "  standard   Discover advisory standards candidates for promotion handoff")
-	fmt.Fprintln(w, "  assurance  Enable, backfill, or capture Verified assurance artifacts")
-	fmt.Fprintln(w, "  adapter    Sync and render tool host-native adapter artifacts")
-	fmt.Fprintln(w, "  completion Emit shell completion scripts")
-	fmt.Fprintln(w, "")
+	for _, entry := range usageCommandDescriptions() {
+		fmt.Fprintln(w, entry)
+	}
+	fmt.Fprintln(w)
+}
+
+func printUsageExamples(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
-	fmt.Fprintln(w, "  runectx help")
-	fmt.Fprintln(w, "  "+statusUsage)
-	fmt.Fprintln(w, "  "+changeNewUsage)
-	fmt.Fprintln(w, "  "+changeShapeUsage)
-	fmt.Fprintln(w, "  "+changeCloseUsage)
-	fmt.Fprintln(w, "  "+changeReallocateUsage)
-	fmt.Fprintln(w, "  "+generateIndexesUsage)
-	fmt.Fprintln(w, "  "+validateUsage)
-	fmt.Fprintln(w, "  "+bundleResolveUsage)
-	fmt.Fprintln(w, "  "+doctorUsage)
-	fmt.Fprintln(w, "  "+initUsage)
-	fmt.Fprintln(w, "  "+promoteUsage)
-	fmt.Fprintln(w, "  "+standardDiscoverUsage)
-	fmt.Fprintln(w, "  "+assuranceUsage)
-	fmt.Fprintln(w, "  "+adapterSyncUsage)
-	fmt.Fprintln(w, "  "+adapterRenderUsage)
-	fmt.Fprintln(w, "  "+completionUsage)
-	fmt.Fprintln(w, "  "+completionSuggestUsage)
-	fmt.Fprintln(w, "  "+completionMetadataUsage)
+	for _, usage := range usageExamples() {
+		fmt.Fprintln(w, "  "+usage)
+	}
+}
+
+func usageCommandDescriptions() []string {
+	return []string{
+		"  help       Show CLI usage",
+		"  status     Report active, closed, and superseded changes",
+		"  change     Create, shape, close, and reallocate changes",
+		"  generate   Write optional generated indexes and manifest",
+		"  bundle     Resolve context bundles",
+		"  validate   Validate RuneContext contracts for a project root",
+		"  doctor     Run environment and resolution diagnostics",
+		"  init       Scaffold a RuneContext project",
+		"  promote    Explicitly advance promotion assessment state (summary auto-filled for --target entries)",
+		"  standard   Discover advisory standards candidates for promotion handoff",
+		"  assurance  Enable, backfill, or capture Verified assurance artifacts",
+		"  adapter    Sync and render tool host-native adapter artifacts",
+		"  completion Emit shell completion scripts",
+		"  version    Show RuneContext CLI version (--version, -v)",
+	}
+}
+
+func usageExamples() []string {
+	return []string{
+		"runectx help",
+		statusUsage,
+		changeNewUsage,
+		changeShapeUsage,
+		changeCloseUsage,
+		changeReallocateUsage,
+		generateIndexesUsage,
+		validateUsage,
+		bundleResolveUsage,
+		doctorUsage,
+		initUsage,
+		promoteUsage,
+		standardDiscoverUsage,
+		assuranceUsage,
+		adapterSyncUsage,
+		adapterRenderUsage,
+		completionUsage,
+		completionSuggestUsage,
+		completionMetadataUsage,
+		versionUsage,
+	}
 }
 
 func isHelpToken(arg string) bool {
