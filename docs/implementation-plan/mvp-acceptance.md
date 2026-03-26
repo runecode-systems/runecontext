@@ -369,6 +369,19 @@
 - [ ] Authoritative-file validation triggers are limited to authored RuneContext
   files rather than generated artifacts, adapter-managed files, or unrelated
   repository code.
+- [x] Repo-local host-native adapter artifacts are synced as additive outputs for
+  supported tools: OpenCode (`.opencode/skills/` and `.opencode/commands/`),
+  Claude Code (`.claude/skills/` plus optional `.claude/commands/` shim), and
+  Codex (`.agents/skills/` only).
+- [x] Synced host-native artifacts use RuneContext-owned naming and ownership
+  markers so conflicts with unrelated user-owned files fail closed and future
+  uninstall/upgrade flows can target only RuneContext-managed artifacts.
+- [x] Host-native ownership remains predictable without a `.runecontext/adapters`
+  tracking tree by using stable naming plus strict ownership headers in synced
+  host-native artifacts.
+- [x] Supported hosts can keep synced prompt bodies minimal and machine-oriented
+  through explicit `runectx adapter render-host-native` shell-output injection,
+  without introducing adapter-only operation semantics.
 - [x] Repo-aware completion/suggestion UX can surface valid change IDs, bundle
   IDs, promotion targets, and adapter names without mutating project state.
 - [x] Compatibility mode is explicit and capability-based so weaker hosts lose

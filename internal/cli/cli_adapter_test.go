@@ -47,11 +47,11 @@ func TestRunAdapterSyncHelp(t *testing.T) {
 
 func TestRunAdapterSyncDryRunIsReadOnly(t *testing.T) {
 	projectRoot := t.TempDir()
-	managedRoot := filepath.Join(projectRoot, ".runecontext", "adapters", "generic", "managed")
+	hostNativeRoot := filepath.Join(projectRoot, ".opencode")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"adapter", "sync", "--dry-run", "--path", projectRoot, "generic"}, &stdout, &stderr)
+	code := Run([]string{"adapter", "sync", "--dry-run", "--path", projectRoot, "opencode"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
@@ -65,12 +65,12 @@ func TestRunAdapterSyncDryRunIsReadOnly(t *testing.T) {
 	if got, want := fields["network_access"], "false"; got != want {
 		t.Fatalf("expected network_access %q, got %q", want, got)
 	}
-	if _, err := os.Stat(managedRoot); !os.IsNotExist(err) {
-		t.Fatalf("expected dry-run to avoid managed-root writes, got err=%v", err)
+	if _, err := os.Stat(hostNativeRoot); !os.IsNotExist(err) {
+		t.Fatalf("expected dry-run to avoid host-native writes, got err=%v", err)
 	}
 }
 
-func TestRunAdapterSyncAppliesManagedFilesAndManifest(t *testing.T) {
+func TestRunAdapterSyncAppliesHostNativeFiles(t *testing.T) {
 	projectRoot := t.TempDir()
 	userConfigPath := createUserOwnedConfig(t, projectRoot)
 
@@ -82,16 +82,99 @@ func TestRunAdapterSyncAppliesManagedFilesAndManifest(t *testing.T) {
 		t.Fatalf("expected changed files on first sync, got %#v", fields)
 	}
 
-	managedReadmePath := filepath.Join(projectRoot, ".runecontext", "adapters", "opencode", "managed", "README.md")
-	if _, err := os.Stat(managedReadmePath); err != nil {
-		t.Fatalf("expected managed adapter README to exist: %v", err)
+	hostNativeSkillPath := filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md")
+	if _, err := os.Stat(hostNativeSkillPath); err != nil {
+		t.Fatalf("expected host-native skill file to exist: %v", err)
 	}
-	assertAdapterManifestConvenience(t, projectRoot)
+	assertNoAdapterTrackingTree(t, projectRoot)
 	assertAdapterSyncBoundaries(t, userConfigPath, projectRoot)
 
-	fields = assertAdapterSyncNoOpPreservesMtime(t, projectRoot, managedReadmePath, "opencode")
+	fields = assertAdapterSyncNoOpPreservesMtime(t, projectRoot, hostNativeSkillPath, "opencode")
 	if got, want := fields["changed_file_count"], "0"; got != want {
 		t.Fatalf("expected idempotent sync changed_file_count %q, got %q", want, got)
+	}
+}
+
+func TestRunAdapterSyncWritesHostNativeArtifactsByTool(t *testing.T) {
+	projectRoot := t.TempDir()
+
+	opencode := runAdapterSyncAndParse(t, projectRoot, "opencode")
+	if got, want := opencode["host_native_file_count"], "8"; got != want {
+		t.Fatalf("expected opencode host_native_file_count %q, got %q", want, got)
+	}
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md"), "runectx adapter render-host-native --role flow_asset opencode change-new")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-new")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"), "description: Create a new RuneContext change")
+	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md"))
+	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"))
+
+	claude := runAdapterSyncAndParse(t, projectRoot, "claude-code")
+	if got, want := claude["host_native_file_count"], "5"; got != want {
+		t.Fatalf("expected claude host_native_file_count %q, got %q", want, got)
+	}
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "runectx adapter render-host-native --role flow_asset claude-code change-new")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"), "runectx adapter render-host-native --role discoverability_shim claude-code index")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "name: runecontext-change-new")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "description: Create a new RuneContext change")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"), "name: runecontext")
+	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"))
+	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"))
+
+	codex := runAdapterSyncAndParse(t, projectRoot, "codex")
+	if got, want := codex["host_native_file_count"], "4"; got != want {
+		t.Fatalf("expected codex host_native_file_count %q, got %q", want, got)
+	}
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"), "name: runecontext-change-new")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"), "description: Create a new RuneContext change")
+	assertNoShellInjectionCall(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))
+	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))
+}
+
+func TestRunAdapterSyncHostNativeConflictFailsClosed(t *testing.T) {
+	projectRoot := t.TempDir()
+	conflictPath := filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md")
+	if err := os.MkdirAll(filepath.Dir(conflictPath), 0o755); err != nil {
+		t.Fatalf("mkdir host-native conflict parent: %v", err)
+	}
+	if err := os.WriteFile(conflictPath, []byte("user owned\n"), 0o644); err != nil {
+		t.Fatalf("write host-native conflict file: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"adapter", "sync", "--path", projectRoot, "opencode"}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "existing file is not RuneContext-managed") {
+		t.Fatalf("expected host-native ownership conflict, got %q", stderr.String())
+	}
+	errorFields := parseCLIKeyValueOutput(t, stderr.String())
+	if got := errorFields["error_message"]; strings.Contains(got, filepath.ToSlash(projectRoot)) {
+		t.Fatalf("expected repo-relative conflict path in error_message, got %q", got)
+	}
+}
+
+func TestRunAdapterSyncRemovesStaleHostNativeFiles(t *testing.T) {
+	projectRoot := t.TempDir()
+	runAdapterSyncAndParse(t, projectRoot, "opencode")
+	staleRel := ".opencode/skills/runecontext-stale.md"
+
+	staleHostNative := filepath.Join(projectRoot, filepath.FromSlash(staleRel))
+	if err := os.MkdirAll(filepath.Dir(staleHostNative), 0o755); err != nil {
+		t.Fatalf("mkdir stale host-native dir: %v", err)
+	}
+	managed := "<!-- runecontext-managed-artifact: host-native-v1 -->\n<!-- runecontext-tool: opencode -->\n<!-- runecontext-kind: flow_asset -->\n<!-- runecontext-id: runecontext:stale -->\n"
+	if err := os.WriteFile(staleHostNative, []byte(managed), 0o644); err != nil {
+		t.Fatalf("write stale host-native file: %v", err)
+	}
+
+	fields := runAdapterSyncAndParse(t, projectRoot, "opencode")
+	if got := fields["changed_file_count"]; got == "0" {
+		t.Fatalf("expected stale host-native cleanup mutation, got %#v", fields)
+	}
+	if _, err := os.Stat(staleHostNative); !os.IsNotExist(err) {
+		t.Fatalf("expected stale host-native artifact removal, got err=%v", err)
 	}
 }
 
@@ -124,17 +207,17 @@ func runAdapterSyncAndParse(t *testing.T, projectRoot, tool string) map[string]s
 	return parseCLIKeyValueOutput(t, stdout.String())
 }
 
-func TestRunAdapterSyncPreservesExecutableBitFromAdapterSource(t *testing.T) {
+func TestRunAdapterSyncWritesExpectedHostNativeFilePermissions(t *testing.T) {
 	root, err := repoRootForTests()
 	if err != nil {
 		t.Fatal(err)
 	}
 	adaptersRoot := filepath.Join(root, "adapters")
 	t.Chdir(root)
-	assertAdapterSyncPreservesExecutableBitFromSource(t, adaptersRoot)
+	assertAdapterSyncWritesExpectedFilePermissions(t, adaptersRoot)
 }
 
-func assertAdapterSyncPreservesExecutableBitFromSource(t *testing.T, adaptersRoot string) {
+func assertAdapterSyncWritesExpectedFilePermissions(t *testing.T, adaptersRoot string) {
 	t.Helper()
 
 	sourcePath := filepath.Join(adaptersRoot, "opencode", "automation", "validate_after_authoritative_edit.sh")
@@ -147,11 +230,6 @@ func assertAdapterSyncPreservesExecutableBitFromSource(t *testing.T, adaptersRoo
 	if err := os.Chmod(sourcePath, 0o755); err != nil {
 		t.Fatalf("chmod source executable: %v", err)
 	}
-	sourceData, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatalf("read source file: %v", err)
-	}
-
 	projectRoot := t.TempDir()
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -160,71 +238,49 @@ func assertAdapterSyncPreservesExecutableBitFromSource(t *testing.T, adaptersRoo
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
 
-	syncedPath := filepath.Join(projectRoot, ".runecontext", "adapters", "opencode", "managed", "automation", "validate_after_authoritative_edit.sh")
+	syncedPath := filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md")
 	syncedMode := statMode(t, syncedPath)
 	syncedData, err := os.ReadFile(syncedPath)
 	if err != nil {
 		t.Fatalf("read synced file: %v", err)
 	}
-	if !bytes.Equal(sourceData, syncedData) {
-		t.Fatalf("expected synced file content to match source")
+	if !strings.Contains(string(syncedData), "adapter render-host-native") {
+		t.Fatalf("expected synced host-native file to contain render-host-native call")
 	}
-	if runtime.GOOS != "windows" && syncedMode.Perm() != 0o755 {
-		t.Fatalf("expected synced executable permissions 0755, got %s", fmt.Sprintf("%#o", syncedMode.Perm()))
+	if runtime.GOOS != "windows" && syncedMode.Perm() != 0o644 {
+		t.Fatalf("expected synced host-native file permissions 0644, got %s", fmt.Sprintf("%#o", syncedMode.Perm()))
 	}
 }
 
-func TestRunAdapterSyncSyncedHookRunsDirectly(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("direct executable hook test is not supported on windows")
-	}
-
+func TestRunAdapterSyncSyncedSkillContainsRenderCall(t *testing.T) {
 	projectRoot := prepareCLIWorkflowProject(t)
 	_ = runAdapterSyncAndParse(t, projectRoot, "opencode")
 
-	scriptPath := filepath.Join(projectRoot, ".runecontext", "adapters", "opencode", "managed", "automation", "validate_after_authoritative_edit.sh")
-	if mode := statMode(t, scriptPath).Perm(); mode&0o111 == 0 {
-		t.Fatalf("expected synced hook to be executable, got mode %s", fmt.Sprintf("%#o", mode))
-	}
-
-	fakeBin := t.TempDir()
-	calledPath := filepath.Join(projectRoot, "validate-called")
-	writeFakeRunectxExecutable(t, filepath.Join(fakeBin, "runectx"))
-
-	cmd := exec.Command(scriptPath, "runecontext/changes/CHG-2026-001-a3f2-auth-gateway/status.yaml")
-	cmd.Dir = projectRoot
-	cmd.Env = append(os.Environ(),
-		"PATH="+fakeBin+":"+os.Getenv("PATH"),
-		"RUNECTX_ARGS_OUT="+calledPath,
-	)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("run synced hook directly: %v\n%s", err, string(out))
-	}
-
-	called, err := os.ReadFile(calledPath)
+	skillPath := filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md")
+	skillData, err := os.ReadFile(skillPath)
 	if err != nil {
-		t.Fatalf("read fake runectx invocation: %v", err)
+		t.Fatalf("read synced host-native skill: %v", err)
 	}
-	if !strings.Contains(string(called), "validate --path "+projectRoot) {
-		t.Fatalf("expected validate invocation with project root, got %q", string(called))
+	if !strings.Contains(string(skillData), "adapter render-host-native") {
+		t.Fatalf("expected render-host-native mapping in host-native skill, got %q", string(skillData))
 	}
 }
 
-func TestRunAdapterSyncRejectsSymlinkedManagedTarget(t *testing.T) {
+func TestRunAdapterSyncRejectsSymlinkedHostNativeTarget(t *testing.T) {
 	projectRoot := t.TempDir()
-	symlinkTarget := filepath.Join(projectRoot, "outside-readme.md")
+	symlinkTarget := filepath.Join(projectRoot, "outside-change-new.md")
 	if err := os.WriteFile(symlinkTarget, []byte("outside\n"), 0o644); err != nil {
 		t.Fatalf("write symlink target: %v", err)
 	}
-	managedReadmePath := filepath.Join(projectRoot, ".runecontext", "adapters", "opencode", "managed", "README.md")
-	if err := os.MkdirAll(filepath.Dir(managedReadmePath), 0o755); err != nil {
-		t.Fatalf("mkdir managed dir: %v", err)
+	hostNativePath := filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md")
+	if err := os.MkdirAll(filepath.Dir(hostNativePath), 0o755); err != nil {
+		t.Fatalf("mkdir host-native dir: %v", err)
 	}
-	if err := os.Symlink(symlinkTarget, managedReadmePath); err != nil {
+	if err := os.Symlink(symlinkTarget, hostNativePath); err != nil {
 		if os.IsPermission(err) {
 			t.Skipf("symlink creation not permitted: %v", err)
 		}
-		t.Fatalf("create managed symlink: %v", err)
+		t.Fatalf("create host-native symlink: %v", err)
 	}
 
 	var stdout bytes.Buffer
@@ -233,15 +289,15 @@ func TestRunAdapterSyncRejectsSymlinkedManagedTarget(t *testing.T) {
 	if code != exitInvalid {
 		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "mutation does not support symlinked targets") {
-		t.Fatalf("expected symlink-target rejection, got %q", stderr.String())
+	if !strings.Contains(stderr.String(), ".opencode/skills/runecontext-change-new.md") {
+		t.Fatalf("expected host-native symlink target rejection, got %q", stderr.String())
 	}
 }
 
-func TestRunAdapterSyncRejectsSymlinkedAncestor(t *testing.T) {
+func TestRunAdapterSyncRejectsSymlinkedHostNativeAncestor(t *testing.T) {
 	projectRoot := t.TempDir()
 	outside := t.TempDir()
-	symlinkRoot := filepath.Join(projectRoot, ".runecontext")
+	symlinkRoot := filepath.Join(projectRoot, ".opencode")
 	if err := os.Symlink(outside, symlinkRoot); err != nil {
 		if os.IsPermission(err) {
 			t.Skipf("symlink creation not permitted: %v", err)
@@ -255,31 +311,8 @@ func TestRunAdapterSyncRejectsSymlinkedAncestor(t *testing.T) {
 	if code != exitInvalid {
 		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "adapter sync rejects symlinked path") {
-		t.Fatalf("expected ancestor symlink rejection, got %q", stderr.String())
-	}
-}
-
-func TestRunAdapterSyncRejectsSymlinkedSourceFile(t *testing.T) {
-	t.Skip("helper test no longer needed")
-}
-
-func TestCopyManagedFileRejectsSymlinkSource(t *testing.T) {
-	srcRoot := t.TempDir()
-	managedRoot := t.TempDir()
-	filePath := filepath.Join(srcRoot, "script.sh")
-	if err := os.WriteFile(filePath, []byte("echo hi"), 0o755); err != nil {
-		t.Fatalf("write script file: %v", err)
-	}
-	symlinkPath := filepath.Join(srcRoot, "link.sh")
-	if err := os.Symlink(filePath, symlinkPath); err != nil {
-		if os.IsPermission(err) {
-			t.Skipf("symlink creation not permitted: %v", err)
-		}
-		t.Fatalf("create symlink: %v", err)
-	}
-	if err := copyManagedFile(srcRoot, managedRoot, "link.sh"); err == nil {
-		t.Fatalf("expected error copying symlink source")
+	if !strings.Contains(stderr.String(), ".opencode") {
+		t.Fatalf("expected host-native ancestor symlink rejection, got %q", stderr.String())
 	}
 }
 
@@ -318,20 +351,64 @@ func assertUserOwnedConfigPreserved(t *testing.T, userConfigPath string) {
 func assertAdapterSyncBoundaries(t *testing.T, userConfigPath, projectRoot string) {
 	t.Helper()
 	assertUserOwnedConfigPreserved(t, userConfigPath)
+	assertNoAdapterTrackingTree(t, projectRoot)
 	if _, err := os.Stat(filepath.Join(projectRoot, "adapters")); !os.IsNotExist(err) {
 		t.Fatalf("expected sync to avoid user-owned adapter source tree writes, got err=%v", err)
 	}
 }
 
-func assertAdapterManifestConvenience(t *testing.T, projectRoot string) {
+func assertNoAdapterTrackingTree(t *testing.T, projectRoot string) {
 	t.Helper()
-	manifestPath := filepath.Join(projectRoot, ".runecontext", "adapters", "opencode", "sync-manifest.yaml")
-	manifestData, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("expected adapter manifest to exist: %v", err)
+	if _, err := os.Stat(filepath.Join(projectRoot, ".runecontext", "adapters")); !os.IsNotExist(err) {
+		t.Fatalf("expected no adapter tracking tree under .runecontext, got err=%v", err)
 	}
-	if !strings.Contains(string(manifestData), "manifest_kind: convenience_metadata") {
-		t.Fatalf("expected convenience manifest marker, got %q", string(manifestData))
+}
+
+func assertManagedArtifactMarker(t *testing.T, path string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read managed artifact %s: %v", path, err)
+	}
+	if _, ok := parseHostNativeOwnershipHeader(data); !ok {
+		t.Fatalf("expected ownership marker in %s", path)
+	}
+}
+
+func assertShellInjectionCallPresent(t *testing.T, path, call string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read host-native artifact %s: %v", path, err)
+	}
+	token := "!`" + call + "`"
+	if !strings.Contains(string(data), token) {
+		t.Fatalf("expected shell-injection token %q in %s", token, path)
+	}
+}
+
+func assertNoShellInjectionCall(t *testing.T, path string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read host-native artifact %s: %v", path, err)
+	}
+	if strings.Contains(string(data), "!`") {
+		t.Fatalf("expected no shell injection token in %s", path)
+	}
+}
+
+func assertFrontmatterContains(t *testing.T, path, token string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read host-native artifact %s: %v", path, err)
+	}
+	if !strings.HasPrefix(string(data), "---\n") {
+		t.Fatalf("expected frontmatter prefix in %s", path)
+	}
+	if !strings.Contains(string(data), token) {
+		t.Fatalf("expected frontmatter token %q in %s", token, path)
 	}
 }
 
@@ -348,19 +425,16 @@ func TestRunAdapterSyncUnknownToolFails(t *testing.T) {
 	}
 }
 
-func TestRunAdapterSyncDeletesStaleManagedFiles(t *testing.T) {
+func TestRunAdapterSyncGenericToolUnsupported(t *testing.T) {
 	projectRoot := t.TempDir()
-	runAdapterSyncAndParse(t, projectRoot, "generic")
-	stalePath := filepath.Join(projectRoot, ".runecontext", "adapters", "generic", "managed", "stale.txt")
-	if err := os.WriteFile(stalePath, []byte("stale\n"), 0o644); err != nil {
-		t.Fatalf("write stale managed file: %v", err)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"adapter", "sync", "--path", projectRoot, "generic"}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
 	}
-	fields := runAdapterSyncAndParse(t, projectRoot, "generic")
-	if got := fields["changed_file_count"]; got == "0" {
-		t.Fatalf("expected stale-file cleanup mutation, got %#v", fields)
-	}
-	if _, err := os.Stat(stalePath); !os.IsNotExist(err) {
-		t.Fatalf("expected stale managed file removal, got err=%v", err)
+	if !strings.Contains(stderr.String(), "does not define repo-local host-native artifacts") {
+		t.Fatalf("expected generic unsupported host-native error, got %q", stderr.String())
 	}
 }
 

@@ -29,10 +29,11 @@ const (
 	standardUsage           = "runectx standard [--json] [--non-interactive] [--explain] <discover>"
 	standardDiscoverUsage   = "runectx standard discover [--json] [--non-interactive] [--explain] [--path PATH] [--change CHANGE_ID] [--scope-path PATH] [--focus TEXT] [--confirm-handoff] [--target TYPE:PATH]"
 	assuranceUsage          = "runectx assurance [--json] [--non-interactive] [--dry-run] [--explain] <enable|backfill|capture> ..."
-	adapterUsage            = "runectx adapter [--json] [--non-interactive] [--dry-run] [--explain] <sync> ..."
+	adapterUsage            = "runectx adapter [--json] [--non-interactive] [--dry-run] [--explain] <sync|render-host-native> ..."
 	adapterSyncUsage        = "runectx adapter sync [--json] [--non-interactive] [--dry-run] [--explain] [--path PATH] <tool>"
+	adapterRenderUsage      = "runectx adapter render-host-native [--json] [--non-interactive] [--dry-run] [--explain] [--role flow_asset|discoverability_shim] <tool> <operation>"
 	completionUsage         = "runectx completion <bash|zsh|fish|suggest|metadata>"
-	completionSuggestUsage  = "runectx completion suggest [--path PATH] [--prefix PREFIX] <change-ids|bundle-ids|promotion-targets|adapter-names>"
+	completionSuggestUsage  = "runectx completion suggest [--path PATH] [--prefix PREFIX] <change-ids|bundle-ids|promotion-targets|adapter-names|adapter-names-shell-injection>"
 	completionMetadataUsage = "runectx completion metadata"
 )
 
@@ -91,7 +92,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  promote    Explicitly advance promotion assessment state (summary auto-filled for --target entries)")
 	fmt.Fprintln(w, "  standard   Discover advisory standards candidates for promotion handoff")
 	fmt.Fprintln(w, "  assurance  Enable, backfill, or capture Verified assurance artifacts")
-	fmt.Fprintln(w, "  adapter    Sync tool adapter packs into a managed subtree")
+	fmt.Fprintln(w, "  adapter    Sync and render tool host-native adapter artifacts")
 	fmt.Fprintln(w, "  completion Emit shell completion scripts")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Usage:")
@@ -110,6 +111,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  "+standardDiscoverUsage)
 	fmt.Fprintln(w, "  "+assuranceUsage)
 	fmt.Fprintln(w, "  "+adapterSyncUsage)
+	fmt.Fprintln(w, "  "+adapterRenderUsage)
 	fmt.Fprintln(w, "  "+completionUsage)
 	fmt.Fprintln(w, "  "+completionSuggestUsage)
 	fmt.Fprintln(w, "  "+completionMetadataUsage)

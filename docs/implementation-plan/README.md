@@ -355,9 +355,13 @@ and coverage stay in one place.
 - Keep adapter-triggered validation narrowly scoped to authored authoritative
   RuneContext files rather than generated artifacts, adapter-managed files, or
   unrelated repository code.
-- Keep adapter sync ownership explicit: tool-managed files live in a namespaced
-  managed subtree, user-owned config boundaries stay reviewable, and synced
-  manifests remain convenience metadata rather than correctness-critical state.
+- Keep adapter sync ownership explicit: tool-managed files live in tool-native
+  repo-local locations with strict ownership markers, and user-owned config
+  boundaries stay reviewable.
+- Keep shell-output injection support minimal and host-capability-aware:
+  supported hosts may inject `runectx`-rendered machine-oriented bodies into
+  tool-native skills/commands, while unsupported hosts keep static generated
+  bodies without changing operation semantics.
 - Keep adapter terminology crisp: `adapter` names the tool UX layer, `adapter
   pack` names the packaged release payload for an adapter, and
   `runectx adapter sync <tool>` names the local materialization surface.

@@ -41,8 +41,16 @@ func TestLocateAdaptersRootFromReleaseStyleLayout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("locate adapters root: %v", err)
 	}
-	if got != adaptersDir {
-		t.Fatalf("expected adapters root %q, got %q", adaptersDir, got)
+	gotCanonical, err := filepath.EvalSymlinks(got)
+	if err != nil {
+		t.Fatalf("resolve located adapters root symlinks: %v", err)
+	}
+	expectedCanonical, err := filepath.EvalSymlinks(adaptersDir)
+	if err != nil {
+		t.Fatalf("resolve expected adapters root symlinks: %v", err)
+	}
+	if gotCanonical != expectedCanonical {
+		t.Fatalf("expected adapters root %q, got %q", expectedCanonical, gotCanonical)
 	}
 }
 

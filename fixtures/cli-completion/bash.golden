@@ -2,6 +2,7 @@
 _runectx_has_command() {
   case "$1" in
     'adapter') return 0 ;;
+    'adapter render-host-native') return 0 ;;
     'adapter sync') return 0 ;;
     'assurance') return 0 ;;
     'assurance backfill') return 0 ;;
@@ -34,7 +35,8 @@ _runectx_has_command() {
 _runectx_subcommands_for() {
   case "$1" in
     '') echo 'adapter assurance bundle change completion doctor generate help init promote standard status validate' ;;
-    'adapter') echo 'sync' ;;
+    'adapter') echo 'render-host-native sync' ;;
+    'adapter render-host-native') echo '' ;;
     'adapter sync') echo '' ;;
     'assurance') echo 'backfill capture enable' ;;
     'assurance backfill') echo '' ;;
@@ -67,6 +69,7 @@ _runectx_subcommands_for() {
 _runectx_flags_for() {
   case "$1" in
     'adapter') echo '--dry-run --explain --json --non-interactive' ;;
+    'adapter render-host-native') echo '--dry-run --explain --json --non-interactive --role' ;;
     'adapter sync') echo '--dry-run --explain --json --non-interactive --path' ;;
     'assurance') echo '--dry-run --explain --json --non-interactive' ;;
     'assurance backfill') echo '--dry-run --explain --json --non-interactive --path' ;;
@@ -95,6 +98,7 @@ _runectx_flags_for() {
 
 _runectx_flag_takes_value() {
   case "$1|$2" in
+    'adapter render-host-native|--role') return 0 ;;
     'adapter sync|--path') return 0 ;;
     'assurance backfill|--path') return 0 ;;
     'assurance capture|--path') return 0 ;;
@@ -140,6 +144,7 @@ _runectx_flag_takes_value() {
 
 _runectx_enum_for_flag() {
   case "$1" in
+    'adapter render-host-native|--role') echo 'discoverability_shim flow_asset' ;;
     'change close|--verification-status') echo 'failed passed pending skipped' ;;
     'change new|--shape') echo 'full minimum' ;;
     'change new|--size') echo 'large medium small' ;;
@@ -163,9 +168,10 @@ _runectx_suggest_provider_for_flag() {
 
 _runectx_positional_enum() {
   case "$1" in
+    'adapter render-host-native|2') echo 'change-new change-shape index promote standard-discover' ;;
     'assurance capture|1') echo 'context-pack' ;;
     'assurance enable|1') echo 'verified' ;;
-    'completion suggest|1') echo 'adapter-names bundle-ids change-ids promotion-targets' ;;
+    'completion suggest|1') echo 'adapter-names adapter-names-shell-injection bundle-ids change-ids promotion-targets' ;;
     'completion|1') echo 'bash fish zsh' ;;
     *) echo '' ;;
   esac
@@ -173,6 +179,7 @@ _runectx_positional_enum() {
 
 _runectx_suggest_provider_for_positional() {
   case "$1" in
+    'adapter render-host-native|1') echo 'adapter-names-shell-injection' ;;
     'adapter sync|1') echo 'adapter-names' ;;
     'assurance capture|2') echo 'bundle-ids' ;;
     'bundle resolve|1') echo 'bundle-ids' ;;

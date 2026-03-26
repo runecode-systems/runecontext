@@ -1227,9 +1227,9 @@ tools while preserving one core model.
   adapter-managed files, and unrelated repository code must not trigger this
   rule.
 - Adapter sync should define explicit ownership boundaries: tool-managed files
-  live in a namespaced managed subtree, user-owned config updates stay explicit
-  and reviewable, and any synced manifest remains convenience metadata rather
-  than correctness-critical state.
+  live in tool-native repo-local roots with strict ownership markers,
+  user-owned config updates stay explicit and reviewable, and sync does not
+  rely on correctness-critical hidden state.
 - The `generic` adapter should remain intentionally thin and documentation-first:
   manual workflows, CLI-assisted workflows, non-agent examples, and reviewable
   guidance. Dynamic suggestions and tool-native automation belong to shared CLI
@@ -1282,6 +1282,10 @@ tools while preserving one core model.
 - Alpha.7 host-native adapter generation should target the recommended surface
   for each tool: OpenCode syncs skills plus commands, Claude Code syncs skills
   plus an optional command shim, and Codex syncs skills only.
+- Where host docs support shell-output injection, alpha.7 host-native artifacts
+  should prefer static ownership headers plus injected minimal machine-oriented
+  `runectx` render bodies instead of duplicating large command prose directly in
+  synced artifacts.
 
 Implementation note: to keep reviews manageable and avoid baking more command
 metadata duplication into adapters, alpha.7 work is grouped into the following
@@ -1342,15 +1346,20 @@ recommended branch cuts.
   file boundaries, reviewable diffs, and explicit local config updates where
   required.
 - [ ] Issue: ensure adapter sync writes tool-managed files only inside a
-  namespaced managed subtree and never silently rewrites arbitrary user-owned
-  tool configuration.
-- [ ] Issue: define adapter-managed manifest contents for synced packs as
-  convenience metadata only, not correctness-critical state.
+  tool-native repo-local artifact roots and never silently rewrites arbitrary
+  user-owned tool configuration.
+- [ ] Issue: keep adapter sync implementation host-native-only (no mirrored
+  `.runecontext/adapters` tracking tree), with ownership-header-based
+  no-clobber and stale cleanup behavior.
 - [ ] Issue: ensure adapter sync never fetches from GitHub or any other network
   source; network access is reserved for explicit `runectx init` and
   `runectx upgrade` flows.
 - [ ] Issue: ensure adapters never introduce tool-specific source-of-truth
   files.
+- [ ] Issue: add a read-only `runectx adapter render-host-native` surface for
+  machine-oriented adapter prompt-body rendering, and use shell-output
+  injection for hosts that support it without changing the underlying CLI
+  operation semantics.
 - [ ] Issue: define the adapter rule that conversational UX for `change new`,
   `change shape`, `standard discover`, and `promote` remains a thin wrapper
   over explicit core operations, stable candidate data, and reviewable outputs.
