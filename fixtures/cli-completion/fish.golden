@@ -51,6 +51,7 @@ complete -c runectx -f -n '__fish_use_subcommand' -a 'init'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'promote'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'standard'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'status'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'upgrade'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'validate'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'version'
 complete -c runectx -f -n '__fish_seen_subcommand_from adapter' -a 'render-host-native'
@@ -67,6 +68,7 @@ complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'metadata'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'suggest'
 complete -c runectx -f -n '__fish_seen_subcommand_from generate' -a 'indexes'
 complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'discover'
+complete -c runectx -f -n '__fish_seen_subcommand_from upgrade' -a 'apply'
 complete -c runectx -n '__fish_seen_subcommand_from --version' -l json
 complete -c runectx -n '__fish_seen_subcommand_from --version' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from -v' -l json
@@ -204,6 +206,16 @@ complete -c runectx -n '__fish_seen_subcommand_from status' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from status' -l json
 complete -c runectx -n '__fish_seen_subcommand_from status' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from status' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from upgrade' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from upgrade' -l json
+complete -c runectx -n '__fish_seen_subcommand_from upgrade' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from upgrade' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from upgrade' -l target-version -r
+complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l json
+complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l target-version -r
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l json
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l non-interactive
@@ -248,6 +260,8 @@ function __runectx_flag_name_takes_value
   case --superseded-by
     return 0
   case --target
+    return 0
+  case --target-version
     return 0
   case --task
     return 0

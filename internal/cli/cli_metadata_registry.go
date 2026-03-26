@@ -77,6 +77,7 @@ func rootCommandsMetadata() []CommandMetadata {
 		assuranceCommandMetadata(),
 		adapterCommandMetadata(),
 		completionCommandMetadata(),
+		upgradeCommandMetadata(),
 	}
 	return append(commands, versionRootCommandsMetadata()...)
 }

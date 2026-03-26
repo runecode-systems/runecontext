@@ -88,9 +88,15 @@ Still incremental / not implemented end-to-end yet:
 
 ## Install / Try The CLI
 
-The recommended way to use RuneContext is through the `runectx` CLI. Even in the current alpha.7 pre-MVP state, the CLI is the main executable entrypoint for local init, validation, status/change workflow, bundle resolution, diagnostics, promotion, assurance, completion metadata/suggestions, and repo-local adapter sync flows.
+The recommended way to use RuneContext is through the `runectx` CLI. In the current alpha.8 release/install/upgrade hardening phase, the CLI remains the main executable entrypoint for local init, validation, status/change workflow, bundle resolution, diagnostics, promotion, assurance, completion metadata/suggestions, and repo-local adapter sync flows.
 
 The long-term canonical install path is a reviewable repo bundle from GitHub Releases. Today, the simplest way to dogfood the current checkout is `just build`, which assembles a repo-local package with the built CLI plus the RuneContext files it needs for full local operation.
+
+Official install lanes:
+
+- **Quick-install lane (lightweight):** download the `runectx` binary archive for your platform, verify the matching entry in `SHA256SUMS`, then extract/install and run `runectx version` (or `runectx --version` / `runectx -v`) to confirm what you installed. You can optionally run `runectx doctor` for environment/install diagnostics. This lane is intentionally lightweight and does not include signature/certificate/attestation verification.
+- **Verified-install lane (stronger):** use the dedicated `docs/install-verify.md` flow for signatures, certificates, and attestations. Keep this distinct from the quick-install lane.
+- **Manual repo install flow (canonical repo bundle path):** use the pinned GitHub release repo bundles produced by `nix build .#release-artifacts`. Download the bundle for the release tag you want, verify that bundle's matching `SHA256SUMS` entry for the same tag, then copy/vendor the bundle contents into your project (and optionally install `bin/runectx`). See `docs/install-verify.md` for the verification steps.
 
 Recommended local dogfood build from the current checkout:
 

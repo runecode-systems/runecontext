@@ -21,6 +21,8 @@ This directory holds the repository-wide fixture taxonomy for RuneContext contra
   - alpha.4 context-pack and report goldens for deterministic output coverage
 - `generated-indexes/`
   - alpha.4 manifest and generated index golden outputs
+- `reference-projects/`
+  - alpha.8 reference fixtures for embedded, linked, verified, and monorepo scenarios
 
 ## Reserved Future Fixture Families
 
@@ -29,7 +31,6 @@ These directories are reserved by convention for later alphas so tests and tooli
 - `assurance/`
 - `cli-json/`
 - `adapters/`
-- `reference-projects/`
 
 ## Storage Conventions
 
