@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -149,8 +150,10 @@ func TestRunUpgradeApplyHandlesValidYAMLSpacing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat updated config: %v", err)
 	}
-	if got, want := info.Mode().Perm(), os.FileMode(0o640); got != want {
-		t.Fatalf("expected config mode %o, got %o", want, got)
+	if runtime.GOOS != "windows" {
+		if got, want := info.Mode().Perm(), os.FileMode(0o640); got != want {
+			t.Fatalf("expected config mode %o, got %o", want, got)
+		}
 	}
 }
 
