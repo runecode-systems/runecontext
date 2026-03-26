@@ -210,7 +210,7 @@ func runUpgradeApply(project *cliProject, request upgradeRequest, machine machin
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	output := []line{{"result", "ok"}, {"command", "upgrade"}, {"phase", "apply"}, {"root", project.absRoot}, {"selected_config_path", configPath}, {"previous_version", current}, {"target_version", target}, {"state", "upgradeable"}, {"changed", "true"}}
+	output := []line{{"result", "ok"}, {"command", "upgrade"}, {"phase", "apply"}, {"root", project.absRoot}, {"selected_config_path", configPath}, {"previous_version", current}, {"target_version", target}, {"state", "current"}, {"changed", "true"}}
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
