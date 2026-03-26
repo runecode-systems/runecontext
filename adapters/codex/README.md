@@ -7,7 +7,7 @@ Codex adapter pack for conversational RuneContext workflows.
 - Keep Codex interactions conversational while preserving RuneContext core
   semantics.
 - Map flows to explicit `runectx` operations and stable CLI contracts.
-- Keep synced files under `.runecontext/adapters/codex/managed/`.
+- Keep synced files additive in Codex-native repo-local locations.
 
 ## Capability Declaration
 
@@ -35,6 +35,9 @@ Codex sync writes additive host-native artifacts:
 - Canonical flow assets: `.agents/skills/runecontext-*.md`
 
 Codex host-native integration remains skills-only.
+
+Codex host-native artifacts currently keep static machine-oriented bodies.
+Shell-output injection is not enabled yet for Codex.
 
 All generated host-native artifacts include `runecontext-managed-artifact:
 host-native-v1` so ownership is explicit for future uninstall and upgrade flows.

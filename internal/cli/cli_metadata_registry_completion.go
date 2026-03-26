@@ -25,7 +25,7 @@ func completionSuggestCommandMetadata() CommandMetadata {
 			{Name: "--prefix", Value: textValueSpec()},
 		},
 		Positionals: []PositionalMetadata{
-			{Name: "provider", Value: enumValueSpec(suggestionProviderChangeIDs, suggestionProviderBundleIDs, suggestionProviderPromotionTargets, suggestionProviderAdapterNames)},
+			{Name: "provider", Value: enumValueSpec(suggestionProviderChangeIDs, suggestionProviderBundleIDs, suggestionProviderPromotionTargets, suggestionProviderAdapterNames, suggestionProviderAdapterNamesShellInjection)},
 		},
 	}
 }

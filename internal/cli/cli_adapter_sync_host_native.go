@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -18,10 +19,10 @@ type hostNativeArtifact struct {
 }
 
 type hostNativeFlow struct {
-	id      string
-	name    string
-	command string
-	source  string
+	id          string
+	name        string
+	description string
+	source      string
 }
 
 func buildHostNativeArtifacts(tool string) ([]hostNativeArtifact, error) {
@@ -32,8 +33,10 @@ func buildHostNativeArtifacts(tool string) ([]hostNativeArtifact, error) {
 		return buildClaudeCodeHostNativeArtifacts(), nil
 	case "codex":
 		return buildCodexHostNativeArtifacts(), nil
-	default:
+	case "generic":
 		return nil, nil
+	default:
+		return nil, fmt.Errorf("adapter %q not found in installed adapter packs", tool)
 	}
 }
 
@@ -116,76 +119,62 @@ func sortHostNativeArtifacts(artifacts []hostNativeArtifact) {
 func toolFlowMappings(tool string) []hostNativeFlow {
 	return []hostNativeFlow{
 		{
-			id:      "change-new",
-			name:    "change new",
-			command: "runectx change new --title \"<title>\" --type <type> [--size <size>] [--shape <minimum|full>] [--bundle <bundle-id>] [--description \"<text>\"] [--path <project-root>]",
-			source:  "adapters/" + tool + "/flows/change-new.md",
+			id:          "change-new",
+			name:        "change new",
+			description: "Create a new RuneContext change",
+			source:      "adapters/" + tool + "/flows/change-new.md",
 		},
 		{
-			id:      "change-shape",
-			name:    "change shape",
-			command: "runectx change shape CHANGE_ID [--design <text>] [--verification <text>] [--task <text>] [--reference <text>] [--path <project-root>]",
-			source:  "adapters/" + tool + "/flows/change-shape.md",
+			id:          "change-shape",
+			name:        "change shape",
+			description: "Shape an existing RuneContext change",
+			source:      "adapters/" + tool + "/flows/change-shape.md",
 		},
 		{
-			id:      "standard-discover",
-			name:    "standard discover",
-			command: "runectx standard discover [--path <project-root>] [--change <CHANGE_ID>] [--scope-path <path>] [--focus \"<text>\"] [--confirm-handoff] [--target <TYPE:PATH>]",
-			source:  "adapters/" + tool + "/flows/standard-discover.md",
+			id:          "standard-discover",
+			name:        "standard discover",
+			description: "Discover standards candidates for promotion",
+			source:      "adapters/" + tool + "/flows/standard-discover.md",
 		},
 		{
-			id:      "promote",
-			name:    "promote",
-			command: "runectx promote CHANGE_ID [--accept|--complete] [--target <TYPE:PATH>] [--path <project-root>]",
-			source:  "adapters/" + tool + "/flows/promote.md",
+			id:          "promote",
+			name:        "promote",
+			description: "Advance RuneContext promotion state",
+			source:      "adapters/" + tool + "/flows/promote.md",
 		},
 	}
 }
 
 func buildHostNativeFlowAssetContent(tool string, flow hostNativeFlow) []byte {
-	lines := []string{
+	body := buildHostNativeBody(tool, flow.id, hostNativeKindFlowAsset)
+	lines := append(hostNativeFrontmatter(tool, flow, hostNativeKindFlowAsset), []string{
 		"<!-- " + hostNativeOwnershipMarker + " -->",
 		"<!-- runecontext-tool: " + tool + " -->",
 		"<!-- runecontext-kind: flow_asset -->",
 		"<!-- runecontext-id: runecontext:" + flow.id + " -->",
 		"# RuneContext Skill: " + flow.name,
 		"",
-		"This is a RuneContext-managed host-native flow asset.",
-		"",
-		"- Canonical flow source: `" + flow.source + "`",
-		"- Adapter role: canonical flow asset",
-		"- Operation identifier: `runecontext:" + flow.id + "`",
-		"",
-		"```sh",
-		flow.command,
-		"```",
-	}
+		body,
+	}...)
 	return []byte(strings.Join(lines, "\n") + "\n")
 }
 
 func buildHostNativeCommandShimContent(tool string, flow hostNativeFlow) []byte {
-	lines := []string{
+	body := buildHostNativeBody(tool, flow.id, hostNativeKindDiscoverabilityShim)
+	lines := append(hostNativeFrontmatter(tool, flow, hostNativeKindDiscoverabilityShim), []string{
 		"<!-- " + hostNativeOwnershipMarker + " -->",
 		"<!-- runecontext-tool: " + tool + " -->",
 		"<!-- runecontext-kind: discoverability_shim -->",
 		"<!-- runecontext-id: runecontext:" + flow.id + " -->",
 		"# RuneContext Command Shim: " + flow.name,
 		"",
-		"This file is a discoverability shim that points to the canonical flow asset.",
-		"",
-		"- Canonical flow source: `" + flow.source + "`",
-		"- Adapter role: discoverability shim",
-		"- Operation identifier: `runecontext:" + flow.id + "`",
-		"",
-		"```sh",
-		flow.command,
-		"```",
-	}
+		body,
+	}...)
 	return []byte(strings.Join(lines, "\n") + "\n")
 }
 
 func buildClaudeCommandIndexShimContent(flows []hostNativeFlow) []byte {
-	lines := []string{
+	lines := append(hostNativeIndexFrontmatter("claude-code"), []string{
 		"<!-- " + hostNativeOwnershipMarker + " -->",
 		"<!-- runecontext-tool: claude-code -->",
 		"<!-- runecontext-kind: discoverability_shim -->",
@@ -197,18 +186,75 @@ func buildClaudeCommandIndexShimContent(flows []hostNativeFlow) []byte {
 		"- Adapter role: discoverability shim",
 		"",
 		"## Commands",
-	}
+	}...)
 	for _, flow := range flows {
+		commandPath := strings.ReplaceAll(flow.id, "-", " ")
 		lines = append(lines,
 			"",
 			"- `runecontext:"+flow.id+"`",
 			"  - Canonical flow source: `"+flow.source+"`",
 			"  - Skill file: `.claude/skills/runecontext-"+flow.id+".md`",
 			"",
-			"```sh",
-			flow.command,
-			"```",
+			"- command_path: `"+commandPath+"`",
 		)
 	}
+	lines = append(lines,
+		"",
+		buildHostNativeBody("claude-code", "index", hostNativeKindDiscoverabilityShim),
+	)
 	return []byte(strings.Join(lines, "\n") + "\n")
+}
+
+func hostNativeFrontmatter(tool string, flow hostNativeFlow, kind string) []string {
+	name := namespacedHostNativeName(flow.id)
+	description := flow.description
+	if kind == hostNativeKindDiscoverabilityShim {
+		description = flow.description
+	}
+	switch tool {
+	case "opencode":
+		return []string{
+			"---",
+			"description: " + description,
+			"---",
+		}
+	case "claude-code", "codex":
+		return []string{
+			"---",
+			"name: " + name,
+			"description: " + description,
+			"---",
+		}
+	default:
+		return nil
+	}
+}
+
+func hostNativeIndexFrontmatter(tool string) []string {
+	if tool != "claude-code" {
+		return nil
+	}
+	return []string{
+		"---",
+		"name: runecontext",
+		"description: RuneContext discoverability shim index",
+		"---",
+	}
+}
+
+func namespacedHostNativeName(operation string) string {
+	return "runecontext-" + operation
+}
+
+func buildHostNativeBody(tool, operation, role string) string {
+	role = normalizeHostNativeRole(role)
+	if supportsShellInjection(tool) {
+		return "!`runectx adapter render-host-native --role " + role + " " + tool + " " + operation + "`"
+	}
+	req := adapterRenderRequest{tool: tool, operation: operation, role: role}
+	body, err := renderHostNativeOperationMarkdown(req)
+	if err != nil {
+		return "- render_error: `" + strings.ReplaceAll(err.Error(), "`", "") + "`"
+	}
+	return strings.TrimSpace(body)
 }

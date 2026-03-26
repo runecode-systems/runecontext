@@ -77,7 +77,11 @@ func validateExistingHostNativeForDelete(path, rel string) error {
 		}
 		return err
 	}
-	return validateHostNativeOwnershipForDelete(data, rel)
+	header, ok := parseHostNativeOwnershipHeader(data)
+	if !ok {
+		return validateHostNativeOwnershipForDelete(data, rel, "")
+	}
+	return validateHostNativeOwnershipForDelete(data, rel, header.Tool)
 }
 
 func hostNativeArtifactFromContent(rel string, content []byte) hostNativeArtifact {

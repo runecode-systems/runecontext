@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -36,34 +37,57 @@ func validateHostNativeOwnershipForWrite(content []byte, rel string, artifact ho
 	return nil
 }
 
-func validateHostNativeOwnershipForDelete(content []byte, rel string) error {
-	if _, ok := parseHostNativeOwnershipHeader(content); !ok {
+func validateHostNativeOwnershipForDelete(content []byte, rel, tool string) error {
+	parsed, ok := parseHostNativeOwnershipHeader(content)
+	if !ok {
 		return fmt.Errorf("host-native artifact conflict at %s: existing file is not RuneContext-managed", rel)
+	}
+	if parsed.Tool != tool {
+		return fmt.Errorf("host-native artifact conflict at %s: ownership header tool mismatch", rel)
+	}
+	if !ownershipMatchesDeletePath(rel, parsed) {
+		return fmt.Errorf("host-native artifact conflict at %s: ownership header path mismatch", rel)
 	}
 	return nil
 }
 
 func parseHostNativeOwnershipHeader(content []byte) (hostNativeOwnershipHeader, bool) {
 	lines := strings.Split(string(content), "\n")
-	if len(lines) < 4 {
+	start := skipFrontmatter(lines)
+	if len(lines[start:]) < 4 {
 		return hostNativeOwnershipHeader{}, false
 	}
-	if lines[0] != "<!-- "+hostNativeOwnershipMarker+" -->" {
+	if lines[start] != "<!-- "+hostNativeOwnershipMarker+" -->" {
 		return hostNativeOwnershipHeader{}, false
 	}
-	tool, ok := parseOwnedCommentLine(lines[1], "runecontext-tool: ")
+	tool, ok := parseOwnedCommentLine(lines[start+1], "runecontext-tool: ")
 	if !ok || !isSupportedHostNativeTool(tool) {
 		return hostNativeOwnershipHeader{}, false
 	}
-	kind, ok := parseOwnedCommentLine(lines[2], "runecontext-kind: ")
+	kind, ok := parseOwnedCommentLine(lines[start+2], "runecontext-kind: ")
 	if !ok || !isSupportedHostNativeKind(kind) {
 		return hostNativeOwnershipHeader{}, false
 	}
-	id, ok := parseOwnedCommentLine(lines[3], "runecontext-id: ")
+	id, ok := parseOwnedCommentLine(lines[start+3], "runecontext-id: ")
 	if !ok || !strings.HasPrefix(id, "runecontext:") || len(id) == len("runecontext:") {
 		return hostNativeOwnershipHeader{}, false
 	}
 	return hostNativeOwnershipHeader{Tool: tool, Kind: kind, ID: id}, true
+}
+
+func skipFrontmatter(lines []string) int {
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return 0
+	}
+	for idx := 1; idx < len(lines); idx++ {
+		if strings.TrimSpace(lines[idx]) == "---" {
+			if idx+1 < len(lines) && strings.TrimSpace(lines[idx+1]) == "" {
+				return idx + 2
+			}
+			return idx + 1
+		}
+	}
+	return 0
 }
 
 func parseOwnedCommentLine(line, key string) (string, bool) {
@@ -90,4 +114,39 @@ func isSupportedHostNativeTool(tool string) bool {
 
 func isSupportedHostNativeKind(kind string) bool {
 	return kind == hostNativeKindFlowAsset || kind == hostNativeKindDiscoverabilityShim
+}
+
+func ownershipMatchesDeletePath(rel string, header hostNativeOwnershipHeader) bool {
+	rel = filepath.ToSlash(rel)
+	switch header.Tool {
+	case "opencode":
+		return ownershipMatchesNamespacedMarkdown(rel, header, ".opencode/skills/", ".opencode/commands/")
+	case "claude-code":
+		if ownershipMatchesNamespacedMarkdown(rel, header, ".claude/skills/") {
+			return true
+		}
+		if rel == ".claude/commands/runecontext.md" {
+			return header.ID == "runecontext:index" && header.Kind == hostNativeKindDiscoverabilityShim
+		}
+	case "codex":
+		return ownershipMatchesNamespacedMarkdown(rel, header, ".agents/skills/")
+	}
+	return false
+}
+
+func ownershipMatchesNamespacedMarkdown(rel string, header hostNativeOwnershipHeader, prefixes ...string) bool {
+	if !ownershipPathHasAllowedPrefix(rel, prefixes...) {
+		return false
+	}
+	base := filepath.Base(rel)
+	return strings.HasPrefix(base, "runecontext-") && strings.HasSuffix(base, ".md") && strings.HasPrefix(header.ID, "runecontext:")
+}
+
+func ownershipPathHasAllowedPrefix(rel string, prefixes ...string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(rel, prefix) {
+			return true
+		}
+	}
+	return false
 }

@@ -52,6 +52,25 @@ func TestRunCompletionSuggestSoftFailsOutsideRuneContextProject(t *testing.T) {
 	}
 }
 
+func TestRunCompletionSuggestAdapterNamesShellInjection(t *testing.T) {
+	root, err := repoRootForTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"completion", "suggest", suggestionProviderAdapterNamesShellInjection}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	items := completionSuggestLines(stdout.String())
+	if !slices.Equal(items, []string{"claude-code", "opencode"}) {
+		t.Fatalf("expected shell-injection adapter suggestions, got %#v", items)
+	}
+}
+
 func TestRunCompletionSuggestExplicitPathErrors(t *testing.T) {
 	t.Run("explicit path missing project config", func(t *testing.T) {
 		root := t.TempDir()
@@ -245,6 +264,9 @@ func TestCompletionMetadataIncludesSuggestionProviders(t *testing.T) {
 	}
 	if got := positionalProviders["bundle resolve|1"]; got != suggestionProviderBundleIDs {
 		t.Fatalf("expected bundle resolve positional suggestion provider, got %q", got)
+	}
+	if got := positionalProviders["adapter render-host-native|1"]; got != suggestionProviderAdapterNamesShellInjection {
+		t.Fatalf("expected render-host-native positional suggestion provider, got %q", got)
 	}
 }
 

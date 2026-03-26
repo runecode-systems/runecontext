@@ -30,31 +30,6 @@ func TestRunAdapterSyncHostNativeSpoofedMarkerFailsClosed(t *testing.T) {
 	}
 }
 
-func TestRunAdapterSyncRejectsInvalidManifestHostNativePath(t *testing.T) {
-	projectRoot := t.TempDir()
-	runAdapterSyncAndParse(t, projectRoot, "opencode")
-
-	manifestPath := filepath.Join(projectRoot, ".runecontext", "adapters", "opencode", "sync-manifest.yaml")
-	manifestData, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("read manifest: %v", err)
-	}
-	updated := strings.Replace(string(manifestData), "host_native_files:\n", "host_native_files:\n  - ../outside.md\n", 1)
-	if err := os.WriteFile(manifestPath, []byte(updated), 0o644); err != nil {
-		t.Fatalf("write updated manifest: %v", err)
-	}
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	code := Run([]string{"adapter", "sync", "--path", projectRoot, "opencode"}, &stdout, &stderr)
-	if code != exitInvalid {
-		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
-	}
-	if !strings.Contains(stderr.String(), "outside supported host-native roots") {
-		t.Fatalf("expected invalid manifest host-native path error, got %q", stderr.String())
-	}
-}
-
 func TestApplyAdapterSyncRechecksHostNativeOwnershipBeforeWrite(t *testing.T) {
 	projectRoot := t.TempDir()
 	runAdapterSyncAndParse(t, projectRoot, "opencode")
@@ -88,22 +63,14 @@ func TestApplyAdapterSyncRechecksHostNativeOwnershipBeforeDelete(t *testing.T) {
 	projectRoot := t.TempDir()
 	runAdapterSyncAndParse(t, projectRoot, "opencode")
 
-	manifestPath := filepath.Join(projectRoot, ".runecontext", "adapters", "opencode", "sync-manifest.yaml")
-	manifestData, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("read manifest: %v", err)
-	}
 	staleRel := ".opencode/skills/runecontext-delete-race.md"
-	updated := strings.Replace(string(manifestData), "host_native_files:\n", "host_native_files:\n  - "+staleRel+"\n", 1)
-	if err := os.WriteFile(manifestPath, []byte(updated), 0o644); err != nil {
-		t.Fatalf("write updated manifest: %v", err)
-	}
 
 	stalePath := filepath.Join(projectRoot, filepath.FromSlash(staleRel))
 	if err := os.MkdirAll(filepath.Dir(stalePath), 0o755); err != nil {
 		t.Fatalf("mkdir stale dir: %v", err)
 	}
 	managed := "<!-- runecontext-managed-artifact: host-native-v1 -->\n<!-- runecontext-tool: opencode -->\n<!-- runecontext-kind: flow_asset -->\n<!-- runecontext-id: runecontext:delete-race -->\n"
+	managed = "---\ndescription: stale managed marker\n---\n" + managed
 	if err := os.WriteFile(stalePath, []byte(managed), 0o644); err != nil {
 		t.Fatalf("write managed stale file: %v", err)
 	}
@@ -117,5 +84,52 @@ func TestApplyAdapterSyncRechecksHostNativeOwnershipBeforeDelete(t *testing.T) {
 	}
 	if err := applyAdapterSync(state); err == nil {
 		t.Fatalf("expected ownership recheck failure for delete during apply")
+	}
+}
+
+func TestRunAdapterSyncIgnoresUnrelatedFilesUnderHostNativeRoots(t *testing.T) {
+	projectRoot := t.TempDir()
+	runAdapterSyncAndParse(t, projectRoot, "opencode")
+
+	unrelated := filepath.Join(projectRoot, ".opencode", "skills", "notes.md")
+	if err := os.MkdirAll(filepath.Dir(unrelated), 0o755); err != nil {
+		t.Fatalf("mkdir unrelated file dir: %v", err)
+	}
+	if err := os.WriteFile(unrelated, []byte("user note\n"), 0o644); err != nil {
+		t.Fatalf("write unrelated file: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"adapter", "sync", "--path", projectRoot, "opencode"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected sync success with unrelated file present, got %d (%s)", code, stderr.String())
+	}
+	if _, err := os.Stat(unrelated); err != nil {
+		t.Fatalf("expected unrelated file preserved, got %v", err)
+	}
+}
+
+func TestRunAdapterSyncIgnoresManagedFileFromDifferentTool(t *testing.T) {
+	projectRoot := t.TempDir()
+	runAdapterSyncAndParse(t, projectRoot, "opencode")
+
+	foreign := filepath.Join(projectRoot, ".opencode", "skills", "runecontext-foreign.md")
+	if err := os.MkdirAll(filepath.Dir(foreign), 0o755); err != nil {
+		t.Fatalf("mkdir foreign file dir: %v", err)
+	}
+	content := "---\nname: runecontext-foreign\ndescription: foreign\n---\n<!-- runecontext-managed-artifact: host-native-v1 -->\n<!-- runecontext-tool: claude-code -->\n<!-- runecontext-kind: flow_asset -->\n<!-- runecontext-id: runecontext:foreign -->\n"
+	if err := os.WriteFile(foreign, []byte(content), 0o644); err != nil {
+		t.Fatalf("write foreign managed file: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"adapter", "sync", "--path", projectRoot, "opencode"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected sync success with foreign-tool managed file, got %d (%s)", code, stderr.String())
+	}
+	if _, err := os.Stat(foreign); err != nil {
+		t.Fatalf("expected foreign-tool managed file preserved, got %v", err)
 	}
 }

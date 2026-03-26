@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	suggestionProviderChangeIDs        = "change-ids"
-	suggestionProviderBundleIDs        = "bundle-ids"
-	suggestionProviderPromotionTargets = "promotion-targets"
-	suggestionProviderAdapterNames     = "adapter-names"
+	suggestionProviderChangeIDs                  = "change-ids"
+	suggestionProviderBundleIDs                  = "bundle-ids"
+	suggestionProviderPromotionTargets           = "promotion-targets"
+	suggestionProviderAdapterNames               = "adapter-names"
+	suggestionProviderAdapterNamesShellInjection = "adapter-names-shell-injection"
 )
 
 type completionSuggestRequest struct {
@@ -109,7 +110,7 @@ func parseCompletionSuggestArgs(args []string) (completionSuggestRequest, error)
 
 func isKnownSuggestionProvider(provider string) bool {
 	switch provider {
-	case suggestionProviderChangeIDs, suggestionProviderBundleIDs, suggestionProviderPromotionTargets, suggestionProviderAdapterNames:
+	case suggestionProviderChangeIDs, suggestionProviderBundleIDs, suggestionProviderPromotionTargets, suggestionProviderAdapterNames, suggestionProviderAdapterNamesShellInjection:
 		return true
 	default:
 		return false
@@ -128,6 +129,8 @@ func rawCompletionSuggestions(request completionSuggestRequest) ([]string, error
 	switch request.provider {
 	case suggestionProviderAdapterNames:
 		return adapterNameSuggestions(request)
+	case suggestionProviderAdapterNamesShellInjection:
+		return adapterNameShellInjectionSuggestions(request)
 	case suggestionProviderChangeIDs:
 		index, ok, err := loadSuggestionProjectIndex(request)
 		if err != nil || !ok {
@@ -201,6 +204,20 @@ func adapterNameSuggestions(request completionSuggestRequest) ([]string, error) 
 	}
 	sort.Strings(names)
 	return names, nil
+}
+
+func adapterNameShellInjectionSuggestions(request completionSuggestRequest) ([]string, error) {
+	names, err := adapterNameSuggestions(request)
+	if err != nil {
+		return nil, err
+	}
+	filtered := make([]string, 0, len(names))
+	for _, name := range names {
+		if supportsShellInjection(name) {
+			filtered = append(filtered, name)
+		}
+	}
+	return filtered, nil
 }
 
 func handleAdapterSuggestionRootError(request completionSuggestRequest, err error) ([]string, error) {

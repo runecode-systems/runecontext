@@ -12,107 +12,36 @@ func applyAdapterSync(state adapterSyncState) error {
 	if err := ensureAdapterSyncPathsSafe(state); err != nil {
 		return err
 	}
-	plannedWrites, writeManifest, err := plannedAdapterWrites(state)
+	plannedWrites, err := plannedAdapterWrites(state)
 	if err != nil {
 		return err
 	}
-	return applyAdapterSyncMutations(state, plannedWrites, writeManifest)
+	return applyAdapterSyncMutations(state, plannedWrites)
 }
 
-func applyAdapterSyncMutations(state adapterSyncState, plannedWrites map[string]struct{}, writeManifest bool) error {
-	if err := os.MkdirAll(state.managedRoot, 0o755); err != nil {
-		return err
-	}
-	if err := copyManagedFiles(state.sourceRoot, state.managedRoot, state.managedFiles, plannedWrites); err != nil {
-		return err
-	}
+func applyAdapterSyncMutations(state adapterSyncState, plannedWrites map[string]struct{}) error {
 	if err := applyHostNativeArtifactWrites(state.absRoot, state.hostNativeFiles, plannedWrites); err != nil {
 		return err
 	}
 	if err := applyHostNativeArtifactDeletes(state.absRoot, state.plan); err != nil {
 		return err
 	}
-	if err := removeStaleManagedFiles(state.managedRoot, state.managedFiles); err != nil {
-		return err
-	}
-	return writeAdapterManifestIfNeeded(state, writeManifest)
+	return nil
 }
 
-func writeAdapterManifestIfNeeded(state adapterSyncState, writeManifest bool) error {
-	if !writeManifest {
-		return nil
-	}
-	if err := os.MkdirAll(filepath.Dir(state.manifestPath), 0o755); err != nil {
-		return err
-	}
-	return writeAtomicFile(state.manifestPath, state.manifest, 0o644)
-}
-
-func plannedAdapterWrites(state adapterSyncState) (map[string]struct{}, bool, error) {
-	managedRelRoot, err := filepath.Rel(state.absRoot, state.managedRoot)
-	if err != nil {
-		return nil, false, err
-	}
-	manifestRelPath, err := filepath.Rel(state.absRoot, state.manifestPath)
-	if err != nil {
-		return nil, false, err
-	}
-	managedPrefix := filepath.ToSlash(managedRelRoot) + "/"
-	manifestRelPath = filepath.ToSlash(manifestRelPath)
+func plannedAdapterWrites(state adapterSyncState) (map[string]struct{}, error) {
 	plannedWrites := make(map[string]struct{})
-	writeManifest := false
 	for _, mutation := range state.plan {
 		if mutation.Action != "created" && mutation.Action != "updated" {
 			continue
 		}
-		if mutation.Path == manifestRelPath {
-			writeManifest = true
-			continue
-		}
-		if strings.HasPrefix(mutation.Path, managedPrefix) {
-			rel := strings.TrimPrefix(mutation.Path, managedPrefix)
-			plannedWrites[filepath.ToSlash(rel)] = struct{}{}
-			continue
-		}
 		plannedWrites[mutation.Path] = struct{}{}
 	}
-	return plannedWrites, writeManifest, nil
-}
-
-func copyManagedFiles(sourceRoot, managedRoot string, sourceFiles []string, plannedWrites map[string]struct{}) error {
-	for _, rel := range sourceFiles {
-		if _, ok := plannedWrites[filepath.ToSlash(rel)]; !ok {
-			continue
-		}
-		if err := copyManagedFile(sourceRoot, managedRoot, rel); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func copyManagedFile(sourceRoot, managedRoot, rel string) error {
-	srcPath := filepath.Join(sourceRoot, rel)
-	dstPath := filepath.Join(managedRoot, rel)
-	srcInfo, err := os.Lstat(srcPath)
-	if err != nil {
-		return err
-	}
-	if srcInfo.Mode()&os.ModeSymlink != 0 || !srcInfo.Mode().IsRegular() {
-		return fmt.Errorf("adapter sync does not support non-regular source files: %s", filepath.ToSlash(srcPath))
-	}
-	data, err := os.ReadFile(srcPath)
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(dstPath), 0o755); err != nil {
-		return err
-	}
-	return writeAtomicFile(dstPath, data, srcInfo.Mode().Perm())
+	return plannedWrites, nil
 }
 
 func ensureAdapterSyncPathsSafe(state adapterSyncState) error {
-	paths := []string{state.managedRoot, filepath.Dir(state.manifestPath)}
+	paths := make([]string, 0, len(state.hostNativeFiles)+len(state.plan))
 	for _, artifact := range state.hostNativeFiles {
 		paths = append(paths, filepath.Join(state.absRoot, filepath.FromSlash(artifact.relPath)))
 	}
@@ -176,19 +105,6 @@ func ensureNotSymlink(path string) error {
 		return fmt.Errorf("adapter sync rejects symlinked path %s", filepath.ToSlash(path))
 	}
 	return nil
-}
-
-func removeStaleManagedFiles(managedRoot string, sourceFiles []string) error {
-	stale, err := collectStaleManagedFiles(managedRoot, sourceFiles)
-	if err != nil {
-		return err
-	}
-	for _, file := range stale {
-		if err := os.Remove(file.absPath); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-	}
-	return pruneEmptyDirs(managedRoot)
 }
 
 func pruneEmptyDirs(root string) error {

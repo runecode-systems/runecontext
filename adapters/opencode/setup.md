@@ -8,14 +8,16 @@ runectx adapter sync opencode --path <project-root>
 
 Sync writes RuneContext-managed files to:
 
-- `.runecontext/adapters/opencode/managed/`
-- `.runecontext/adapters/opencode/sync-manifest.yaml`
 - `.opencode/skills/runecontext-*.md`
 - `.opencode/commands/runecontext-*.md`
 
 The `.opencode/skills/` files are canonical host-native flow assets.
 
 The `.opencode/commands/` files are discoverability shims.
+
+OpenCode files include shell-output injection calls to:
+
+- `runectx adapter render-host-native`
 
 All generated host-native files include the ownership marker:
 

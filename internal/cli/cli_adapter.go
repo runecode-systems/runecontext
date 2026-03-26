@@ -26,11 +26,15 @@ func runAdapter(args []string, stdout, stderr io.Writer) int {
 		return exitOK
 	}
 
-	if remaining[0] != "sync" {
+	switch remaining[0] {
+	case "sync":
+		return runAdapterSync(remaining[1:], machine, stdout, stderr)
+	case "render-host-native":
+		return runAdapterRenderHostNative(remaining[1:], machine, stdout, stderr)
+	default:
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("adapter", adapterUsage, fmt.Errorf("unknown adapter subcommand %q", remaining[0])), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	return runAdapterSync(remaining[1:], machine, stdout, stderr)
 }
 
 func runAdapterSync(args []string, machine machineOptions, stdout, stderr io.Writer) int {

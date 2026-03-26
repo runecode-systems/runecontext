@@ -24,7 +24,7 @@ func plannedHostNativeWrites(absRoot string, artifacts []hostNativeArtifact) ([]
 	return plan, nil
 }
 
-func plannedHostNativeDeletes(absRoot string, previousPaths []string, artifacts []hostNativeArtifact) ([]contracts.FileMutation, error) {
+func plannedHostNativeDeletes(absRoot, tool string, previousPaths []string, artifacts []hostNativeArtifact) ([]contracts.FileMutation, error) {
 	if len(previousPaths) == 0 {
 		return nil, nil
 	}
@@ -38,7 +38,7 @@ func plannedHostNativeDeletes(absRoot string, previousPaths []string, artifacts 
 		if _, ok := desired[rel]; ok {
 			continue
 		}
-		deleteMutation, err := plannedHostNativeDelete(absRoot, rel)
+		deleteMutation, err := plannedHostNativeDelete(absRoot, rel, tool)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +59,7 @@ func desiredHostNativePaths(artifacts []hostNativeArtifact) map[string]struct{} 
 	return desired
 }
 
-func plannedHostNativeDelete(absRoot, rel string) (contracts.FileMutation, error) {
+func plannedHostNativeDelete(absRoot, rel, tool string) (contracts.FileMutation, error) {
 	absPath := filepath.Join(absRoot, filepath.FromSlash(rel))
 	data, err := os.ReadFile(absPath)
 	if err != nil {
@@ -68,7 +68,7 @@ func plannedHostNativeDelete(absRoot, rel string) (contracts.FileMutation, error
 		}
 		return contracts.FileMutation{}, err
 	}
-	if err := validateHostNativeOwnershipForDelete(data, rel); err != nil {
+	if err := validateHostNativeOwnershipForDelete(data, rel, tool); err != nil {
 		return contracts.FileMutation{}, err
 	}
 	return contracts.FileMutation{Path: rel, Action: "deleted"}, nil

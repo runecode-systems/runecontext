@@ -1,12 +1,12 @@
 # RuneContext - Portable, markdown-first project knowledge, standards, and context bundles
 
-[![CI](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml/badge.svg)](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml) [![Status: alpha.5](https://img.shields.io/badge/status-alpha.5-orange)](docs/implementation-plan/README.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![CI](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml/badge.svg)](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml) [![Status: alpha.7](https://img.shields.io/badge/status-alpha.7-orange)](docs/implementation-plan/README.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 RuneContext is a portable, markdown-first, git-native system for project knowledge, standards, changes, and reusable context bundles. It is AI-tooling-agnostic by design, so teams can use the same source artifacts with different tools or manual workflows without turning the format into a product-specific silo.
 
 ## Status
 
-RuneContext is still pre-MVP and not production-ready. The current repository now includes the alpha.1 contract foundation, the alpha.2 source-resolution and bundle-engine slice, the alpha.3 change-workflow slice, the alpha.4 context-pack slice, and the alpha.5 broadened CLI slice: frozen core contracts, versioned schemas, fixtures, Go validation code, embedded/git/path source resolution, monorepo discovery, signed-tag verification with explicit trusted-signer input, deterministic bundle semantics, standards linkage, traceability, stable change IDs, deterministic context-pack generation and hashing, generated indexes/manifests, reviewable promotion assessment, local-first `init` scaffolding, `bundle resolve`, `doctor`, explicit `promote`, advisory `standard discover`, shell completion scripts, and shared machine-facing CLI contracts with `--json`, `--non-interactive`, `--dry-run`, and `--explain` (except `runectx completion`, which emits plain-text completion scripts). Verified assurance flows, adapters, adapter sync/thin-pack surfaces, and release/install/update hardening remain in progress toward `v0.1.0`.
+RuneContext is still pre-MVP and not production-ready. The current repository now includes the alpha.1 contract foundation, the alpha.2 source-resolution and bundle-engine slice, the alpha.3 change-workflow slice, the alpha.4 context-pack slice, the alpha.5 broadened CLI slice, the alpha.6 assurance slice, and substantial alpha.7 adapter work: frozen core contracts, versioned schemas, fixtures, Go validation code, embedded/git/path source resolution, monorepo discovery, signed-tag verification with explicit trusted-signer input, deterministic bundle semantics, standards linkage, traceability, stable change IDs, deterministic context-pack generation and hashing, generated indexes/manifests, reviewable promotion assessment, local-first `init` scaffolding, `bundle resolve`, `doctor`, explicit `promote`, advisory `standard discover`, shell completion scripts, shared machine-facing CLI contracts, verified assurance enable/backfill/capture flows, canonical completion metadata and dynamic suggestions, thin generic/tool adapters, repo-local host-native adapter sync, strict ownership/no-clobber behavior, and shell-output-driven minimal adapter prompt bodies for supported hosts. Release/install/update hardening remains in progress toward `v0.1.0`.
 
 ## Why RuneContext
 
@@ -30,22 +30,22 @@ RuneContext is still pre-MVP and not production-ready. The current repository no
 - Normative core contracts in `core/` for terminology, boundaries, layout, and trust rules.
 - Versioned schemas in `schemas/` for `runecontext.yaml`, bundles, change status, context packs, specs, decisions, and standards.
 - Contract fixtures in `fixtures/` for schema validation, markdown structure, cross-artifact traceability, source resolution, bundle resolution, and change workflow.
-- A Go validation, resolution, change-workflow, context-pack, promotion, and broadened CLI implementation in `internal/contracts/`, `internal/cli/`, and `cmd/runectx/`.
+- A Go validation, resolution, change-workflow, context-pack, promotion, assurance, adapter-sync, and broadened CLI implementation in `internal/contracts/`, `internal/cli/`, and `cmd/runectx/`.
 - Source resolution for embedded projects, linked git sources by pinned commit, linked git sources by signed tag, opt-in mutable refs, local path sources, and nearest-ancestor monorepo discovery.
 - Change authoring and history-preserving workflow operations for stable change IDs, minimum/full shaping, standards linkage, lifecycle validation, and fail-closed close/reallocate behavior.
 - Deterministic context bundle loading and evaluation with inheritance linearization, cycle/depth rejection, ordered include/exclude precedence, concrete per-rule match inventories, and fail-closed path/symlink containment.
 - Deterministic context-pack building and reporting with explicit whole-second `generated_at`, stable `pack_hash` output, normalized LF/CRLF hashing, persisted provenance, explanation output, advisory thresholds, and fail-closed rebuild checks.
 - Stable generated `manifest.yaml`, `indexes/changes-by-status.yaml`, and `indexes/bundles.yaml` artifacts plus reviewable close-time promotion assessment suggestions and explicit promotion transitions.
-- CLI support for `runectx init`, `runectx validate`, `runectx status`, `runectx change new`, `runectx change shape`, `runectx change close`, `runectx change reallocate`, `runectx bundle resolve`, `runectx doctor`, `runectx promote`, `runectx standard discover`, and `runectx completion <bash|zsh|fish>`.
+- CLI support for `runectx init`, `runectx validate`, `runectx status`, `runectx change new`, `runectx change shape`, `runectx change close`, `runectx change reallocate`, `runectx bundle resolve`, `runectx doctor`, `runectx promote`, `runectx standard discover`, `runectx assurance enable|backfill|capture`, `runectx adapter sync`, `runectx adapter render-host-native`, `runectx completion <bash|zsh|fish>`, `runectx completion suggest`, and `runectx completion metadata`.
 - Shared machine-facing CLI behavior across command operations with stable `key=value` output by default plus `--json`, `--non-interactive`, `--dry-run` for write flows, and incremental `--explain` support (`runectx completion` is the plain-text script-output exception).
+- Repo-local host-native adapter artifacts for OpenCode, Claude Code, and Codex with strict ownership headers, fail-closed overwrite protection, stale cleanup by scan, and shell-output injection support for supported hosts.
 - Nix, `just`, and GitHub Actions scaffolding for repeatable development, checks, and release work.
 
 Still incremental / not implemented end-to-end yet:
 
-- Verified assurance flows, baselines, receipts, and backfill.
-- Assurance enablement/backfill commands and the broader alpha.6 assurance surface.
-- Adapter sync, thin adapter packs, and the later alpha adapter-management and automation surface.
-- Release/install/update hardening and network-enabled init/update flows.
+- Adapter-triggered validate-after-edit automation is not complete across all hosts.
+- Release/install/update hardening and broader adapter packaging/update flows.
+- Network-enabled init/update flows.
 
 ## What The MVP Includes
 
@@ -88,7 +88,7 @@ Still incremental / not implemented end-to-end yet:
 
 ## Install / Try The CLI
 
-The recommended way to use RuneContext is through the `runectx` CLI. Even in the current alpha.5 pre-MVP state, the CLI is the main executable entrypoint for local init, validation, status/change workflow, bundle resolution, diagnostics, and promotion flows, while the library foundation also covers deterministic context packs, generated indexes, and promotion assessment.
+The recommended way to use RuneContext is through the `runectx` CLI. Even in the current alpha.7 pre-MVP state, the CLI is the main executable entrypoint for local init, validation, status/change workflow, bundle resolution, diagnostics, promotion, assurance, completion metadata/suggestions, and repo-local adapter sync flows.
 
 The long-term canonical install path is a reviewable repo bundle from GitHub Releases. Today, the simplest way to dogfood the current checkout is `just build`, which assembles a repo-local package with the built CLI plus the RuneContext files it needs for full local operation.
 
@@ -148,6 +148,23 @@ Current CLI scope:
 - `runectx standard discover [--path PATH] [--change CHANGE_ID] [--confirm-handoff] [--target TYPE:PATH]`
   - emits advisory standards candidates and reusable promotion-target data without mutating project state
   - supports `--json`, `--non-interactive`, and `--explain`
+- `runectx assurance enable|backfill|capture ...`
+  - enables verified assurance mode, backfills baseline evidence, and captures portable assurance artifacts
+  - supports shared machine-facing flags on write flows
+- `runectx adapter sync [--path PATH] <tool>`
+  - materializes repo-local host-native adapter artifacts only; no `.runecontext/adapters` mirror tree is created
+  - OpenCode syncs `.opencode/skills/` and `.opencode/commands/`
+  - Claude Code syncs `.claude/skills/` and `.claude/commands/`
+  - Codex syncs `.agents/skills/`
+  - supports `--json`, `--non-interactive`, `--dry-run`, and `--explain`
+- `runectx adapter render-host-native [--role flow-asset|discoverability-shim] <tool> <operation>`
+  - emits minimal machine-oriented markdown bodies for supported shell-injection hosts
+  - intended for tool-native skills/commands rather than direct day-to-day manual use
+  - supports `--json`, `--non-interactive`, `--dry-run`, and `--explain`
+- `runectx completion suggest [--path PATH] [--prefix PREFIX] <provider>`
+  - emits repo-aware read-only suggestions for change IDs, bundle IDs, promotion targets, and adapter names
+- `runectx completion metadata`
+  - emits canonical machine-readable command/flag/enum/suggestion metadata derived from the typed registry
 - `runectx completion <bash|zsh|fish>`
   - emits shell completion scripts derived from the canonical typed command metadata registry
   - includes command/subcommand/flag completions plus stable enum value completions

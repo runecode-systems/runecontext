@@ -50,6 +50,7 @@ complete -c runectx -f -n '__fish_use_subcommand' -a 'promote'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'standard'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'status'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'validate'
+complete -c runectx -f -n '__fish_seen_subcommand_from adapter' -a 'render-host-native'
 complete -c runectx -f -n '__fish_seen_subcommand_from adapter' -a 'sync'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'backfill'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'capture'
@@ -67,6 +68,12 @@ complete -c runectx -n '__fish_seen_subcommand_from adapter' -l dry-run
 complete -c runectx -n '__fish_seen_subcommand_from adapter' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from adapter' -l json
 complete -c runectx -n '__fish_seen_subcommand_from adapter' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from adapter render-host-native' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from adapter render-host-native' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from adapter render-host-native' -l json
+complete -c runectx -n '__fish_seen_subcommand_from adapter render-host-native' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from adapter render-host-native' -l role -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from adapter render-host-native); and __runectx_prev_token_is --role' -a 'discoverability_shim flow_asset'
 complete -c runectx -n '__fish_seen_subcommand_from adapter sync' -l dry-run
 complete -c runectx -n '__fish_seen_subcommand_from adapter sync' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from adapter sync' -l json
@@ -217,6 +224,8 @@ function __runectx_flag_name_takes_value
     return 0
   case --reference
     return 0
+  case --role
+    return 0
   case --scope-path
     return 0
   case --seed-bundle
@@ -308,7 +317,8 @@ end
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance capture' -a 'context-pack'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance enable' -a 'verified'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'bash fish zsh'
-complete -c runectx -f -n '__fish_seen_subcommand_from completion suggest' -a 'adapter-names bundle-ids change-ids promotion-targets'
+complete -c runectx -f -n '__fish_seen_subcommand_from completion suggest' -a 'adapter-names adapter-names-shell-injection bundle-ids change-ids promotion-targets'
+complete -c runectx -f -n '__fish_seen_subcommand_from adapter render-host-native' -a '(__runectx_dynamic_suggest adapter-names-shell-injection)'
 complete -c runectx -f -n '__fish_seen_subcommand_from adapter sync' -a '(__runectx_dynamic_suggest adapter-names)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change close' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change reallocate' -a '(__runectx_dynamic_suggest change-ids)'

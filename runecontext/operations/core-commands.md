@@ -31,9 +31,9 @@ RuneContext exposes a stable CLI operation surface through `runectx`:
   values.
 - `completion metadata`: read-only machine-readable completion metadata derived
   from the typed command registry.
-- `adapter sync`: local-only materialization of tool adapter files into a
-  namespaced managed subtree (`.runecontext/adapters/<tool>/managed`) plus a
-  convenience sync manifest (`.runecontext/adapters/<tool>/sync-manifest.yaml`).
+- `adapter sync`: local-only materialization of repo-local host-native adapter
+  artifacts in tool-native locations (`.opencode/*`, `.claude/*`, `.agents/*`)
+  with explicit ownership markers and no `.runecontext/adapters` mirror tree.
 
 ## Adapter Mapping Rule
 
