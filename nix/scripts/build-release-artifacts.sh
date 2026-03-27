@@ -94,6 +94,20 @@ process_pack_archives() {
     return
   fi
 
+  if ! @jq@/bin/jq -e '
+    type == "array"
+    and all(
+      .[];
+      type == "object"
+      and (.name | type == "string")
+      and (.entries | type == "array")
+      and all(.entries[]; type == "string" and length > 0)
+    )
+  ' "${entries_json}" >/dev/null; then
+    printf 'invalid pack metadata: %s\n' "${entries_json}" >&2
+    exit 1
+  fi
+
   local -a packs
   if ! mapfile -t packs < <(@jq@/bin/jq -ce '.[]' "${entries_json}"); then
     printf 'failed to parse pack metadata: %s\n' "${entries_json}" >&2
@@ -103,13 +117,19 @@ process_pack_archives() {
   for pack in "${packs[@]}"; do
     [ -n "${pack}" ] || continue
     local name
-    name="$(@jq@/bin/jq -r '.name' <<<"${pack}")"
+    if ! name="$(@jq@/bin/jq -er '.name' <<<"${pack}")"; then
+      printf 'invalid pack metadata (missing name): %s\n' "${entries_json}" >&2
+      exit 1
+    fi
     if [[ ! "${name}" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
       printf 'invalid pack name: %s\n' "${name}" >&2
       exit 1
     fi
     local -a entries
-    mapfile -t entries < <(@jq@/bin/jq -r '.entries[]' <<<"${pack}")
+    if ! mapfile -t entries < <(@jq@/bin/jq -er '.entries[]' <<<"${pack}"); then
+      printf 'invalid pack metadata (entries): %s\n' "${entries_json}" >&2
+      exit 1
+    fi
 
     local pack_root
     pack_root="release/payload/${name}"
