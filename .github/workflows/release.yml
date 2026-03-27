@@ -177,7 +177,7 @@ jobs:
           shopt -s nullglob
           for asset in release/dist/*; do
             case "${asset}" in
-              *.tar.gz|*.zip|*.json|*/SHA256SUMS|*SHA256SUMS)
+              *.tar.gz|*.zip|*.json|*.sh|*.ps1|*/SHA256SUMS|*SHA256SUMS)
                 cosign sign-blob --yes \
                   --output-signature "${asset}.sig" \
                   --output-certificate "${asset}.pem" \
@@ -196,6 +196,8 @@ jobs:
             release/dist/*.tar.gz
             release/dist/*.zip
             release/dist/*.json
+            release/dist/*.sh
+            release/dist/*.ps1
             release/dist/SHA256SUMS
 
       - name: Write release notes preamble
@@ -214,6 +216,7 @@ jobs:
             printf '%s\n' "- Canonical unsigned release manifest: \`runecontext_${RELEASE_TAG}_release-manifest.json\`"
             printf '%s\n' "- Repo-first source bundles for manual install and auditing under the pattern \`runecontext_${RELEASE_TAG}.tar.gz\` and \`runecontext_${RELEASE_TAG}.zip\`"
             printf '%s\n' "- Linux/macOS \`runectx\` binary archives under the pattern \`runecontext_${RELEASE_TAG}_{os}_{arch}.tar.gz\`"
+            printf '%s\n' '- Quick-install scripts: `install-runectx.sh` and `install-runectx.ps1`'
             printf '%s\n' "- Release-level SBOM: \`runecontext_${RELEASE_TAG}_sbom.spdx.json\`"
             printf '%s\n' '- Checksums: `SHA256SUMS`'
             printf '%s\n' '- Keyless cosign signatures and certificates for every primary asset (`.sig` and `.pem`)'

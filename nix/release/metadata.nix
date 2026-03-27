@@ -1,7 +1,7 @@
 let
   base = rec {
     packageName = "runecontext";
-    version = "0.1.0-alpha.8";
+    version = "0.1.0-alpha.9";
 
     topLevelFiles = [
       "README.md"
@@ -24,6 +24,7 @@ let
       "adapters"
       "schemas"
       "fixtures"
+      "scripts"
       "cmd"
       "internal"
       "tools"
@@ -79,6 +80,11 @@ let
 
     binaries = [
       "runectx"
+    ];
+
+    installerScripts = [
+      "scripts/install-runectx.sh"
+      "scripts/install-runectx.ps1"
     ];
 
     targets = [

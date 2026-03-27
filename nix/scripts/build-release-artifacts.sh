@@ -164,6 +164,20 @@ process_pack_archives "adapter_pack" "@adapterPacksFile@"
 
 mapfile -t binaries < "@binariesFile@"
 mapfile -t targets < "@targetsFile@"
+mapfile -t installer_scripts < "@installerScriptsFile@"
+
+for script in "${installer_scripts[@]}"; do
+  [ -n "${script}" ] || continue
+  if [ ! -f "${script}" ]; then
+    printf 'missing required installer script: %s\n' "${script}" >&2
+    exit 1
+  fi
+  script_name="${script##*/}"
+  "${coreutils}/cp" "${script}" "release/dist/${script_name}"
+  "${coreutils}/chmod" 0755 "release/dist/${script_name}"
+  script_sha="$(@coreutils@/bin/sha256sum "release/dist/${script_name}" | "${coreutils}/cut" -d ' ' -f 1)"
+  record_archive "installer_script" "raw" "${script_name}" "${script_sha}"
+done
 
 for target in "${targets[@]}"; do
   [ -n "${target}" ] || continue
@@ -227,7 +241,7 @@ manifest_path="release/dist/@packageName@_@tag@_release-manifest.json"
 (
   shopt -s nullglob
   cd release/dist
-  release_files=( *.tar.gz *.zip *.json )
+  release_files=( *.tar.gz *.zip *.json *.sh *.ps1 )
   if [ "${#release_files[@]}" -eq 0 ]; then
     printf 'expected release assets in release/dist for checksum generation\n' >&2
     exit 1

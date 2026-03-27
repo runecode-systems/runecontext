@@ -91,14 +91,53 @@ Still incremental / not implemented end-to-end yet:
 
 The recommended way to use RuneContext is through the `runectx` CLI. With alpha.8 release/install/upgrade hardening now implemented, `runectx` is the primary supported interface for installing, initializing, validating, diagnosing, upgrading, and syncing RuneContext-managed project assets.
 
-RuneContext is distributed as reviewable repo bundles from GitHub Releases, and those bundles remain the canonical release contents. The standalone `runectx` binary archive is an optional delivery format, but the CLI itself is the normal way to manage RuneContext inside projects once the release contents are installed or vendored. In day-to-day use, project setup and maintenance are centered on `runectx init`, `runectx validate`, `runectx doctor`, `runectx adapter sync`, and `runectx upgrade` / `runectx upgrade apply`. Today, the simplest way to dogfood the current checkout is `just build`, which assembles a repo-local package with the built CLI plus the RuneContext files it needs for full local operation.
+RuneContext is distributed as reviewable repo bundles from GitHub Releases, and those bundles remain the canonical release contents. The standalone `runectx` binary archive is only an optional delivery format; once RuneContext is installed or vendored, the CLI is the normal way to manage it inside projects. In day-to-day use, project setup and maintenance are centered on `runectx init`, `runectx validate`, `runectx doctor`, `runectx adapter sync`, and `runectx upgrade` / `runectx upgrade apply`. Today, the simplest way to dogfood the current checkout is `just build`, which assembles a repo-local package with the built CLI plus the RuneContext files it needs for full local operation.
 
 Official install lanes:
 
-- **Quick-install lane (lightweight):** download the `runectx` binary archive for your platform, verify the matching entry in `SHA256SUMS`, then extract/install and run `runectx version` (or `runectx --version` / `runectx -v`) to confirm what you installed. Once you are inside a RuneContext project or have unpacked a repo bundle into one, use `runectx doctor --path /path/to/project` and the other CLI flows for normal project management. This lane is intentionally lightweight and does not include signature/certificate/attestation verification.
+- **Quick-install lane (lightweight):** install the `runectx` binary archive for your platform, verify the matching `SHA256SUMS` entry, then use the CLI for normal project management. This lane is intentionally lightweight and does not include signature/certificate/attestation verification.
 - **Verified-install lane (stronger):** use the dedicated `docs/install-verify.md` flow for signatures, certificates, and attestations. Keep this distinct from the quick-install lane.
 - **Manual repo install flow (canonical repo bundle path):** use the pinned GitHub release repo bundles produced by `nix build .#release-artifacts`. Download the bundle for the release tag you want, verify that bundle's matching `SHA256SUMS` entry for the same tag, then copy/vendor the bundle contents into your project and use the bundled `bin/runectx` (or install it into your PATH) as the primary management interface. See `docs/install-verify.md` for the verification steps.
   Refer to `docs/compatibility-matrix.md` when you need RuneCode version guidance, as each release maps to a supported `runecontext_version` range.
+
+Quick-install examples (release-attached scripts):
+
+#### Linux and macOS
+
+```sh
+curl -fsSLO "https://github.com/runecode-systems/runecontext/releases/latest/download/install-runectx.sh"
+bash install-runectx.sh
+```
+
+Pinned version example:
+
+```sh
+TAG="v0.1.0-alpha.8"
+curl -fsSLO "https://github.com/runecode-systems/runecontext/releases/download/${TAG}/install-runectx.sh"
+bash install-runectx.sh --version "$TAG"
+```
+
+The script defaults to the newest published release if `--version` (or `RUNECTX_VERSION`) is not provided.
+
+#### Windows
+
+```powershell
+Invoke-WebRequest -Uri "https://github.com/runecode-systems/runecontext/releases/latest/download/install-runectx.ps1" -OutFile install-runectx.ps1
+powershell -ExecutionPolicy Bypass -File .\install-runectx.ps1
+```
+
+Pinned version example:
+
+```powershell
+$Tag = "v0.1.0-alpha.8"
+Invoke-WebRequest -Uri "https://github.com/runecode-systems/runecontext/releases/download/$Tag/install-runectx.ps1" -OutFile install-runectx.ps1
+powershell -ExecutionPolicy Bypass -File .\install-runectx.ps1 -Version $Tag
+```
+
+Note: if the selected release does not publish a Windows quick-install binary archive yet, the script fails closed and instructs you to use one of these:
+
+- the canonical manual repo-bundle flow in `docs/install-verify.md`
+- a local source build from this checkout via `just build`
 
 Upgrade behavior is intentionally preview-first: run `runectx upgrade` to review
 the plan and `runectx upgrade apply` only when you are ready to mutate local

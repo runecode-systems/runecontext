@@ -61,6 +61,10 @@ let
     builtins.toJSON releaseMetadata.adapterPacks + "\n"
   );
 
+  installerScriptsFile = pkgs.writeText "runecontext-release-installer-scripts.txt" (
+    lib.concatStringsSep "\n" releaseMetadata.installerScripts + "\n"
+  );
+
   buildScript = pkgs.writeText "build-release-artifacts.sh" (
     renderTemplate ../scripts/build-release-artifacts.sh {
       packageName = releaseMetadata.packageName;
@@ -70,6 +74,7 @@ let
       bundleFormatsFile = bundleFormatsFile;
       schemaBundlesFile = schemaBundlesFile;
       adapterPacksFile = adapterPacksFile;
+      installerScriptsFile = installerScriptsFile;
       binariesFile = binariesFile;
       targetsFile = targetsFile;
       coreutils = pkgs.coreutils;

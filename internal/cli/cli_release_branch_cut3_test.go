@@ -44,10 +44,11 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 	requireSubstrings(t, script,
 		`process_pack_archives "schema_bundle"`,
 		`process_pack_archives "adapter_pack"`,
+		`record_archive "installer_script"`,
 		`record_archive "repo_bundle"`,
 		`record_archive "binary"`,
 		`manifest_path="release/dist/@packageName@_@tag@_release-manifest.json"`,
-		`release_files=( *.tar.gz *.zip *.json )`,
+		`release_files=( *.tar.gz *.zip *.json *.sh *.ps1 )`,
 	)
 }
 
@@ -63,6 +64,10 @@ func TestReleaseWorkflowUsesManifestDrivenAssetSetAndEnvironmentGate(t *testing.
 		"release/dist/*.tar.gz",
 		"release/dist/*.zip",
 		"release/dist/*.json",
+		"release/dist/*.sh",
+		"release/dist/*.ps1",
+		"install-runectx.sh",
+		"install-runectx.ps1",
 		"release/dist/SHA256SUMS",
 	)
 }
