@@ -188,33 +188,6 @@ func ensureInitDirs(state initState, machine machineOptions, stderr io.Writer) i
 	return exitOK
 }
 
-func emitInitSuccess(stdout, stderr io.Writer, machine machineOptions, state initState) int {
-	output := []line{
-		{"result", "ok"},
-		{"command", "init"},
-		{"root", state.absRoot},
-		{"config_path", state.configPath},
-		{"bundles_dir", state.bundlesDir},
-		{"changes_dir", state.changesDir},
-	}
-	if state.effectiveMode != "embedded" || state.modeExplicit {
-		output = append(output, line{"mode", state.effectiveMode})
-	}
-	if state.bundlePath != "" {
-		output = append(output, line{"seed_bundle_path", state.bundlePath})
-	}
-	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
-	if !machine.jsonOutput {
-		fmt.Fprintf(stderr, "Initialized RuneContext at %s\n", state.absRoot)
-	}
-	return exitOK
-}
-
-func emitInitUsage(stderr io.Writer, machine machineOptions, err error) int {
-	emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("init", initUsage, err), machine), exitUsage, failureClassUsage)
-	return exitUsage
-}
-
 func parseInitArgs(args []string) (initRequest, error) {
 	request := initRequest{root: "."}
 	positionals := make([]string, 0, 1)

@@ -12,3 +12,16 @@ end-to-end validation coverage.
 
 Linked fixture directories use `runecontext.yaml.tmpl` placeholders that tests
 materialize with dynamic git repository values.
+
+## Family Notes
+
+- `embedded/` includes a complete local RuneContext tree and validates with
+  explicit-root and CLI paths.
+- `linked-by-commit/` and `linked-by-signed-tag/` intentionally hold only
+  `runecontext.yaml.tmpl` because tests materialize those configs against
+  temporary local git repositories (no network) built from
+  `fixtures/source-resolution/templates/minimal-runecontext`.
+- `verified/` mirrors embedded structure with `assurance_tier: verified` and a
+  deterministic baseline fixture under `assurance/`.
+- `monorepo/` models nested RuneContext roots: top-level root config plus a
+  service-local nested root under `packages/service/`.

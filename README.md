@@ -103,6 +103,10 @@ Official install lanes:
 - **Manual repo install flow (canonical repo bundle path):** use the pinned GitHub release repo bundles produced by `nix build .#release-artifacts`. Download the bundle for the release tag you want, verify that bundle's matching `SHA256SUMS` entry for the same tag, then copy/vendor the bundle contents into your project (and optionally install `bin/runectx`). See `docs/install-verify.md` for the verification steps.
   Refer to `docs/compatibility-matrix.md` when you need RuneCode version guidance, as each release maps to a supported `runecontext_version` range.
 
+Upgrade behavior is intentionally preview-first: run `runectx upgrade` to review
+the plan and `runectx upgrade apply` only when you are ready to mutate local
+project files.
+
 Recommended local dogfood build from the current checkout:
 
 ```sh

@@ -63,6 +63,59 @@ func TestRunValidateSurfacesDeprecatedStandardDiagnostics(t *testing.T) {
 	}
 }
 
+func TestRunValidateReportsUnsupportedProjectVersionDiagnostics(t *testing.T) {
+	original := runecontextVersion
+	t.Cleanup(func() { runecontextVersion = original })
+	runecontextVersion = "v0.1.0-alpha.9"
+
+	root := t.TempDir()
+	config := "schema_version: 1\nrunecontext_version: 9.9.9\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	if err := os.WriteFile(filepath.Join(root, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir content root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", "--path", root}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected validate success with diagnostics, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "unsupported_project_version") {
+		t.Fatalf("expected unsupported version diagnostic, got %q", stdout.String())
+	}
+}
+
+func TestRunValidateReportsStaleTreeWithoutMutating(t *testing.T) {
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+
+	if code := Run([]string{"adapter", "sync", "--path", root, "opencode"}, &bytes.Buffer{}, &bytes.Buffer{}); code != exitOK {
+		t.Fatalf("expected adapter sync success")
+	}
+	staleRel := ".opencode/skills/runecontext-stale-merge-validate.md"
+	staleAbs := filepath.Join(root, filepath.FromSlash(staleRel))
+	managed := "<!-- runecontext-managed-artifact: host-native-v1 -->\n<!-- runecontext-tool: opencode -->\n<!-- runecontext-kind: flow_asset -->\n<!-- runecontext-id: runecontext:stale-merge-validate -->\n"
+	if err := os.WriteFile(staleAbs, []byte(managed), 0o644); err != nil {
+		t.Fatalf("write stale file: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", "--path", root}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected validate success with warnings, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "mixed_or_stale_tree") {
+		t.Fatalf("expected stale-tree diagnostic, got %q", stdout.String())
+	}
+	if _, err := os.Stat(staleAbs); err != nil {
+		t.Fatalf("expected validate to avoid hidden upgrade mutation, err=%v", err)
+	}
+}
+
 func TestRunValidateSurfacesProjectValidationDiagnostics(t *testing.T) {
 	root := filepath.Join(repoFixtureRoot(t, "traceability"), "valid-project")
 	projectRoot := t.TempDir()

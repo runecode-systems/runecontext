@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -39,7 +38,7 @@ func runUpgrade(args []string, stdout, stderr io.Writer) int {
 	if request.apply {
 		return runUpgradeApply(project, request, machine, stdout, stderr)
 	}
-	return runUpgradePreview(project, request, machine, stdout)
+	return runUpgradePreview(project, request, machine, stdout, stderr)
 }
 
 func parseUpgradeRequest(args []string, stdout io.Writer, machine machineOptions) (upgradeRequest, error, string) {
@@ -152,65 +151,65 @@ func validateUpgradeTargetVersion(target string, apply bool) error {
 		}
 		return nil
 	}
+	if isUpgradeTargetAlias(target) {
+		return nil
+	}
 	if !semverLikePattern.MatchString(target) {
 		return fmt.Errorf("--target-version %q must look like a semantic version", target)
 	}
 	return nil
 }
 
-func runUpgradePreview(project *cliProject, request upgradeRequest, machine machineOptions, stdout io.Writer) int {
-	current := strings.TrimSpace(fmt.Sprint(project.loaded.RootConfig["runecontext_version"]))
-	target := strings.TrimSpace(request.targetVersion)
-	if target == "" {
-		target = current
+func runUpgradePreview(project *cliProject, request upgradeRequest, machine machineOptions, stdout, stderr io.Writer) int {
+	plan, err := buildUpgradePlan(project, request.targetVersion)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
+		return exitInvalid
 	}
-	state := "current"
-	plan := "no changes required"
-	if target != current {
-		state = "upgradeable"
-		plan = fmt.Sprintf("set runecontext_version to %s", target)
-	}
+	applyRequired := plan.State == upgradeStateUpgradeable || plan.State == upgradeStateMixedOrStaleTree
 	output := []line{
 		{"result", "ok"},
 		{"command", "upgrade"},
 		{"phase", "preview"},
 		{"root", project.absRoot},
 		{"selected_config_path", selectedConfigPath(project.loaded)},
-		{"current_version", current},
-		{"target_version", target},
-		{"state", state},
-		{"plan_action_1", plan},
-		{"apply_required", boolString(state != "current")},
+		{"current_version", plan.CurrentVersion},
+		{"target_version", plan.TargetVersion},
+		{"state", string(plan.State)},
+		{"network_access", boolString(plan.NetworkAccess)},
+		{"plan_action_count", fmt.Sprintf("%d", len(plan.PlanActions))},
+		{"apply_required", boolString(applyRequired)},
 	}
+	output = appendStringItems(output, "plan_action", plan.PlanActions)
+	output = appendStringItems(output, "next_action", plan.NextActions)
+	output = appendStringItems(output, "conflict", plan.Conflicts)
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
 
 func runUpgradeApply(project *cliProject, request upgradeRequest, machine machineOptions, stdout, stderr io.Writer) int {
-	current := strings.TrimSpace(fmt.Sprint(project.loaded.RootConfig["runecontext_version"]))
-	target := strings.TrimSpace(request.targetVersion)
+	plan, err := buildUpgradePlan(project, request.targetVersion)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
+		return exitInvalid
+	}
 	configPath := selectedConfigPath(project.loaded)
-	if target == current {
-		output := upgradeApplyOutput(project.absRoot, configPath, current, current, target, false)
+	if plan.State == upgradeStateCurrent {
+		output := upgradeApplyOutput(project.absRoot, configPath, plan.CurrentVersion, plan.CurrentVersion, plan.TargetVersion, false)
 		emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 		return exitOK
 	}
-	data, err := os.ReadFile(configPath)
-	if err != nil {
+	if plan.State != upgradeStateUpgradeable && plan.State != upgradeStateMixedOrStaleTree {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, fmt.Errorf("upgrade apply is not allowed while state=%s", plan.State)), machine), exitInvalid, failureClassInvalid)
+		return exitInvalid
+	}
+	if err := applyUpgradePlan(project, plan); err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
-	rewritten, err := rewriteRunecontextVersion(data, target)
-	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
-		return exitInvalid
-	}
-	mode := configFileMode(configPath)
-	if err := writeAtomicUpgradeConfig(configPath, rewritten, mode); err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
-		return exitInvalid
-	}
-	output := upgradeApplyOutput(project.absRoot, configPath, current, target, target, true)
+	output := upgradeApplyOutput(project.absRoot, configPath, plan.CurrentVersion, plan.TargetVersion, plan.TargetVersion, true)
+	output = append(output, line{"network_access", boolString(plan.NetworkAccess)})
+	output = appendStringItems(output, "changed", plan.ApplyMutations)
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
 }
@@ -227,5 +226,15 @@ func upgradeApplyOutput(root, configPath, previous, current, target string, chan
 		{"target_version", target},
 		{"state", "current"},
 		{"changed", boolString(changed)},
+	}
+}
+
+func isUpgradeTargetAlias(value string) bool {
+	trimmed := strings.TrimSpace(strings.ToLower(value))
+	switch trimmed {
+	case "latest", "installed", "current":
+		return true
+	default:
+		return false
 	}
 }

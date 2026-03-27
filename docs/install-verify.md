@@ -40,6 +40,15 @@ Installation now supports these verified flows:
   target project (this remains the canonical distribution and audit path)
 - verify and install a platform `runectx` binary archive
 
+This document is the **verified-install lane** (signatures, certificates, and
+attestations). For the lightweight **quick-install lane** (checksum +
+`runectx version` confirmation, optional `runectx doctor`), use `README.md`.
+
+For the canonical **manual repo-bundle install lane**, use pinned GitHub release
+bundle assets emitted by `nix build .#release-artifacts`, verify the matching
+`SHA256SUMS` entry for the same tag, then vendor/copy bundle contents into your
+project.
+
 ## Prerequisites
 
 For the full verification flow below, install:

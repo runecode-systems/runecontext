@@ -158,11 +158,17 @@ func runDoctor(args []string, stdout, stderr io.Writer) int {
 		return exitInvalid
 	}
 	defer index.Close()
+	upgradePlan, err := buildUpgradeReadinessFromIndex(project.absRoot, index)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines(doctorCommand, project.absRoot, err), machine), exitInvalid, failureClassInvalid)
+		return exitInvalid
+	}
 	diagnostics := collectDiagnostics(index)
+	diagnostics = append(diagnostics, upgradePlanDiagnostics(upgradePlan)...)
 	warnings := doctorEnvironmentWarnings()
-	output := buildDoctorOutput(project.absRoot, project.loaded, diagnostics, warnings)
+	output := buildDoctorOutput(project.absRoot, project.loaded, diagnostics, warnings, upgradePlan)
 	if machine.explain {
-		output = appendDoctorExplainLines(output, project.loaded, diagnostics, warnings)
+		output = appendDoctorExplainLines(output, project.loaded, diagnostics, warnings, upgradePlan)
 	}
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
@@ -196,12 +202,17 @@ func parseDoctorArgs(args []string) (doctorRequest, error) {
 	return request, nil
 }
 
-func buildDoctorOutput(absRoot string, loaded *contracts.LoadedProject, diagnostics []emittedDiagnostic, warnings []string) []line {
+func buildDoctorOutput(absRoot string, loaded *contracts.LoadedProject, diagnostics []emittedDiagnostic, warnings []string, upgradePlan upgradePlan) []line {
 	output := []line{
 		{"result", "ok"},
 		{"command", doctorCommand},
 		{"root", absRoot},
+		{"cli_version", normalizedRunecontextVersion()},
 		{"selected_config_path", selectedConfigPath(loaded)},
+		{"project_runecontext_version", upgradePlan.CurrentVersion},
+		{"upgrade_target_version", upgradePlan.TargetVersion},
+		{"upgrade_state", string(upgradePlan.State)},
+		{"upgrade_network_access", boolString(upgradePlan.NetworkAccess)},
 	}
 	if loaded != nil && loaded.Resolution != nil {
 		output = append(output,
@@ -214,14 +225,17 @@ func buildDoctorOutput(absRoot string, loaded *contracts.LoadedProject, diagnost
 	}
 	output = append(output, line{"diagnostic_count", fmt.Sprintf("%d", len(diagnostics))})
 	output = appendValidateDiagnosticLines(output, diagnostics)
+	output = appendStringItems(output, "upgrade_next_action", upgradePlan.NextActions)
+	output = appendStringItems(output, "upgrade_conflict", upgradePlan.Conflicts)
 	return appendWarnings(output, warnings)
 }
 
-func appendDoctorExplainLines(lines []line, loaded *contracts.LoadedProject, diagnostics []emittedDiagnostic, warnings []string) []line {
+func appendDoctorExplainLines(lines []line, loaded *contracts.LoadedProject, diagnostics []emittedDiagnostic, warnings []string, upgradePlan upgradePlan) []line {
 	lines = append(lines,
-		line{"explain_scope", "resolution,environment"},
+		line{"explain_scope", "resolution,environment,upgrade-readiness"},
 		line{"explain_diagnostic_count", fmt.Sprintf("%d", len(diagnostics))},
 		line{"explain_warning_count", fmt.Sprintf("%d", len(warnings))},
+		line{"explain_upgrade_state", string(upgradePlan.State)},
 	)
 	if loaded != nil && loaded.Resolution != nil {
 		lines = append(lines,

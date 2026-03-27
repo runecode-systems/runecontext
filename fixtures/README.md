@@ -22,7 +22,8 @@ This directory holds the repository-wide fixture taxonomy for RuneContext contra
 - `generated-indexes/`
   - alpha.4 manifest and generated index golden outputs
 - `reference-projects/`
-  - alpha.8 reference fixtures for embedded, linked, verified, and monorepo scenarios
+  - alpha.8 reference fixtures for embedded, linked-by-commit,
+    linked-by-signed-tag, verified, and monorepo nested-root scenarios
 
 ## Reserved Future Fixture Families
 

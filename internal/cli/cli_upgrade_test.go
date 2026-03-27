@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -30,6 +31,246 @@ func TestRunUpgradePreviewOnReferenceFixture(t *testing.T) {
 	}
 	if got, want := fields["apply_required"], "true"; got != want {
 		t.Fatalf("expected apply_required %q, got %q", want, got)
+	}
+}
+
+func TestRunUpgradePreviewSupportsStateClassificationAndAliases(t *testing.T) {
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	original := runecontextVersion
+	t.Cleanup(func() { runecontextVersion = original })
+	runecontextVersion = "v0.1.0-alpha.9"
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "latest"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["state"], "upgradeable"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
+	}
+	if got, want := fields["network_access"], "true"; got != want {
+		t.Fatalf("expected network_access %q, got %q", want, got)
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"upgrade", "--path", root, "--target-version", "installed"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields = parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["network_access"], "false"; got != want {
+		t.Fatalf("expected network_access %q, got %q", want, got)
+	}
+}
+
+func TestRunUpgradePreviewPathSourceIsExternallyManaged(t *testing.T) {
+	root := t.TempDir()
+	external := filepath.Join(filepath.Dir(root), "external-runecontext")
+	if err := os.MkdirAll(external, 0o755); err != nil {
+		t.Fatalf("mkdir external source: %v", err)
+	}
+	config := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.8\nassurance_tier: plain\nsource:\n  type: path\n  path: ../external-runecontext\n"
+	if err := os.WriteFile(filepath.Join(root, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir content root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["state"], "conflicted"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
+	}
+	if !strings.Contains(fields["plan_action_1"], "externally managed") {
+		t.Fatalf("expected externally managed plan action, got %#v", fields)
+	}
+}
+
+func TestRunUpgradePreviewGitSourceOnlyMutatesConfigAndNotLinkedTree(t *testing.T) {
+	repoDir := t.TempDir()
+	runGitForCLI(t, repoDir, "init", "--initial-branch=main")
+	if err := os.MkdirAll(filepath.Join(repoDir, "runecontext", "changes"), 0o755); err != nil {
+		t.Fatalf("mkdir linked tree: %v", err)
+	}
+	linkedProbe := filepath.Join(repoDir, "runecontext", "changes", "probe.txt")
+	if err := os.WriteFile(linkedProbe, []byte("linked tree content\n"), 0o644); err != nil {
+		t.Fatalf("write linked probe: %v", err)
+	}
+	runGitForCLI(t, repoDir, "add", ".")
+	runGitForCLI(t, repoDir, "-c", "user.name=RuneContext Tests", "-c", "user.email=tests@example.com", "commit", "-m", "seed")
+	commit := strings.TrimSpace(gitOutputForCLI(t, repoDir, "rev-parse", "HEAD"))
+
+	projectRoot := t.TempDir()
+	config := fmt.Sprintf("schema_version: 1\nrunecontext_version: 0.1.0-alpha.8\nassurance_tier: plain\nsource:\n  type: git\n  url: %s\n  commit: %s\n  subdir: runecontext\n", repoDir, commit)
+	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "apply", "--path", projectRoot, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected apply success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got := fields["changed_1"]; got != "updated runecontext.yaml" {
+		t.Fatalf("expected only root config mutation to be reported first, got %q", got)
+	}
+	probe, err := os.ReadFile(linkedProbe)
+	if err != nil {
+		t.Fatalf("read linked probe: %v", err)
+	}
+	if string(probe) != "linked tree content\n" {
+		t.Fatalf("expected linked source tree to remain untouched, got %q", string(probe))
+	}
+}
+
+func TestRunUpgradeApplyFailsClosedOnHostNativeOwnershipConflict(t *testing.T) {
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	conflictPath := filepath.Join(root, ".opencode", "skills", "runecontext-change-new.md")
+	if err := os.MkdirAll(filepath.Dir(conflictPath), 0o755); err != nil {
+		t.Fatalf("mkdir conflict dir: %v", err)
+	}
+	if err := os.WriteFile(conflictPath, []byte("user-owned skill content\n"), 0o644); err != nil {
+		t.Fatalf("write conflict file: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "state\\=conflicted") {
+		t.Fatalf("expected conflicted-state apply rejection, got %q", stderr.String())
+	}
+}
+
+func TestRunUpgradePreviewAndApplyDetectStaleManagedHostNativeTree(t *testing.T) {
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+
+	if code := Run([]string{"adapter", "sync", "--path", root, "opencode"}, &bytes.Buffer{}, &bytes.Buffer{}); code != exitOK {
+		t.Fatalf("expected adapter sync success")
+	}
+	staleRel := ".opencode/skills/runecontext-stale-merge.md"
+	staleAbs := filepath.Join(root, filepath.FromSlash(staleRel))
+	if err := os.MkdirAll(filepath.Dir(staleAbs), 0o755); err != nil {
+		t.Fatalf("mkdir stale dir: %v", err)
+	}
+	managed := "<!-- runecontext-managed-artifact: host-native-v1 -->\n<!-- runecontext-tool: opencode -->\n<!-- runecontext-kind: flow_asset -->\n<!-- runecontext-id: runecontext:stale-merge -->\n"
+	if err := os.WriteFile(staleAbs, []byte(managed), 0o644); err != nil {
+		t.Fatalf("write stale file: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "current"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected upgrade preview success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["state"], "mixed_or_stale_tree"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"upgrade", "apply", "--path", root, "--target-version", "current"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected upgrade apply success for stale tree, got %d (%s)", code, stderr.String())
+	}
+	if _, err := os.Stat(staleAbs); !os.IsNotExist(err) {
+		t.Fatalf("expected stale managed host-native file to be removed, err=%v", err)
+	}
+}
+
+func TestRunUpgradeApplyTransactionalRollbackOnFailure(t *testing.T) {
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	configPath := filepath.Join(root, "runecontext.yaml")
+	before, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config before apply: %v", err)
+	}
+
+	original := upgradeApplyAdapterSyncFn
+	t.Cleanup(func() { upgradeApplyAdapterSyncFn = original })
+	upgradeApplyAdapterSyncFn = func(state adapterSyncState) error {
+		return fmt.Errorf("forced upgrade transaction failure for %s", state.tool)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	}
+	after, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config after failed apply: %v", err)
+	}
+	if string(before) != string(after) {
+		t.Fatalf("expected config rollback to restore original content")
+	}
+}
+
+func TestRunUpgradeApplyIdempotentRerun(t *testing.T) {
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected first apply success, got %d (%s)", code, stderr.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected second apply success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["changed"], "false"; got != want {
+		t.Fatalf("expected idempotent changed=%q, got %q", want, got)
+	}
+}
+
+func TestRunUpgradePreviewUnsupportedProjectVersion(t *testing.T) {
+	original := runecontextVersion
+	t.Cleanup(func() { runecontextVersion = original })
+	runecontextVersion = "v0.1.0-alpha.9"
+
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "runecontext.yaml"), []byte("schema_version: 1\nrunecontext_version: 9.9.9\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir content root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["state"], "unsupported_project_version"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
 	}
 }
 
@@ -104,19 +345,18 @@ func TestRunUpgradeApplyNoOpUsesStableOutputFields(t *testing.T) {
 	}
 }
 
-func TestRunUpgradeApplyAcceptsSemverWithPrereleaseAndBuildMetadata(t *testing.T) {
+func TestRunUpgradeApplyRejectsUnregisteredSemverTransition(t *testing.T) {
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "1.2.3-rc.1+build.5"}, &stdout, &stderr)
-	if code != exitOK {
-		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
-	if got, want := fields["target_version"], "1.2.3-rc.1+build.5"; got != want {
-		t.Fatalf("expected target_version %q, got %q", want, got)
+	if !strings.Contains(stderr.String(), "unsupported_project_version") {
+		t.Fatalf("expected unsupported version rejection, got %q", stderr.String())
 	}
 }
 
