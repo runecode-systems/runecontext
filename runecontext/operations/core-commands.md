@@ -3,6 +3,7 @@
 RuneContext exposes a stable CLI operation surface through `runectx`:
 
 - `help`
+- `version`
 - `validate`
 - `status`
 - `change new|shape|close|reallocate`
@@ -10,6 +11,7 @@ RuneContext exposes a stable CLI operation surface through `runectx`:
 - `bundle resolve`
 - `doctor`
 - `init`
+- `upgrade|upgrade apply`
 - `promote`
 - `standard discover`
 - `assurance enable|backfill|capture`
@@ -23,8 +25,11 @@ RuneContext exposes a stable CLI operation surface through `runectx`:
 - `status`: workflow summary.
 - `validate`: authoritative contract enforcement.
 - `doctor`: diagnostics/environment/source posture.
+- `version`: installed CLI release identification.
+- `upgrade`: preview-first project upgrade planning.
 - `change*`, `init`, `promote`, and assurance mutating flows: explicit,
   reviewable write operations.
+- `upgrade apply`: explicit transactional mutation after preview.
 - `completion`: read-only script generation derived from the CLI metadata
   registry.
 - `completion suggest`: read-only, repo-aware dynamic suggestions for command

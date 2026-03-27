@@ -5,8 +5,10 @@ This directory holds shared Go packages for RuneContext implementation code.
 ## Current Packages
 
 - `internal/cli/`
-  - thin alpha.3 CLI entrypoints, parsing helpers, and stable line-oriented
-    output for `validate`, `status`, and change commands
+  - CLI parsing, metadata registries, machine-facing output contracts, and
+    command behavior for validation, diagnostics, assurance, adapters,
+    release/install UX, and upgrade flows
 - `internal/contracts/`
-  - shared validation, source-resolution, bundle, standards, and change-
-    workflow implementation that the CLI and tests build on
+  - shared validation, source-resolution, bundle, standards, change-workflow,
+    context-pack, generated-artifact, and MVP-readiness implementation that the
+    CLI and tests build on

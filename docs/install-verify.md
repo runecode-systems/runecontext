@@ -72,7 +72,7 @@ release exists.
 set -euo pipefail
 
 REPO="runecode-systems/runecontext"
-# Newest published release, including prereleases during pre-alpha.
+# Newest published release, including prereleases during the alpha series.
 # Ordered by creation date; assumes no out-of-order backport releases.
 VERSION="$(gh release list --repo "$REPO" --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')"
 
@@ -207,7 +207,7 @@ If you prefer not to resolve `latest`, set the version explicitly and run the
 same flow.
 
 ```bash
-VERSION="v0.1.0-alpha.1"
+VERSION="v0.1.0-alpha.8"
 ```
 
 Replace the `VERSION=...` line in the previous script with the pinned tag you
@@ -219,7 +219,7 @@ want.
 $ErrorActionPreference = "Stop"
 
 $Repo = "runecode-systems/runecontext"
-# Newest published release, including prereleases during pre-alpha.
+# Newest published release, including prereleases during the alpha series.
 # Ordered by creation date; assumes no out-of-order backport releases.
 $Version = gh release list --repo $Repo --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName'
 if (-not $Version) {
@@ -292,7 +292,7 @@ try {
 
 ## Windows PowerShell: installing `runectx`
 
-Windows binary archives are not published yet in this initial binary phase. Use
+Windows binary archives are not published yet in the current alpha.8 asset set. Use
 the repo bundle flow on Windows for now, or build `runectx` locally from source.
 
 ## Windows PowerShell: pinned release, full verification, extract
@@ -301,7 +301,7 @@ If you prefer not to resolve `latest`, set the version explicitly and run the
 same flow.
 
 ```powershell
-$Version = "v0.1.0-alpha.1"
+$Version = "v0.1.0-alpha.8"
 ```
 
 Replace the `$Version=...` line in the previous script with the pinned tag you
