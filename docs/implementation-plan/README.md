@@ -81,6 +81,15 @@ historical cleanup from new feature design work.
   portable assurance artifact paths at the project root `assurance/` tree
   (including strict plain-vs-verified enforcement and imported-history schema
   validation for backfill artifacts).
+- 2026-03-26: Reframed alpha.8 CLI positioning so `runectx` is the primary
+  operational front door for install, init, validation, adapter sync,
+  diagnostics, and upgrade flows, while repo bundles remain the canonical
+  distribution/audit artifacts and repo files remain the source of truth. Also
+  locked in two official install lanes for alpha.8: a quick-install lane in the
+  top-level `README.md` built around release download, `SHA256SUMS`
+  verification, `runectx version`, and optional `runectx doctor`, plus a
+  dedicated verified-install lane in `docs/install-verify.md` for stronger
+  signature/certificate/attestation checks.
 
 ## MVP Definition
 
@@ -97,7 +106,8 @@ The MVP includes every v1 RuneContext feature described in
 - deterministic bundle resolution and context-pack hashing
 - minimum and lean shaped/full change shapes
 - Plain and Verified assurance tiers
-- minimal CLI surface
+- primary operational CLI surface for install, init, validation, adapter
+  management, diagnostics, and upgrades
 - thin adapters as the primary day-to-day UX
 - conversational adapter UX for selected authoring, discovery, and promotion
   flows built as thin layers over explicit core operations
@@ -120,7 +130,7 @@ contracts RuneCode needs in order to integrate cleanly.
 | `v0.1.0-alpha.5` | Broadened CLI, `init` scaffolding, promotion/resolve flows, validation, doctoring, and machine-facing command contracts |
 | `v0.1.0-alpha.6` | Plain/Verified assurance, baselines, receipts, and backfill |
 | `v0.1.0-alpha.7` | Generic and tool-specific adapters, conversational adapter UX, completion UX, and local adapter sync |
-| `v0.1.0-alpha.8` | Release/install/upgrade hardening, networked `init`/`upgrade` flows, and end-to-end MVP readiness fixtures |
+| `v0.1.0-alpha.8` | Release/install/upgrade hardening, polished CLI install UX, and end-to-end MVP readiness fixtures |
 | `v0.1.0` | Stabilization, compatibility freeze, and MVP acceptance sign-off |
 
 Signed-tag verification is intentionally part of the MVP and is planned across
@@ -325,13 +335,25 @@ and coverage stay in one place.
   present.
 - Keep CLI command boundaries crisp: `status` is workflow summary, `validate` is
   authoritative contract enforcement, and `doctor` is environment/install/
-  source-posture diagnosis.
+  source-posture plus upgrade-readiness diagnosis.
 - Keep `runectx standard discover` advisory-only and `runectx promote` as the
   only durable promotion-mutation surface; interactive handoff must use
   explicit candidate data rather than hidden session state.
 - Keep `runectx init` local-first and local-only; it should scaffold from the
   already-installed RuneContext release contents rather than fetching project
   files over the network.
+- Keep canonical distribution distinct from the primary entrypoint: repo bundles
+  remain the canonical install/audit artifact set and repo files remain the
+  source of truth, while the `runectx` binary is the primary operational front
+  door for install, init, validation, adapter management, diagnostics, and
+  upgrades.
+- Keep official install guidance split into two explicit lanes: a quick-install
+  lane in top-level docs for downloading a release asset, checking
+  `SHA256SUMS`, installing `runectx`, confirming it with `runectx version`, and
+  optionally running `runectx doctor`; and a verified-install lane in dedicated
+  install docs for full signature/certificate/attestation verification.
+- Keep `runectx version`, `runectx --version`, and `runectx -v` as equivalent
+  version-reporting entrypoints for install, upgrade, and debugging flows.
 - Keep completion and autocomplete metadata derived from the same stable CLI
   command/flag/value definitions rather than maintaining a second hand-authored
   command model.
@@ -418,7 +440,7 @@ and coverage stay in one place.
   must not fetch adapter packs implicitly.
 - Keep alpha.7 adapter sync focused on local materialization from installed or
   pinned release contents; alpha.8 hardens release packaging and broader sync/
-  update behavior without changing the local-first sync model.
+  upgrade behavior without changing the local-first sync model.
 - Keep alpha.7 host-native adapter artifacts additive and removable: synced
   OpenCode/Claude/Codex commands or skills must use RuneContext-owned names,
   avoid clobbering existing user artifacts, and remain identifiable for a

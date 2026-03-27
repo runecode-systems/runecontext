@@ -1,7 +1,7 @@
 # Contracts, Resolution, And Change Workflow
 
 This package provides the shared executable core for RuneContext's implemented
-alpha.1 through alpha.4 semantics.
+alpha.1 through alpha.8 semantics.
 
 ## Current Coverage
 
@@ -24,12 +24,16 @@ alpha.1 through alpha.4 semantics.
 - generated manifest and index builders for `runecontext/manifest.yaml`,
   `runecontext/indexes/changes-by-status.yaml`, and
   `runecontext/indexes/bundles.yaml`
+- verified assurance artifact validation, linkage, and deterministic receipt /
+  baseline support used by CLI assurance flows
+- alpha.8 reference-fixture and MVP-readiness coverage, including release/install
+  compatibility expectations that depend on the canonical project model
 
 ## Intentional Scope
 
 - This package owns the canonical file-model, validation, resolution, and
   change-workflow semantics implemented so far.
-- Thin CLI wrappers live in `internal/cli/`; adapters, assurance artifact
-  generation, and broader admin flows remain future work.
+- Thin CLI wrappers live in `internal/cli/`; adapter UX layers build on this
+  package rather than redefining the project model.
 - Later alphas should continue building on this package rather than re-encoding
   contract rules ad hoc.

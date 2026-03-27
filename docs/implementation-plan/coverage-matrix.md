@@ -300,7 +300,7 @@ milestones, and executable fixtures/tests.
   - Planned capture: `alpha.7`
 - Decision: `status`, `validate`, and `doctor` remain distinct command surfaces:
   workflow summary, authoritative contract enforcement, and
-  environment/install/source-posture diagnostics.
+  environment/install/source-posture plus upgrade-readiness diagnostics.
   - Planned capture: `alpha.5`
 - Decision: write-command `--dry-run` behavior should simulate planned
   mutations and validate the resulting would-be project state without
@@ -349,6 +349,24 @@ milestones, and executable fixtures/tests.
 - Decision: Linux/macOS `runectx` binary archives should be shipped as signed and
   attested convenience assets without replacing the canonical repo bundles.
   - Planned capture: `alpha.8`
+- Decision: repo bundles remain the canonical distribution/install/audit path
+  while the `runectx` binary becomes the primary operational front door for
+  install, init, validation, adapter sync, diagnostics, and upgrades.
+  - Planned capture: `README.md`, `alpha.8`, `mvp-acceptance.md`
+- Decision: alpha.8 install UX should expose two official lanes: a quick-
+  install lane in top-level docs using release download, `SHA256SUMS`
+  verification, `runectx version`, and optional `runectx doctor`, plus a
+  verified-install lane in dedicated docs using signatures, certificates, and
+  attestations.
+  - Planned capture: `alpha.8`, `mvp-acceptance.md`
+- Decision: `runectx version`, `runectx --version`, and `runectx -v` should be
+  equivalent version-reporting entrypoints for install, upgrade, and debugging
+  flows.
+  - Planned capture: `alpha.8`, `mvp-acceptance.md`
+- Decision: `runectx doctor` should report install, project, and upgrade-
+  readiness diagnostics distinctly, and `runectx init` should finish with
+  actionable next-step guidance.
+  - Planned capture: `alpha.8`, `mvp-acceptance.md`
 - Decision: adapter packs ship with the selected RuneContext release, and
   `runectx adapter sync <tool>` materializes local adapter files from those
   packaged contents rather than fetching them implicitly from GitHub.

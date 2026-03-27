@@ -12,6 +12,8 @@ Each release publishes:
 - `runecontext_<tag>_linux_arm64.tar.gz`
 - `runecontext_<tag>_darwin_amd64.tar.gz`
 - `runecontext_<tag>_darwin_arm64.tar.gz`
+- `schema-bundle.tar.gz`
+- `adapter-generic.tar.gz`, `adapter-codex.tar.gz`, `adapter-claude-code.tar.gz`, and `adapter-opencode.tar.gz`
 - `SHA256SUMS`
 - a canonical unsigned release manifest
   (`runecontext_<tag>_release-manifest.json`)
@@ -21,21 +23,31 @@ Each release publishes:
 - GitHub build provenance attestations
 
 The canonical flake package emits the final versioned unsigned archives,
-`SHA256SUMS`, and the release manifest:
+bundle artifacts (repo bundle, schema bundle, adapter packs), `SHA256SUMS`, and
+the release manifest:
 
 ```sh
 nix build --no-link .#release-artifacts
 ```
 
 The release workflow generates the SBOM afterward, then signs and attests it
-separately. The canonical `SHA256SUMS` file covers the unsigned archives and
-release manifest.
+separately. The canonical `SHA256SUMS` file covers the unsigned archives,
+schema bundle, adapter packs, and release manifest.
 
-Installation now supports both of these verified flows:
+Installation now supports these verified flows:
 
 - verify and extract a repo bundle, then vendor or copy RuneContext files into a
-  target project
+  target project (this remains the canonical distribution and audit path)
 - verify and install a platform `runectx` binary archive
+
+This document is the **verified-install lane** (signatures, certificates, and
+attestations). For the lightweight **quick-install lane** (checksum +
+`runectx version` confirmation, optional `runectx doctor`), use `README.md`.
+
+For the canonical **manual repo-bundle install lane**, use pinned GitHub release
+bundle assets emitted by `nix build .#release-artifacts`, verify the matching
+`SHA256SUMS` entry for the same tag, then vendor/copy bundle contents into your
+project.
 
 ## Prerequisites
 
@@ -60,7 +72,7 @@ release exists.
 set -euo pipefail
 
 REPO="runecode-systems/runecontext"
-# Newest published release, including prereleases during pre-alpha.
+# Newest published release, including prereleases during the alpha series.
 # Ordered by creation date; assumes no out-of-order backport releases.
 VERSION="$(gh release list --repo "$REPO" --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')"
 
@@ -195,7 +207,7 @@ If you prefer not to resolve `latest`, set the version explicitly and run the
 same flow.
 
 ```bash
-VERSION="v0.1.0-alpha.1"
+VERSION="v0.1.0-alpha.8"
 ```
 
 Replace the `VERSION=...` line in the previous script with the pinned tag you
@@ -207,7 +219,7 @@ want.
 $ErrorActionPreference = "Stop"
 
 $Repo = "runecode-systems/runecontext"
-# Newest published release, including prereleases during pre-alpha.
+# Newest published release, including prereleases during the alpha series.
 # Ordered by creation date; assumes no out-of-order backport releases.
 $Version = gh release list --repo $Repo --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName'
 if (-not $Version) {
@@ -280,7 +292,7 @@ try {
 
 ## Windows PowerShell: installing `runectx`
 
-Windows binary archives are not published yet in this initial binary phase. Use
+Windows binary archives are not published yet in the current alpha.8 asset set. Use
 the repo bundle flow on Windows for now, or build `runectx` locally from source.
 
 ## Windows PowerShell: pinned release, full verification, extract
@@ -289,7 +301,7 @@ If you prefer not to resolve `latest`, set the version explicitly and run the
 same flow.
 
 ```powershell
-$Version = "v0.1.0-alpha.1"
+$Version = "v0.1.0-alpha.8"
 ```
 
 Replace the `$Version=...` line in the previous script with the pinned tag you

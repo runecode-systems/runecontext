@@ -9,7 +9,10 @@ export SOURCE_DATE_EPOCH=315532800
 export TZ=UTC
 export LC_ALL=C
 
-mkdir -p release/payload release/dist
+coreutils='@coreutils@/bin'
+findutils='@findutils@/bin'
+
+"${coreutils}/mkdir" -p release/payload release/dist
 
 archive_records="release/archive-records.ndjson"
 : > "${archive_records}"
@@ -41,7 +44,7 @@ record_archive() {
 bundle_name="@packageName@_@tag@"
 bundle_root="release/payload/${bundle_name}"
 
-mkdir -p "${bundle_root}"
+"${coreutils}/mkdir" -p "${bundle_root}"
 
 while IFS= read -r entry; do
   [ -n "${entry}" ] || continue
@@ -49,11 +52,11 @@ while IFS= read -r entry; do
     printf 'missing required release entry: %s\n' "${entry}" >&2
     exit 1
   fi
-  cp -R --parents "${entry}" "${bundle_root}"
+  "${coreutils}/cp" -R --parents "${entry}" "${bundle_root}"
 done < "@layoutEntriesFile@"
 
-chmod -R u=rwX,go=rX "${bundle_root}"
-find "${bundle_root}" -exec touch -h -d '1980-01-01T00:00:00Z' {} +
+"${coreutils}/chmod" -R u=rwX,go=rX "${bundle_root}"
+"${findutils}/find" "${bundle_root}" -exec "${coreutils}/touch" -h -d '1980-01-01T00:00:00Z' {} +
 
 mapfile -t bundle_formats < "@bundleFormatsFile@"
 
@@ -66,7 +69,7 @@ for archive_ext in "${bundle_formats[@]}"; do
     zip)
       (
         cd release/payload
-        find "${bundle_name}" -print | sort | @zip@/bin/zip -X -q "../dist/${archive_file}" -@
+        "${findutils}/find" "${bundle_name}" -print | "${coreutils}/sort" | @zip@/bin/zip -X -q "../dist/${archive_file}" -@
       )
       ;;
     tar.gz)
@@ -82,9 +85,82 @@ for archive_ext in "${bundle_formats[@]}"; do
       ;;
   esac
 
-  archive_sha="$(@coreutils@/bin/sha256sum "release/dist/${archive_file}" | cut -d ' ' -f 1)"
+  archive_sha="$(@coreutils@/bin/sha256sum "release/dist/${archive_file}" | "${coreutils}/cut" -d ' ' -f 1)"
   record_archive "repo_bundle" "${archive_ext}" "${archive_file}" "${archive_sha}"
 done
+
+process_pack_archives() {
+  local kind="$1"
+  local entries_json="$2"
+
+  if [ ! -s "${entries_json}" ]; then
+    return
+  fi
+
+  if ! @jq@/bin/jq -e '
+    type == "array"
+    and all(
+      .[];
+      type == "object"
+      and (.name | type == "string")
+      and (.entries | type == "array")
+      and all(.entries[]; type == "string" and length > 0)
+    )
+  ' "${entries_json}" >/dev/null; then
+    printf 'invalid pack metadata: %s\n' "${entries_json}" >&2
+    exit 1
+  fi
+
+  local -a packs
+  if ! mapfile -t packs < <(@jq@/bin/jq -ce '.[]' "${entries_json}"); then
+    printf 'failed to parse pack metadata: %s\n' "${entries_json}" >&2
+    exit 1
+  fi
+
+  for pack in "${packs[@]}"; do
+    [ -n "${pack}" ] || continue
+    local name
+    if ! name="$(@jq@/bin/jq -er '.name' <<<"${pack}")"; then
+      printf 'invalid pack metadata (missing name): %s\n' "${entries_json}" >&2
+      exit 1
+    fi
+    if [[ ! "${name}" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+      printf 'invalid pack name: %s\n' "${name}" >&2
+      exit 1
+    fi
+    local -a entries
+    if ! mapfile -t entries < <(@jq@/bin/jq -er '.entries[]' <<<"${pack}"); then
+      printf 'invalid pack metadata (entries): %s\n' "${entries_json}" >&2
+      exit 1
+    fi
+
+    local pack_root
+    pack_root="release/payload/${name}"
+    "${coreutils}/rm" -rf "${pack_root}"
+    "${coreutils}/mkdir" -p "${pack_root}"
+
+    for entry in "${entries[@]}"; do
+      [ -n "${entry}" ] || continue
+      if [ ! -e "${entry}" ]; then
+        printf 'missing required release entry: %s\n' "${entry}" >&2
+        exit 1
+      fi
+      "${coreutils}/cp" -R --parents "${entry}" "${pack_root}"
+    done
+
+    "${coreutils}/chmod" -R u=rwX,go=rX "${pack_root}"
+    "${findutils}/find" "${pack_root}" -exec "${coreutils}/touch" -h -d '1980-01-01T00:00:00Z' {} +
+
+    (cd release/payload && @gnutar@/bin/tar --format=gnu --sort=name --mtime='UTC 1980-01-01' --owner=0 --group=0 --numeric-owner -cf - "${name}" | @gzip@/bin/gzip -n > "../dist/${name}.tar.gz")
+
+    local pack_sha
+    pack_sha="$(@coreutils@/bin/sha256sum "release/dist/${name}.tar.gz" | "${coreutils}/cut" -d ' ' -f 1)"
+    record_archive "${kind}" "tar.gz" "${name}.tar.gz" "${pack_sha}"
+  done
+}
+
+process_pack_archives "schema_bundle" "@schemaBundlesFile@"
+process_pack_archives "adapter_pack" "@adapterPacksFile@"
 
 mapfile -t binaries < "@binariesFile@"
 mapfile -t targets < "@targetsFile@"
@@ -96,7 +172,7 @@ for target in "${targets[@]}"; do
   archive_base="@packageName@_@tag@_${goos}_${goarch}"
   package_dir="release/payload/${archive_base}"
   bin_dir="${package_dir}/bin"
-  mkdir -p "${bin_dir}"
+  "${coreutils}/mkdir" -p "${bin_dir}"
 
     for binary in "${binaries[@]}"; do
       [ -n "${binary}" ] || continue
@@ -105,9 +181,9 @@ for target in "${targets[@]}"; do
       GOOS="${goos}" GOARCH="${goarch}" go build -ldflags="-s -w -X github.com/runecode-systems/runecontext/internal/cli.runecontextVersion=${ldflags_version}" -o "${bin_dir}/${binary}" "./cmd/${binary}"
     done
 
-  cp LICENSE NOTICE README.md "${package_dir}/"
-  chmod -R u=rwX,go=rX "${package_dir}"
-  find "${package_dir}" -exec touch -h -d '1980-01-01T00:00:00Z' {} +
+  "${coreutils}/cp" LICENSE NOTICE README.md "${package_dir}/"
+  "${coreutils}/chmod" -R u=rwX,go=rX "${package_dir}"
+  "${findutils}/find" "${package_dir}" -exec "${coreutils}/touch" -h -d '1980-01-01T00:00:00Z' {} +
 
   archive_file="${archive_base}.${archive_ext}"
 
@@ -122,7 +198,7 @@ for target in "${targets[@]}"; do
     zip)
       (
         cd release/payload
-        find "${archive_base}" -print | sort | @zip@/bin/zip -X -q "../dist/${archive_file}" -@
+        "${findutils}/find" "${archive_base}" -print | "${coreutils}/sort" | @zip@/bin/zip -X -q "../dist/${archive_file}" -@
       )
       ;;
     *)
@@ -131,7 +207,7 @@ for target in "${targets[@]}"; do
       ;;
   esac
 
-  archive_sha="$(@coreutils@/bin/sha256sum "release/dist/${archive_file}" | cut -d ' ' -f 1)"
+  archive_sha="$(@coreutils@/bin/sha256sum "release/dist/${archive_file}" | "${coreutils}/cut" -d ' ' -f 1)"
   record_archive "binary" "${archive_ext}" "${archive_file}" "${archive_sha}" "${goos}" "${goarch}"
 done
 

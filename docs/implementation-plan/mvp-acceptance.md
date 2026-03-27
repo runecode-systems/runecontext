@@ -245,12 +245,14 @@
   `change shape`, `bundle resolve`, and `change close`.
 - [x] `runectx status` can at minimum report active, closed, and superseded
   changes without requiring a single repository-wide active-change slot.
-- [ ] The secondary/admin commands exist: `validate`, `doctor`,
+- [ ] The secondary/admin commands exist: `version`, `validate`, `doctor`,
   `standard discover`, `promote`, `assurance enable verified`, and
   `assurance backfill`.
 - [ ] `status`, `validate`, and `doctor` have distinct stable responsibilities:
   workflow summary, authoritative contract enforcement, and
-  environment/install/source-posture diagnosis.
+  environment/install/source-posture plus upgrade-readiness diagnosis.
+- [ ] `runectx version`, `runectx --version`, and `runectx -v` all report the
+  installed CLI version for install, upgrade, and debugging flows.
 - [x] Before alpha.5 is complete, any earlier validation entrypoints remain narrow
   wrappers around the same core contracts rather than alternate semantics.
 - [x] Before alpha.5 is complete, any earlier `status`, `change new`,
@@ -401,9 +403,20 @@
 - [ ] Optional `runectx` binaries are packaged.
 - [ ] Linux and macOS `runectx` binary archives are published as signed and
   attested convenience assets without replacing the canonical repo bundles.
+- [ ] Repo bundles remain the canonical distribution and audit path even when
+  the `runectx` binary is the primary operational front door for install,
+  init, validation, adapter sync, diagnostics, and upgrade.
 - [ ] Manual repo install is documented and tested.
-- [ ] `runectx init` is local-only and scaffolds from already-installed release
-  contents rather than fetching project files over the network.
+- [ ] `README.md` documents a quick-install lane for `runectx` that downloads a
+  release asset, verifies `SHA256SUMS`, installs the binary, confirms it with
+  `runectx version`, and optionally runs `runectx doctor`.
+- [ ] Dedicated install docs document a stronger verified-install lane using
+  signatures, certificates, and attestations without implying the same
+  guarantee level as the quick-install path.
+- [ ] `runectx init` is local-only, scaffolds from already-installed release
+  contents rather than fetching project files over the network, and ends with
+  actionable next-step guidance for validation, adapter sync, and shell
+  completion.
 - [ ] `runectx upgrade` is preview-first, diff-first, and reviewable.
 - [ ] `runectx upgrade apply` is the only durable mutation surface for source
   upgrades and migrations.
@@ -433,7 +446,10 @@
 - [ ] `validate` and `doctor` detect unsupported version combinations and stale
   mixed-version trees after merge/rebase and direct users to rerun
   `runectx upgrade`.
-- [ ] `doctor` also provides explicit upgrade-readiness diagnostics.
+- [ ] `doctor` provides install, project, and explicit upgrade-readiness
+  diagnostics, including CLI version, project `runecontext_version`, source
+  posture, missing prerequisites, and clear next actions when upgrade is
+  needed.
 - [ ] `runectx` makes no network calls outside explicit `runectx upgrade`
   flows.
 - [ ] Windows MVP support covers portability validation and repo-bundle install
@@ -486,8 +502,10 @@ RuneContext makes them possible and testable.
 - [ ] Adapter smoke tests and parity checks exist for `generic`, `claude-code`,
   `opencode`, and `codex`.
 - [ ] Release/install/upgrade flows are covered by end-to-end tests over
-  reference projects.
+  reference projects and clean-machine install scenarios.
 - [ ] Automated tests cover upgrade transaction rollback, stale-file detection
   after merge/rebase, and `type: path` no-mutation behavior.
+- [ ] Automated tests cover `runectx version` aliases plus quick-install and
+  doctor confirmation flows.
 - [ ] Signed-tag verification, Verified-mode gating, and RuneCode parity
   fixtures are all covered by automated tests.

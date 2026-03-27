@@ -53,6 +53,14 @@ let
     + "\n"
   );
 
+  schemaBundlesFile = pkgs.writeText "runecontext-release-schema-bundles.json" (
+    builtins.toJSON releaseMetadata.schemaBundles + "\n"
+  );
+
+  adapterPacksFile = pkgs.writeText "runecontext-release-adapter-packs.json" (
+    builtins.toJSON releaseMetadata.adapterPacks + "\n"
+  );
+
   buildScript = pkgs.writeText "build-release-artifacts.sh" (
     renderTemplate ../scripts/build-release-artifacts.sh {
       packageName = releaseMetadata.packageName;
@@ -60,9 +68,12 @@ let
       version = releaseMetadata.version;
       layoutEntriesFile = layoutEntriesFile;
       bundleFormatsFile = bundleFormatsFile;
+      schemaBundlesFile = schemaBundlesFile;
+      adapterPacksFile = adapterPacksFile;
       binariesFile = binariesFile;
       targetsFile = targetsFile;
       coreutils = pkgs.coreutils;
+      findutils = pkgs.findutils;
       jq = pkgs.jq;
       gnutar = pkgs.gnutar;
       gzip = pkgs.gzip;

@@ -115,6 +115,12 @@ func TestRunInitMachineOptionsReported(t *testing.T) {
 	if fields["dry_run"] != "false" {
 		t.Fatalf("expected dry_run false, got %#v", fields)
 	}
+	if got, want := fields["network_access"], "false"; got != want {
+		t.Fatalf("expected network_access %q, got %q", want, got)
+	}
+	if fields["next_action_1"] == "" {
+		t.Fatalf("expected actionable next steps, got %#v", fields)
+	}
 }
 
 func TestRunInitRejectsInvalidSeedBundleName(t *testing.T) {

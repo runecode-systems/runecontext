@@ -1,6 +1,6 @@
 # OpenCode Adapter
 
-This adapter is the first end-to-end tool adapter for alpha.7.
+OpenCode is a maintained tool adapter pack for conversational RuneContext workflows.
 
 ## Scope
 

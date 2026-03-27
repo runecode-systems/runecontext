@@ -1,7 +1,7 @@
 let
   base = rec {
     packageName = "runecontext";
-    version = "0.1.0-alpha.7";
+    version = "0.1.0-alpha.8";
 
     topLevelFiles = [
       "README.md"
@@ -38,6 +38,42 @@ let
       }
       {
         archive = "zip";
+      }
+    ];
+
+    schemaBundles = [
+      {
+        name = "schema-bundle";
+        entries = [
+          "schemas"
+        ];
+      }
+    ];
+
+    adapterPacks = [
+      {
+        name = "adapter-generic";
+        entries = [
+          "adapters/generic"
+        ];
+      }
+      {
+        name = "adapter-codex";
+        entries = [
+          "adapters/codex"
+        ];
+      }
+      {
+        name = "adapter-claude-code";
+        entries = [
+          "adapters/claude-code"
+        ];
+      }
+      {
+        name = "adapter-opencode";
+        entries = [
+          "adapters/opencode"
+        ];
       }
     ];
 

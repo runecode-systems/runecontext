@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/runecode-systems/runecontext/internal/contracts"
 )
@@ -23,13 +22,8 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	if len(remaining) > 0 && isHelpToken(remaining[0]) {
-		if len(remaining) != 1 {
-			emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
-			return exitUsage
-		}
-		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "validate"}, {"usage", validateUsage}}, machine), exitOK, failureClassNone)
-		return exitOK
+	if handled, code := runValidateHelpIfRequested(remaining, machine, stdout, stderr); handled {
+		return code
 	}
 	request, err := parseValidateArgs(remaining)
 	if err != nil {
@@ -47,13 +41,29 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 		return exitInvalid
 	}
 	defer index.Close()
-	output := buildValidateOutput(absRoot, index)
+	diagnostics, err := collectValidateDiagnostics(absRoot, index)
+	if err != nil {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildValidateErrorLines(absRoot, err), machine), exitInvalid, failureClassInvalid)
+		return exitInvalid
+	}
+	output := buildValidateOutput(absRoot, index, diagnostics)
 	if machine.explain {
-		diagnostics := collectDiagnostics(index)
 		output = appendValidateExplainLines(output, request, index, diagnostics)
 	}
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
+}
+
+func runValidateHelpIfRequested(args []string, machine machineOptions, stdout, stderr io.Writer) (bool, int) {
+	if len(args) == 0 || !isHelpToken(args[0]) {
+		return false, exitOK
+	}
+	if len(args) != 1 {
+		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("validate", validateUsage, fmt.Errorf("help does not accept additional arguments")), machine), exitUsage, failureClassUsage)
+		return true, exitUsage
+	}
+	emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "validate"}, {"usage", validateUsage}}, machine), exitOK, failureClassNone)
+	return true, exitOK
 }
 
 func parseValidateArgs(args []string) (validateRequest, error) {
@@ -150,11 +160,20 @@ func buildValidateResolveOptions(request validateRequest) contracts.ResolveOptio
 	return options
 }
 
-func buildValidateOutput(absRoot string, index *contracts.ProjectIndex) []line {
+func buildValidateOutput(absRoot string, index *contracts.ProjectIndex, diagnostics []emittedDiagnostic) []line {
 	output := []line{{"result", "ok"}, {"command", "validate"}, {"root", absRoot}}
-	diagnostics := collectDiagnostics(index)
 	output = appendValidateResolutionLines(output, index, diagnostics)
 	return appendValidateDiagnosticLines(output, diagnostics)
+}
+
+func collectValidateDiagnostics(absRoot string, index *contracts.ProjectIndex) ([]emittedDiagnostic, error) {
+	diagnostics := collectDiagnostics(index)
+	plan, err := buildUpgradeReadinessFromIndex(absRoot, index)
+	if err != nil {
+		return nil, err
+	}
+	diagnostics = append(diagnostics, upgradePlanDiagnostics(plan)...)
+	return diagnostics, nil
 }
 
 func appendValidateResolutionLines(lines []line, index *contracts.ProjectIndex, diagnostics []emittedDiagnostic) []line {
@@ -188,30 +207,6 @@ func appendValidateDiagnosticLines(lines []line, diagnostics []emittedDiagnostic
 		lines = append(lines, validateDiagnosticLines(fmt.Sprintf("diagnostic_%d", i+1), diagnostic)...)
 	}
 	return lines
-}
-
-func validateDiagnosticLines(prefix string, diagnostic emittedDiagnostic) []line {
-	lines := []line{
-		{prefix + "_severity", string(diagnostic.Severity)},
-		{prefix + "_code", diagnostic.Code},
-		{prefix + "_message", diagnostic.Message},
-	}
-	lines = appendOptionalDiagnosticLine(lines, prefix+"_path", diagnostic.Path)
-	lines = appendOptionalDiagnosticLine(lines, prefix+"_bundle", diagnostic.Bundle)
-	lines = appendOptionalDiagnosticLine(lines, prefix+"_aspect", diagnostic.Aspect)
-	lines = appendOptionalDiagnosticLine(lines, prefix+"_rule", diagnostic.Rule)
-	lines = appendOptionalDiagnosticLine(lines, prefix+"_pattern", diagnostic.Pattern)
-	if len(diagnostic.Matches) > 0 {
-		lines = append(lines, line{prefix + "_matches", strings.Join(diagnostic.Matches, ",")})
-	}
-	return lines
-}
-
-func appendOptionalDiagnosticLine(lines []line, key, value string) []line {
-	if value == "" {
-		return lines
-	}
-	return append(lines, line{key, value})
 }
 
 func buildValidateErrorLines(absRoot string, err error) []line {

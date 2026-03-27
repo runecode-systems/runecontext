@@ -17,6 +17,7 @@ For each pushed release tag, the workflow:
 - reruns `just ci`
 - builds the canonical unsigned artifacts with `nix build .#release-artifacts`
 - emits the final versioned repo bundles, Linux/macOS `runectx` binary archives,
+  `schema-bundle.tar.gz`, adapter-pack archives (`adapter-*.tar.gz`),
   `SHA256SUMS`, and `runecontext_<tag>_release-manifest.json` from the Nix
   output tree
 - generates a release SBOM
@@ -150,11 +151,18 @@ After the workflow completes:
 
 - open the GitHub Release page for the tag
 - confirm the expected repo bundles, Linux/macOS `runectx` archives,
-  `SHA256SUMS`,
-  `runecontext_<tag>_release-manifest.json`, signatures, certificates, and SBOM
-  are present
+  schema bundle, adapter pack archives, `SHA256SUMS`,
+  and `runecontext_<tag>_release-manifest.json` are present
+- ensure each primary asset (repo bundles, Linux/macOS archives, schema bundle,
+  adapter packs, `SHA256SUMS`, and the release manifest) ships with matching
+  Sigstore `.sig` and `.pem` files and passes `cosign verify-blob`, mirroring the
+  flow described in `docs/install-verify.md`
+- ensure the generated SBOM (`runecontext_<tag>_sbom.spdx.json`) is published
+  alongside its `.sig` and `.pem`, verify its signature/certificate, and
+  confirm the GitHub provenance attestation for the SBOM
 - run the verification flow in `docs/install-verify.md` against one release
-  asset
+  asset and consult `docs/compatibility-matrix.md` for RuneCode compatibility
+  guidance.
 
 ## Failure handling
 

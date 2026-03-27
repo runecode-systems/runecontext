@@ -63,7 +63,7 @@ var cliMetadataRegistry = MetadataRegistry{
 }
 
 func rootCommandsMetadata() []CommandMetadata {
-	return []CommandMetadata{
+	commands := []CommandMetadata{
 		{Name: "help", Path: "help", Usage: "runectx help"},
 		{Name: "validate", Path: "validate", Usage: validateUsage, Flags: readOnlyCommandFlags(validateFlags())},
 		{Name: "status", Path: "status", Usage: statusUsage, Flags: readOnlyCommandFlags(pathOnlyFlag())},
@@ -77,7 +77,9 @@ func rootCommandsMetadata() []CommandMetadata {
 		assuranceCommandMetadata(),
 		adapterCommandMetadata(),
 		completionCommandMetadata(),
+		upgradeCommandMetadata(),
 	}
+	return append(commands, versionRootCommandsMetadata()...)
 }
 
 func changeCommandMetadata() CommandMetadata {

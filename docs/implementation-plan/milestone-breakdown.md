@@ -1493,15 +1493,25 @@ install/upgrade paths and end-to-end reference fixtures.
   generation, and maintainer/user verification docs. The remaining alpha.8 work
   is primarily upgrade flow, compatibility-matrix, adapter-pack, and
   reference-fixture hardening.
+- `runectx` should be the primary operational front door for RuneContext even
+  while repo files remain the source of truth and repo bundles remain the
+  canonical distribution and audit path.
 - Use the command name `upgrade` rather than `update`. `runectx upgrade`
   previews a reviewable upgrade plan, and `runectx upgrade apply` is the
   explicit user-authorized mutation step.
+- Alpha.8 install UX should define two honest lanes: a quick-install lane in
+  `README.md` built around release download, `SHA256SUMS` verification,
+  `runectx version`, and optional `runectx doctor`; and a verified-install lane
+  in dedicated install docs using signatures, certificates, and attestations.
 - `runectx init` should remain local-only. It scaffolds from already-installed
   RuneContext release contents and must not fetch project files over the
   network.
 - `runectx upgrade` is the only CLI flow that may make network calls, and that
   network use should stay narrow and explicit around acquiring newer signed
   release contents rather than ordinary project-file mutation.
+- `runectx version`, `runectx --version`, and `runectx -v` should be equivalent
+  version-reporting entrypoints for users, install docs, upgrade flows, and
+  debugging.
 - External migration/adoption from other spec-driven systems remains a separate
   future command surface and must not be folded into `runectx upgrade`.
 - `schema_version` remains the fail-closed parser contract for individual
@@ -1542,8 +1552,13 @@ install/upgrade paths and end-to-end reference fixtures.
   and `doctor` should instead detect unsupported version combinations or stale
   pre-upgrade files after merge/rebase and direct users to rerun
   `runectx upgrade`.
-- `runectx doctor` should grow explicit upgrade-readiness diagnostics rather than
-  remaining only an environment/resolution surface.
+- `runectx doctor` should report install, project, and upgrade-readiness
+  diagnostics distinctly, including CLI version, project
+  `runecontext_version`, source posture, prerequisite warnings, and clear next
+  actions when upgrade is needed.
+- `runectx init` should end with actionable next-step guidance such as
+  `runectx validate`, `runectx adapter sync <tool>`, and completion setup
+  rather than stopping at bare success output.
 - Windows support in alpha.8 is portability and repo-bundle usability, not full
   binary convenience parity with Linux/macOS. Broader Windows distribution
   channels remain post-MVP.
@@ -1555,6 +1570,8 @@ the following recommended branch cuts.
 
 - [ ] Issue: keep `runectx init` local-only and harden `runectx upgrade` as the
   only CLI flow allowed to make narrow, explicit network calls.
+- [ ] Issue: implement `runectx version` plus top-level `--version` and `-v`
+  aliases for install, upgrade, and debugging flows.
 - [ ] Issue: implement preview-only `runectx upgrade` and explicit
   `runectx upgrade apply` mutation as the repo-upgrade command surface.
 - [ ] Issue: implement explicit project-state classification for upgrade
@@ -1584,14 +1601,21 @@ the following recommended branch cuts.
 - [ ] Issue: ensure upgrade apply refreshes only RuneContext-owned host-native
   adapter artifacts, preserves unrelated user-owned host commands/skills, and
   fails closed on ownership-marker conflicts.
+- [ ] Issue: expand `runectx doctor` to report install, project, and
+  upgrade-readiness diagnostics distinctly, including CLI version, project
+  `runecontext_version`, source posture, prerequisite warnings, and clear next
+  actions.
 - [ ] Issue: ensure `validate` and `doctor` report unsupported version
   combinations, stale mixed-version trees after merge/rebase, integrity posture
   issues, and upgrade-readiness diagnostics.
+- [ ] Issue: improve `runectx init` success output with actionable next-step
+  guidance for validation, adapter sync, and shell completion setup.
 - [ ] Issue: normalize remaining maintained-doc `update` terminology to
   `upgrade` where it describes the current user-facing flow.
 - [ ] Issue: add regression tests for preview plans, transaction rollback,
   merge/rebase stale-file detection, local-only init behavior, explicit-network
-  upgrade behavior, and idempotent reruns of `runectx upgrade`.
+  upgrade behavior, `runectx version` aliases, and idempotent reruns of
+  `runectx upgrade`.
 - [ ] Issue: add regression tests asserting forbidden install/upgrade patterns do
   not appear: required global installs, bash-only installers, overwriting
   existing tool config files, hidden runtime-manager dependencies, and silent
@@ -1606,9 +1630,16 @@ the following recommended branch cuts.
 - [ ] Issue: create a linked-by-signed-tag reference project fixture.
 - [ ] Issue: create a Verified-mode reference project fixture.
 - [ ] Issue: create a monorepo reference fixture with nested RuneContext roots.
+- [ ] Issue: document the quick-install lane in `README.md` around release-asset
+  download, `SHA256SUMS` verification, binary install, `runectx version`, and
+  optional `runectx doctor`.
+- [ ] Issue: document the dedicated verified-install lane around signatures,
+  certificates, and attestations without conflating it with the quick-install
+  guarantee level.
 - [ ] Issue: document and test the canonical manual repo-install flow around
   pinned GitHub release assets emitted by the Nix release builder.
-- [ ] Issue: add end-to-end tests for manual repo install, local CLI-managed
+- [ ] Issue: add end-to-end tests for manual repo install, quick binary install
+  confirmation via `runectx version`/`runectx doctor`, local CLI-managed
   project initialization, and preview-first upgrade flows.
 - [ ] Issue: add end-to-end tests over reference projects for embedded,
   linked-by-commit, linked-by-signed-tag, Verified-mode, and monorepo cases.
@@ -1636,6 +1667,9 @@ the following recommended branch cuts.
 - [ ] Issue: publish a RuneCode `<->` RuneContext compatibility matrix with
   explicit supported-range columns for RuneCode releases, RuneContext releases,
   and adapter-pack compatibility where applicable.
+- [ ] Issue: make release/install docs explicitly distinguish the canonical
+  repo-bundle distribution path from the `runectx` binary as the primary
+  operational entrypoint.
 - [x] Issue: publish through a protected `release` environment after unsigned
   assets are built and uploaded by the initial build job.
 - [ ] Issue: add tests covering release artifact contents, checksums, manifests,
@@ -1653,14 +1687,26 @@ the following recommended branch cuts.
 
 ### Exit Criteria
 
+- `runectx` is the documented primary operational front door for install,
+  init, validation, adapter management, diagnostics, and upgrades, while repo
+  bundles remain canonical distribution artifacts and repo files remain the
+  source of truth.
+- Users have two official install lanes: a quick-install lane in `README.md`
+  based on checksum verification and `runectx version` confirmation, and a
+  verified-install lane in dedicated install docs based on signatures,
+  certificates, and attestations.
 - RuneContext can be installed manually, managed by CLI, and upgraded
   reviewably.
 - The release workflow mirrors RuneCode's tag-driven build/publish split while
   keeping RuneContext's unsigned asset set canonical in Nix.
 - Release artifacts are canonical, inspectable, and compatible with the repo-
   first distribution model.
+- `runectx version`, `runectx --version`, and `runectx -v` all report the
+  installed CLI version.
 - `runectx init` is local-only, and normal adapter sync is local-only; any
   network access is confined to explicit `runectx upgrade` operations.
+- `runectx init` finishes with actionable next-step guidance for validation,
+  adapter sync, and shell completion setup.
 - Mixed-version trees fail closed and are repairable through explicit reruns of
   `runectx upgrade` rather than hidden background migration.
 - Explicit upgrade runs refresh RuneContext-managed host-native adapter
@@ -1668,6 +1714,8 @@ the following recommended branch cuts.
   clobbering unrelated user-owned host artifacts.
 - Embedded upgrade conflicts fail closed with reviewable conflict reporting
   rather than auto-merge behavior.
+- `runectx doctor` reports install, project, and upgrade-readiness diagnostics
+  distinctly.
 - Windows MVP support is validated through portability and repo-bundle install
   paths without requiring binary convenience parity.
 - Signed-tag verification is included in MVP validation, not deferred.
