@@ -1,0 +1,24 @@
+schema_version: 1
+id: CHG-2026-009-eb40-derive-docs-and-reference-surfaces-from-canonical-runecontext-metadata
+title: Derive docs and reference surfaces from canonical RuneContext metadata
+status: proposed
+type: feature
+size: large
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
+  - CHG-2026-008-47e1-add-canonical-metadata-builder-and-capability-descriptor-outputs
+depends_on:
+  - CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
+  - CHG-2026-008-47e1-add-canonical-metadata-builder-and-capability-descriptor-outputs
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-28"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []
