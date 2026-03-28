@@ -1,0 +1,25 @@
+schema_version: 1
+id: CHG-2026-005-d9ca-add-structured-change-update-command-for-safe-status-and-relationship-edits
+title: Add structured change update command for safe status and relationship edits
+status: proposed
+type: feature
+size: large
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-001-fdc1-add-advisory-intake-and-decomposition-assessment-commands
+  - CHG-2026-002-5739-add-guided-adapter-native-change-workflows
+  - CHG-2026-003-5f38-teach-adapters-to-run-guided-clarification-and-decomposition-flows
+  - CHG-2026-004-5b03-add-first-class-change-decomposition-planning-and-apply-operations
+depends_on:
+  - CHG-2026-001-fdc1-add-advisory-intake-and-decomposition-assessment-commands
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-28"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []
