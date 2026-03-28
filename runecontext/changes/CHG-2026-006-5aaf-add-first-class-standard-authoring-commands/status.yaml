@@ -1,0 +1,22 @@
+schema_version: 1
+id: CHG-2026-006-5aaf-add-first-class-standard-authoring-commands
+title: Add first-class standard authoring commands
+status: proposed
+type: feature
+size: large
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-002-5739-add-guided-adapter-native-change-workflows
+  - CHG-2026-005-d9ca-add-structured-change-update-command-for-safe-status-and-relationship-edits
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-28"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []
