@@ -42,12 +42,19 @@ func appendProjectChangeStatus(summary *ProjectStatusSummary, index *ProjectInde
 
 func changeStatusEntryFromRecord(index *ProjectIndex, record *ChangeRecord) ChangeStatusEntry {
 	return ChangeStatusEntry{
-		ID:     record.ID,
-		Title:  record.Title,
-		Status: string(record.Status),
-		Type:   record.Type,
-		Size:   record.Size,
-		Path:   runeContextRelativePath(index.ContentRoot, filepath.Join(record.DirPath, "status.yaml")),
+		ID:                 record.ID,
+		Title:              record.Title,
+		Status:             string(record.Status),
+		Type:               record.Type,
+		Size:               record.Size,
+		Path:               runeContextRelativePath(index.ContentRoot, filepath.Join(record.DirPath, "status.yaml")),
+		VerificationStatus: record.VerificationStatus,
+		RelatedChanges:     append([]string(nil), record.RelatedChanges...),
+		DependsOn:          append([]string(nil), record.DependsOn...),
+		Supersedes:         append([]string(nil), record.Supersedes...),
+		SupersededBy:       append([]string(nil), record.SupersededBy...),
+		CreatedAt:          record.CreatedAt,
+		ClosedAt:           record.ClosedAt,
 	}
 }
 

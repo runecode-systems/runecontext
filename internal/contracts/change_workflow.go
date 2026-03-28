@@ -31,6 +31,7 @@ type ChangeRecord struct {
 	Type                string
 	Size                string
 	VerificationStatus  string
+	CreatedAt           string
 	ClosedAt            string
 	HasClosedAt         bool
 	ContextBundles      []string
