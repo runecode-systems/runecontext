@@ -11,8 +11,10 @@ Capture the status UX enhancement as an umbrella over summary-model expansion, a
 ## UX Direction
 - Default non-JSON `runectx status` should become a human-first console view rather than a raw contract dump.
 - Group sections by meaning, with in-flight work emphasized and historical sections de-emphasized.
-- Show change associations with ASCII tree structure first, then reinforce meaning with optional color when the terminal allows it.
+- Show change associations with ASCII tree structure first (`|-` and `\-`), then reinforce meaning with optional color when the terminal allows it.
 - Keep symbols sparse and never rely on color alone to carry meaning.
+- Use lifecycle-first multiline rows with compact IDs in default output and full IDs only under `--verbose`.
+- Apply renderer-controlled wrapping to titles and relationship hints so output remains readable in narrow terminals.
 - Preserve the flat machine contract for `--json` until a future structured contract is intentionally designed.
 
 ## Scaling Defaults

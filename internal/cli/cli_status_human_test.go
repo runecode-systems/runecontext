@@ -22,19 +22,21 @@ func TestRunStatusHumanOutputUsesSectionedAsciiLayout(t *testing.T) {
 		t.Fatalf("status command failed: %d (%s)", code, stderr.String())
 	}
 	out := stdout.String()
+	shortSecondID := compactChangeID(secondID)
+	shortFirstID := compactChangeID(firstID)
 	for _, token := range []string{
 		"RuneContext Status",
 		"In Flight (0)",
 		"Recently Completed (1)",
 		"Replaced (1)",
-		secondID,
-		firstID,
+		shortSecondID,
+		shortFirstID,
 	} {
 		if !strings.Contains(out, token) {
 			t.Fatalf("expected human status output to contain %q, got:\n%s", token, out)
 		}
 	}
-	if strings.Index(out, secondID) > strings.Index(out, firstID) {
+	if strings.Index(out, shortSecondID) > strings.Index(out, shortFirstID) {
 		t.Fatalf("expected more recent closed entry to appear first, got:\n%s", out)
 	}
 	if strings.Contains(out, "|--") || strings.Contains(out, "`--") {
@@ -66,7 +68,7 @@ func TestRunStatusHistoryRecentUsesDefaultBoundedPreview(t *testing.T) {
 	if !strings.Contains(out, "showing 2 of 3 closed changes; use --history all to show more") {
 		t.Fatalf("expected hidden-history hint, got:\n%s", out)
 	}
-	if strings.Contains(out, ids[0]) {
+	if strings.Contains(out, compactChangeID(ids[0])) {
 		t.Fatalf("expected oldest closed entry to be hidden by default recent mode, got:\n%s", out)
 	}
 }
@@ -89,7 +91,7 @@ func TestRunStatusHistoryAllShowsAllEntries(t *testing.T) {
 	}
 	out := stdout.String()
 	for _, id := range ids {
-		if !strings.Contains(out, id) {
+		if !strings.Contains(out, compactChangeID(id)) {
 			t.Fatalf("expected history all to include %q, got:\n%s", id, out)
 		}
 	}
@@ -129,7 +131,7 @@ func TestRunStatusVerboseShowsRelationshipDetails(t *testing.T) {
 		t.Fatalf("status command failed: %d (%s)", code, stderr.String())
 	}
 	out := stdout.String()
-	for _, token := range []string{"|-- superseded by:", "`-- path:"} {
+	for _, token := range []string{"superseded by:", "path:"} {
 		if !strings.Contains(out, token) {
 			t.Fatalf("expected verbose tree details token %q, got:\n%s", token, out)
 		}
@@ -196,5 +198,220 @@ func TestBuildStatusSummaryProvidesRelationshipMetadataForRenderer(t *testing.T)
 		if !strings.Contains(out, token) {
 			t.Fatalf("expected rendered relationship/recency token %q, got:\n%s", token, out)
 		}
+	}
+}
+
+func TestRenderHumanStatusNestsProjectAssociationsInFlight(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml",
+		RuneContextVersion: "0.1.0-alpha.10",
+		AssuranceTier:      "verified",
+		Active: []contracts.ChangeStatusEntry{
+			{
+				ID:             "CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling",
+				Title:          "Enhance human-friendly status UX and scaling",
+				Type:           "project",
+				Size:           "large",
+				Status:         "implemented",
+				RelatedChanges: []string{"CHG-2026-011", "CHG-2026-012", "CHG-2026-013"},
+			},
+			{
+				ID:             "CHG-2026-011",
+				Title:          "Summary metadata expansion",
+				Type:           "feature",
+				Size:           "medium",
+				Status:         "implemented",
+				RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
+			},
+			{
+				ID:             "CHG-2026-012",
+				Title:          "Human renderer",
+				Type:           "feature",
+				Size:           "medium",
+				Status:         "implemented",
+				RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
+				DependsOn:      []string{"CHG-2026-011"},
+			},
+			{
+				ID:             "CHG-2026-013",
+				Title:          "History controls",
+				Type:           "feature",
+				Size:           "medium",
+				Status:         "implemented",
+				RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
+				DependsOn:      []string{"CHG-2026-011", "CHG-2026-012"},
+			},
+		},
+	}
+	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+	if !strings.Contains(out, "- [implemented] CHG-2026-010 [project large]") {
+		t.Fatalf("expected project umbrella root row, got:\n%s", out)
+	}
+	if !strings.Contains(out, "| Enhance human-friendly status UX and scaling") {
+		t.Fatalf("expected project title continuation line, got:\n%s", out)
+	}
+	for _, token := range []string{"|- [implemented] CHG-2026-011", "|- [implemented] CHG-2026-012", "\\- [implemented] CHG-2026-013"} {
+		if !strings.Contains(out, token) {
+			t.Fatalf("expected nested active association token %q, got:\n%s", token, out)
+		}
+	}
+	idx011 := strings.Index(out, "CHG-2026-011")
+	idx012 := strings.Index(out, "CHG-2026-012")
+	idx013 := strings.Index(out, "CHG-2026-013")
+	if !(idx011 >= 0 && idx012 > idx011 && idx013 > idx012) {
+		t.Fatalf("expected dependency-respecting nested order 011->012->013, got:\n%s", out)
+	}
+}
+
+func TestRenderHumanStatusVerboseUsesFullID(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml",
+		RuneContextVersion: "0.1.0-alpha.10",
+		AssuranceTier:      "verified",
+		Active: []contracts.ChangeStatusEntry{{
+			ID:     "CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling",
+			Title:  "Enhance human-friendly status UX and scaling",
+			Type:   "project",
+			Size:   "large",
+			Status: "implemented",
+		}},
+	}
+	compact := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+	if !strings.Contains(compact, "CHG-2026-010 [project large]") {
+		t.Fatalf("expected compact ID in default output, got:\n%s", compact)
+	}
+	verbose := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false, verbose: true})
+	if !strings.Contains(verbose, "CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling [project large]") {
+		t.Fatalf("expected full change ID in verbose output, got:\n%s", verbose)
+	}
+}
+
+func TestRenderHumanStatusWrapsLongTitleOnContinuationLines(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml",
+		RuneContextVersion: "0.1.0-alpha.10",
+		AssuranceTier:      "verified",
+		Active: []contracts.ChangeStatusEntry{{
+			ID:     "CHG-2026-013-1f97-add-progressive-disclosure-and-history-controls-to-status",
+			Type:   "feature",
+			Size:   "medium",
+			Status: "implemented",
+			Title:  "Here is an example of a super long title. Here is an example of a super long title. Here is an example of a super long title.",
+		}},
+	}
+	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+	if !strings.Contains(out, "- [implemented] CHG-2026-013 [feature medium]") {
+		t.Fatalf("expected first-line status row, got:\n%s", out)
+	}
+	if strings.Count(out, "Here is an example of a super long title") < 2 {
+		t.Fatalf("expected wrapped continuation title lines, got:\n%s", out)
+	}
+	if !strings.Contains(out, "| Here is an example of a super long title") {
+		t.Fatalf("expected continuation lines with detail prefix, got:\n%s", out)
+	}
+}
+
+func TestRenderHumanStatusHintLinesUseCompactIDsByDefault(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml",
+		RuneContextVersion: "0.1.0-alpha.10",
+		AssuranceTier:      "verified",
+		Active: []contracts.ChangeStatusEntry{{
+			ID:             "CHG-2026-013-1f97-add-progressive-disclosure-and-history-controls-to-status",
+			Type:           "feature",
+			Size:           "medium",
+			Status:         "implemented",
+			Title:          "History controls",
+			DependsOn:      []string{"CHG-2026-011-d50b-extend-status-summaries-with-relationship-and-recency-metadata", "CHG-2026-012-f67a-add-human-friendly-status-rendering-with-ascii-hierarchy-and-color"},
+			RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
+		}},
+	}
+	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+	if !strings.Contains(out, "depends on: CHG-2026-011, CHG-2026-012") {
+		t.Fatalf("expected compact dependency IDs in default hint lines, got:\n%s", out)
+	}
+	if strings.Contains(out, "CHG-2026-011-d50b") || strings.Contains(out, "CHG-2026-012-f67a") {
+		t.Fatalf("expected default hint lines to avoid full IDs, got:\n%s", out)
+	}
+}
+
+func TestRenderHumanStatusHintLinesUseFullIDsInVerbose(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml",
+		RuneContextVersion: "0.1.0-alpha.10",
+		AssuranceTier:      "verified",
+		Active: []contracts.ChangeStatusEntry{{
+			ID:        "CHG-2026-013-1f97-add-progressive-disclosure-and-history-controls-to-status",
+			Type:      "feature",
+			Size:      "medium",
+			Status:    "implemented",
+			Title:     "History controls",
+			DependsOn: []string{"CHG-2026-011-d50b-extend-status-summaries-with-relationship-and-recency-metadata", "CHG-2026-012-f67a-add-human-friendly-status-rendering-with-ascii-hierarchy-and-color"},
+		}},
+	}
+	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false, verbose: true})
+	if !strings.Contains(out, "depends on: CHG-2026-011-d50b-extend-status-summaries-with-relationship-and-recency-metadata") {
+		t.Fatalf("expected full IDs in verbose hint lines, got:\n%s", out)
+	}
+}
+
+func TestRenderHumanStatusWrapsLongHintLines(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml",
+		RuneContextVersion: "0.1.0-alpha.10",
+		AssuranceTier:      "verified",
+		Active: []contracts.ChangeStatusEntry{{
+			ID:        "CHG-2026-003-5f38-teach-adapters-to-run-guided-clarification-and-decomposition-flows",
+			Type:      "feature",
+			Size:      "large",
+			Status:    "proposed",
+			Title:     "Teach adapters to run guided clarification and decomposition flows",
+			DependsOn: []string{"CHG-2026-001-fdc1-add-advisory-intake-and-decomposition-assessment-commands", "CHG-2026-004-5b03-add-first-class-change-decomposition-planning-and-apply-operations", "CHG-2026-005-d9ca-add-structured-change-update-command-for-safe-status-and-relationship-edits"},
+		}},
+	}
+	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+	if strings.Count(out, "depends on:") != 1 {
+		t.Fatalf("expected one dependency hint label with wrapped continuation lines, got:\n%s", out)
+	}
+	if !strings.Contains(out, "CHG-2026-001,") || !strings.Contains(out, "CHG-2026-004,") || !strings.Contains(out, "CHG-2026-005") {
+		t.Fatalf("expected all compact dependency IDs in wrapped hint output, got:\n%s", out)
+	}
+}
+
+func TestRenderHumanStatusFallsBackToFlatRowsWhenAssociationAmbiguous(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml",
+		RuneContextVersion: "0.1.0-alpha.10",
+		AssuranceTier:      "verified",
+		Active: []contracts.ChangeStatusEntry{
+			{
+				ID:             "CHG-PROJECT-A",
+				Title:          "Project A",
+				Type:           "project",
+				Size:           "large",
+				RelatedChanges: []string{"CHG-FEATURE-1"},
+			},
+			{
+				ID:             "CHG-PROJECT-B",
+				Title:          "Project B",
+				Type:           "project",
+				Size:           "large",
+				RelatedChanges: []string{"CHG-FEATURE-1"},
+			},
+			{
+				ID:             "CHG-FEATURE-1",
+				Title:          "Shared child",
+				Type:           "feature",
+				Size:           "medium",
+				RelatedChanges: []string{"CHG-PROJECT-A", "CHG-PROJECT-B"},
+			},
+		},
+	}
+	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+	if strings.Contains(out, "|- CHG-FEATURE-1") || strings.Contains(out, "\\- CHG-FEATURE-1") {
+		t.Fatalf("expected ambiguous association fallback to avoid forced tree nesting, got:\n%s", out)
+	}
+	if !strings.Contains(out, "related: CHG-PROJECT-A, CHG-PROJECT-B") {
+		t.Fatalf("expected explicit relationship hints during fallback, got:\n%s", out)
 	}
 }

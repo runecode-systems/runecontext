@@ -19,6 +19,11 @@ Add explicit history-scaling behavior to human `runectx status` output so the co
 - Sort closed and superseded previews by recency descending using the summary's recency fields.
 - Ensure relationship-aware ordering stays predictable when combined with bounded previews.
 
+## Finalized Presentation Constraints
+- History controls operate over the multiline tree renderer, so bounded previews must preserve tree readability.
+- Hidden-history hints and relationship lines must use compact IDs by default and switch to full IDs only under `--verbose`.
+- Wrapped hint lines must stay aligned and readable under the same controlled wrapping rules used by status rows.
+
 ## Machine Contract Boundary
 - Keep `status --json` flat and fully stable by default.
 - Reject or defer human-only history controls for `--json` until a future machine contract explicitly supports them.
