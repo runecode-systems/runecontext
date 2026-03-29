@@ -147,6 +147,16 @@ func appendChangeReallocateExplainLines(lines []line, result *contracts.ChangeRe
 	)
 }
 
+func appendChangeUpdateExplainLines(lines []line, result *contracts.ChangeOperationResult) []line {
+	if result == nil {
+		return lines
+	}
+	return append(lines,
+		line{"explain_scope", "lifecycle-transition"},
+		line{"explain_lifecycle_status", result.Status},
+	)
+}
+
 func appendAssuranceEnableExplainLines(lines []line, root string, plans []string) []line {
 	lines = append(lines,
 		line{"explain_scope", "assurance-enable"},

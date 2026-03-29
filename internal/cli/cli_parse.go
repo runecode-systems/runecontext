@@ -47,6 +47,13 @@ type changeReallocateRequest struct {
 	changeID     string
 }
 
+type changeUpdateRequest struct {
+	root         string
+	explicitRoot bool
+	changeID     string
+	status       string
+}
+
 func parseChangeNewArgs(args []string) (changeNewRequest, error) {
 	request := changeNewRequest{root: "."}
 	err := consumeArgs(args, changeNewFlagHandler(args, &request), func(arg string) error {
@@ -192,6 +199,42 @@ func parseChangeReallocateArgs(args []string) (changeReallocateRequest, error) {
 	changeID, err := requireExactPositional(positionals, "change reallocate requires exactly one change ID")
 	if err != nil {
 		return changeReallocateRequest{}, err
+	}
+	request.changeID = changeID
+	return request, nil
+}
+
+func parseChangeUpdateArgs(args []string) (changeUpdateRequest, error) {
+	request := changeUpdateRequest{root: "."}
+	positionals := make([]string, 0, 1)
+	err := consumeArgs(args, func(flag parsedFlag) (int, error) {
+		switch flag.name {
+		case "--status":
+			return assignStringFlag(args, flag, &request.status)
+		case "--path":
+			return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
+		default:
+			return flag.next, fmt.Errorf("unknown change update flag %q", flag.raw)
+		}
+	}, func(arg string) error {
+		positionals = append(positionals, arg)
+		return nil
+	})
+	if err != nil {
+		return changeUpdateRequest{}, err
+	}
+	changeID, err := requireExactPositional(positionals, "change update requires exactly one change ID")
+	if err != nil {
+		return changeUpdateRequest{}, err
+	}
+	if strings.TrimSpace(request.status) == "" {
+		return changeUpdateRequest{}, fmt.Errorf("change update requires --status")
+	}
+	switch strings.TrimSpace(request.status) {
+	case "planned", "implemented", "verified":
+		request.status = strings.TrimSpace(request.status)
+	default:
+		return changeUpdateRequest{}, fmt.Errorf("change update --status must be one of planned, implemented, or verified")
 	}
 	request.changeID = changeID
 	return request, nil

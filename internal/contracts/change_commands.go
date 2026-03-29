@@ -44,6 +44,10 @@ type ChangeCloseOptions struct {
 	SupersededBy       []string
 }
 
+type ChangeUpdateOptions struct {
+	Status string
+}
+
 type ChangeReallocateOptions struct {
 	Entropy io.Reader
 }

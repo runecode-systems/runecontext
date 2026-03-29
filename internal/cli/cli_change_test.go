@@ -132,6 +132,86 @@ func TestRunChangeCloseOutputsClosedChange(t *testing.T) {
 	}
 }
 
+func TestRunChangeUpdateOutputsUpdatedStatus(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	changeID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "update", changeID, "--status", "planned", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["command"], "change_update"; got != want {
+		t.Fatalf("expected command %q, got %q", want, got)
+	}
+	if got, want := fields["change_status"], "planned"; got != want {
+		t.Fatalf("expected change_status %q, got %q", want, got)
+	}
+}
+
+func TestRunChangeUpdateDryRunDoesNotPersistMutation(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	changeID := runCLIChangeNewForTest(t, projectRoot, "Add cache invalidation")
+	statusPath := filepath.Join(projectRoot, "runecontext", "changes", changeID, "status.yaml")
+	before, err := os.ReadFile(statusPath)
+	if err != nil {
+		t.Fatalf("read status before dry-run update: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "update", changeID, "--status", "planned", "--dry-run", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected dry-run success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["change_status"], "planned"; got != want {
+		t.Fatalf("expected dry-run change_status %q, got %q", want, got)
+	}
+	if got, want := fields["dry_run"], "true"; got != want {
+		t.Fatalf("expected dry_run %q, got %q", want, got)
+	}
+	after, err := os.ReadFile(statusPath)
+	if err != nil {
+		t.Fatalf("read status after dry-run update: %v", err)
+	}
+	if string(after) != string(before) {
+		t.Fatalf("expected dry-run update to avoid status mutation")
+	}
+}
+
+func TestRunChangeUpdateUsageErrors(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "update", "CHG-2026-001-a3f2-auth-gateway"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for missing --status, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "change update requires --status") {
+		t.Fatalf("expected missing-status usage output, got %q", stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"change", "update", "CHG-2026-001-a3f2-auth-gateway", "--status", "planned", "--bogus"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for unknown flag, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "unknown change update flag") {
+		t.Fatalf("expected unknown-flag output, got %q", stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"change", "update", "CHG-2026-001-a3f2-auth-gateway", "--status", "planed"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for invalid status enum, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "change update --status must be one of planned, implemented, or verified") {
+		t.Fatalf("expected invalid-status usage output, got %q", stderr.String())
+	}
+}
+
 func TestRunPromoteOutputsAcceptedAndCompletedStatus(t *testing.T) {
 	projectRoot := prepareCLIWorkflowProject(t)
 	changeID := runCLIStandardChangeNewForTest(t, projectRoot, "Refresh security baseline")

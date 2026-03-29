@@ -50,3 +50,49 @@ func TestCommandMetadataRegistryDefensiveCopy(t *testing.T) {
 		t.Fatalf("expected registry defensive copy for nested flags")
 	}
 }
+
+func TestCommandMetadataRegistryIncludesChangeUpdate(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	change := commandMetadataByPath(registry.Commands, "change")
+	if change == nil {
+		t.Fatalf("expected change command in registry")
+	}
+	update := commandMetadataByPath(change.Subcommands, "change update")
+	if update == nil {
+		t.Fatalf("expected change update subcommand in registry")
+	}
+	if update.Usage != changeUpdateUsage {
+		t.Fatalf("expected change update usage %q, got %q", changeUpdateUsage, update.Usage)
+	}
+	if len(update.Positionals) != 1 || update.Positionals[0].Name != "CHANGE_ID" {
+		t.Fatalf("expected one CHANGE_ID positional for change update, got %#v", update.Positionals)
+	}
+	status := flagMetadataByName(update.Flags, "--status")
+	if status == nil {
+		t.Fatalf("expected --status flag for change update")
+	}
+	if !status.Required {
+		t.Fatalf("expected --status to be required")
+	}
+	if got := status.Value.EnumValues; !slices.Equal(got, []string{"implemented", "planned", "verified"}) {
+		t.Fatalf("expected status enums [implemented planned verified], got %#v", got)
+	}
+}
+
+func commandMetadataByPath(commands []CommandMetadata, path string) *CommandMetadata {
+	for i := range commands {
+		if commands[i].Path == path {
+			return &commands[i]
+		}
+	}
+	return nil
+}
+
+func flagMetadataByName(flags []FlagMetadata, name string) *FlagMetadata {
+	for i := range flags {
+		if flags[i].Name == name {
+			return &flags[i]
+		}
+	}
+	return nil
+}

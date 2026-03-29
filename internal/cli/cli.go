@@ -14,7 +14,7 @@ const (
 const (
 	validateUsage           = "runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [--path PATH] [path]"
 	statusUsage             = "runectx status [--json] [--non-interactive] [--explain] [--path PATH] [path] (human output only: --history recent|all|none --history-limit N --verbose)"
-	changeUsage             = "runectx change [--json] [--non-interactive] [--dry-run] [--explain] <new|shape|close|reallocate> ..."
+	changeUsage             = "runectx change [--json] [--non-interactive] [--dry-run] [--explain] <new|shape|close|reallocate|update> ..."
 	generateUsage           = "runectx generate [--json] [--non-interactive] [--explain] <indexes>"
 	generateIndexesUsage    = "runectx generate indexes [--json] [--non-interactive] [--explain] [--path PATH] [path]"
 	bundleUsage             = "runectx bundle [--json] [--non-interactive] [--explain] <resolve>"
@@ -24,6 +24,7 @@ const (
 	changeShapeUsage        = "runectx change shape [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--design TEXT] [--verification TEXT] [--task TEXT] [--reference TEXT] [--path PATH]"
 	changeCloseUsage        = "runectx change close [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--verification-status STATUS] [--superseded-by ID] [--closed-at YYYY-MM-DD] [--path PATH]"
 	changeReallocateUsage   = "runectx change reallocate [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--path PATH]"
+	changeUpdateUsage       = "runectx change update [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID --status planned|implemented|verified [--path PATH]"
 	initUsage               = "runectx init [--json] [--non-interactive] [--dry-run] [--explain] [--mode embedded|linked] [--seed-bundle NAME] [--path PATH]"
 	promoteUsage            = "runectx promote [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--accept | --complete] [--target TYPE:PATH (summary auto-filled per target type)] [--path PATH]"
 	standardUsage           = "runectx standard [--json] [--non-interactive] [--explain] <discover>"
@@ -123,7 +124,7 @@ func usageCommandDescriptions() []string {
 	return []string{
 		"  help       Show CLI usage",
 		"  status     Report active, closed, and superseded changes",
-		"  change     Create, shape, close, and reallocate changes",
+		"  change     Create, shape, update, close, and reallocate changes",
 		"  generate   Write optional generated indexes and manifest",
 		"  bundle     Resolve context bundles",
 		"  validate   Validate RuneContext contracts for a project root",
@@ -147,6 +148,7 @@ func usageExamples() []string {
 		changeShapeUsage,
 		changeCloseUsage,
 		changeReallocateUsage,
+		changeUpdateUsage,
 		generateIndexesUsage,
 		validateUsage,
 		bundleResolveUsage,
