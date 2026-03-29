@@ -100,12 +100,19 @@ type ProjectStatusSummary struct {
 }
 
 type ChangeStatusEntry struct {
-	ID     string
-	Title  string
-	Status string
-	Type   string
-	Size   string
-	Path   string
+	ID                 string
+	Title              string
+	Status             string
+	Type               string
+	Size               string
+	Path               string
+	VerificationStatus string
+	RelatedChanges     []string
+	DependsOn          []string
+	Supersedes         []string
+	SupersededBy       []string
+	CreatedAt          string
+	ClosedAt           string
 }
 
 type changeIntakeAssessment struct {

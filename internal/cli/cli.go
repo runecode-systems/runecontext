@@ -13,7 +13,7 @@ const (
 
 const (
 	validateUsage           = "runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [--path PATH] [path]"
-	statusUsage             = "runectx status [--json] [--non-interactive] [--explain] [--path PATH] [path]"
+	statusUsage             = "runectx status [--json] [--non-interactive] [--explain] [--path PATH] [path] (human output only: --history recent|all|none --history-limit N --verbose)"
 	changeUsage             = "runectx change [--json] [--non-interactive] [--dry-run] [--explain] <new|shape|close|reallocate> ..."
 	generateUsage           = "runectx generate [--json] [--non-interactive] [--explain] <indexes>"
 	generateIndexesUsage    = "runectx generate indexes [--json] [--non-interactive] [--explain] [--path PATH] [path]"

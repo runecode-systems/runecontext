@@ -19,12 +19,13 @@ Options:
   -Version TAG      Install a specific release tag (for example v0.1.0-alpha.8)
                     Defaults to the latest published release.
   -InstallDir DIR   Install directory for runectx (default: `$HOME/.local/bin)
+                    Must be an absolute path (for example C:\Tools\bin).
   -Yes              Skip confirmation prompt and continue install.
   -Help             Show this help text.
 
 Environment:
   RUNECTX_VERSION      Same as -Version
-  RUNECTX_INSTALL_DIR  Same as -InstallDir
+  RUNECTX_INSTALL_DIR  Same as -InstallDir (must be an absolute path)
 "@
 }
 
@@ -82,6 +83,69 @@ function Parse-Sha256Entry {
   }
 
   return $null
+}
+
+function Resolve-InstallPrefix {
+  param(
+    [string]$Directory
+  )
+
+  $clean = $Directory.TrimEnd('/','\\')
+  if ($clean -match '[/\\]bin$') {
+    return [System.IO.Path]::GetDirectoryName($clean)
+  }
+  return $clean
+}
+
+function Test-AbsolutePath {
+  param(
+    [string]$Path
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    return $false
+  }
+
+  return [System.IO.Path]::IsPathRooted($Path)
+}
+
+function Resolve-CanonicalDirectory {
+  param(
+    [string]$Path,
+    [string]$Label
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    throw "$Label must not be empty"
+  }
+  if (-not (Test-AbsolutePath -Path $Path)) {
+    throw "$Label must be an absolute path: $Path"
+  }
+
+  $null = New-Item -ItemType Directory -Force -Path $Path
+  return (Resolve-Path -LiteralPath $Path).ProviderPath
+}
+
+function Validate-RuntimeTarget {
+  param(
+    [string]$InstallPrefix,
+    [string]$RuntimeTarget
+  )
+
+  if ([string]::IsNullOrWhiteSpace($InstallPrefix)) {
+    throw "unsafe install prefix resolved from -InstallDir"
+  }
+  $normalizedPrefix = [System.IO.Path]::TrimEndingDirectorySeparator($InstallPrefix)
+  $normalizedTarget = [System.IO.Path]::TrimEndingDirectorySeparator($RuntimeTarget)
+  if ($normalizedPrefix -eq [System.IO.Path]::GetPathRoot($normalizedPrefix)) {
+    throw "unsafe install prefix resolved from -InstallDir: $InstallPrefix"
+  }
+  if ($normalizedTarget -eq $normalizedPrefix) {
+    throw "unsafe runtime target equals install prefix: $RuntimeTarget"
+  }
+  if (-not $normalizedTarget.StartsWith($normalizedPrefix + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "unsafe runtime target outside install prefix: $RuntimeTarget"
+  }
 }
 
 if ($Help) {
@@ -150,6 +214,7 @@ try {
     }
   }
 
+  $resolvedInstallDir = Resolve-CanonicalDirectory -Path $InstallDir -Label "-InstallDir"
   $extractDir = Join-Path $workDir "unpack"
   $null = New-Item -ItemType Directory -Force -Path $extractDir
 
@@ -163,6 +228,7 @@ try {
 
   $packageDir = Join-Path $extractDir ("runecontext_${Version}_windows_${arch}")
   $binDir = Join-Path $packageDir "bin"
+  $runtimeSource = Join-Path $packageDir "share/runecontext"
 
   $candidateBinaries = @(
     Join-Path $binDir "runectx.exe",
@@ -173,13 +239,28 @@ try {
   if (-not $binaryPath) {
     throw "expected runectx binary not found under $binDir"
   }
+  if (-not (Test-Path (Join-Path $runtimeSource "schemas"))) {
+    throw "expected runtime schemas not found under $runtimeSource"
+  }
+  if (-not (Test-Path (Join-Path $runtimeSource "adapters"))) {
+    throw "expected runtime adapters not found under $runtimeSource"
+  }
 
-  $null = New-Item -ItemType Directory -Force -Path $InstallDir
-  $installTarget = Join-Path $InstallDir "runectx.exe"
+  $installTarget = Join-Path $resolvedInstallDir "runectx.exe"
   Copy-Item -Path $binaryPath -Destination $installTarget -Force
+  $installPrefixRaw = Resolve-InstallPrefix -Directory $resolvedInstallDir
+  $installPrefix = Resolve-CanonicalDirectory -Path $installPrefixRaw -Label "install prefix"
+  $runtimeTarget = Join-Path $installPrefix "share/runecontext"
+  Validate-RuntimeTarget -InstallPrefix $installPrefix -RuntimeTarget $runtimeTarget
+  $null = New-Item -ItemType Directory -Force -Path (Split-Path -Parent $runtimeTarget)
+  if (Test-Path $runtimeTarget) {
+    Remove-Item -Recurse -Force $runtimeTarget
+  }
+  Copy-Item -Path $runtimeSource -Destination $runtimeTarget -Recurse -Force
 
   Write-Host ""
   Write-Host "Installed runectx to $installTarget"
+  Write-Host "Installed runtime assets to $runtimeTarget"
   & $installTarget version
 
   Write-Host ""

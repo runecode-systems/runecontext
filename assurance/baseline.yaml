@@ -1,0 +1,8 @@
+schema_version: 1
+kind: baseline
+subject_id: project-root
+created_at: 1774721739
+canonicalization: runecontext-canonical-json-v1
+value:
+    adoption_commit: 7cd3bd8ad78fa2b1d91c90d95b147b26ad5b4cde
+    source_posture: embedded

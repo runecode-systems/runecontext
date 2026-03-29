@@ -1,6 +1,6 @@
 schema_version: 1
-runecontext_version: "0.1.0-alpha.5"
-assurance_tier: plain
+runecontext_version: "0.1.0-alpha.10"
+assurance_tier: verified
 source:
   type: embedded
   path: runecontext

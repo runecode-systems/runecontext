@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -418,6 +419,20 @@ func parseCLIKeyValueOutput(t *testing.T, output string) map[string]string {
 		t.Fatalf("expected at least one key=value line in output: %q", output)
 	}
 	return fields
+}
+
+func parseCLIJSONEnvelopeData(t *testing.T, payload []byte) map[string]string {
+	t.Helper()
+	var envelope struct {
+		Data map[string]string `json:"data"`
+	}
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		t.Fatalf("expected JSON output, got err=%v payload=%q", err, string(payload))
+	}
+	if envelope.Data == nil {
+		t.Fatalf("expected JSON envelope data, got payload=%q", string(payload))
+	}
+	return envelope.Data
 }
 
 func unsanitizeCLIValue(value string) string {

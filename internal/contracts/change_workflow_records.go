@@ -90,6 +90,7 @@ func buildChangeRecord(changeDir, statusPath string, data map[string]any) (*Chan
 		Type:               requiredStringValue(data["type"]),
 		Size:               optionalStringValue(data["size"]),
 		VerificationStatus: requiredStringValue(data["verification_status"]),
+		CreatedAt:          optionalStringValue(data["created_at"]),
 		ContextBundles:     extractStringList(data["context_bundles"]),
 		RelatedSpecs:       fields.relatedSpecs,
 		RelatedDecisions:   fields.relatedDecisions,

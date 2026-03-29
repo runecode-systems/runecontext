@@ -186,7 +186,9 @@ for target in "${targets[@]}"; do
   archive_base="@packageName@_@tag@_${goos}_${goarch}"
   package_dir="release/payload/${archive_base}"
   bin_dir="${package_dir}/bin"
+  share_dir="${package_dir}/share/@packageName@"
   "${coreutils}/mkdir" -p "${bin_dir}"
+  "${coreutils}/mkdir" -p "${share_dir}"
 
     for binary in "${binaries[@]}"; do
       [ -n "${binary}" ] || continue
@@ -196,6 +198,8 @@ for target in "${targets[@]}"; do
     done
 
   "${coreutils}/cp" LICENSE NOTICE README.md "${package_dir}/"
+  "${coreutils}/cp" -R schemas "${share_dir}/schemas"
+  "${coreutils}/cp" -R adapters "${share_dir}/adapters"
   "${coreutils}/chmod" -R u=rwX,go=rX "${package_dir}"
   "${findutils}/find" "${package_dir}" -exec "${coreutils}/touch" -h -d '1980-01-01T00:00:00Z' {} +
 

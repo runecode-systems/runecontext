@@ -8,11 +8,6 @@ import (
 	"github.com/runecode-systems/runecontext/internal/contracts"
 )
 
-type statusRequest struct {
-	root         string
-	explicitRoot bool
-}
-
 type changeNewRequest struct {
 	root           string
 	explicitRoot   bool
@@ -50,30 +45,6 @@ type changeReallocateRequest struct {
 	root         string
 	explicitRoot bool
 	changeID     string
-}
-
-func parseStatusArgs(args []string) (statusRequest, error) {
-	if len(args) == 1 && isHelpToken(args[0]) {
-		return statusRequest{root: args[0], explicitRoot: true}, nil
-	}
-	if len(args) > 1 && isHelpToken(args[0]) {
-		return statusRequest{}, fmt.Errorf("help does not accept additional arguments")
-	}
-	request := statusRequest{root: "."}
-	positionals := make([]string, 0, 1)
-	err := consumeArgs(args, func(flag parsedFlag) (int, error) {
-		if flag.name != "--path" {
-			return flag.next, fmt.Errorf("unknown status flag %q", flag.raw)
-		}
-		return assignRootFlag(args, flag, &request.root, &request.explicitRoot)
-	}, func(arg string) error {
-		positionals = append(positionals, arg)
-		return nil
-	})
-	if err != nil {
-		return statusRequest{}, err
-	}
-	return finalizeOptionalPath(request.root, request.explicitRoot, positionals)
 }
 
 func parseChangeNewArgs(args []string) (changeNewRequest, error) {

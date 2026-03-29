@@ -44,11 +44,29 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 	requireSubstrings(t, script,
 		`process_pack_archives "schema_bundle"`,
 		`process_pack_archives "adapter_pack"`,
+		`"${coreutils}/cp" -R schemas "${share_dir}/schemas"`,
+		`"${coreutils}/cp" -R adapters "${share_dir}/adapters"`,
 		`record_archive "installer_script"`,
 		`record_archive "repo_bundle"`,
 		`record_archive "binary"`,
 		`manifest_path="release/dist/@packageName@_@tag@_release-manifest.json"`,
 		`release_files=( *.tar.gz *.zip *.json *.sh *.ps1 )`,
+	)
+}
+
+func TestInstallScriptsInstallRuntimeAssets(t *testing.T) {
+	sh := readReleaseFileForTests(t, filepath.Join("scripts", "install-runectx.sh"))
+	requireSubstrings(t, sh,
+		`runtime_source="${package_dir}/share/runecontext"`,
+		`runtime_target="${install_prefix}/share/runecontext"`,
+		`cp -R "${runtime_source}" "${runtime_target}"`,
+	)
+
+	ps1 := readReleaseFileForTests(t, filepath.Join("scripts", "install-runectx.ps1"))
+	requireSubstrings(t, ps1,
+		`$runtimeSource = Join-Path $packageDir "share/runecontext"`,
+		`$runtimeTarget = Join-Path $installPrefix "share/runecontext"`,
+		`Copy-Item -Path $runtimeSource -Destination $runtimeTarget -Recurse -Force`,
 	)
 }
 

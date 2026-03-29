@@ -1,0 +1,23 @@
+schema_version: 1
+id: CHG-2026-011-d50b-extend-status-summaries-with-relationship-and-recency-metadata
+title: Extend status summaries with relationship and recency metadata
+status: implemented
+type: feature
+size: medium
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling
+  - CHG-2026-012-f67a-add-human-friendly-status-rendering-with-ascii-hierarchy-and-color
+  - CHG-2026-013-1f97-add-progressive-disclosure-and-history-controls-to-status
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-28"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

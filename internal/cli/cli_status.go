@@ -10,13 +10,14 @@ import (
 func runStatus(args []string, stdout, stderr io.Writer) int {
 	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
 	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("status", statusUsage, err), machine), exitUsage, failureClassUsage)
-		return exitUsage
+		return emitStatusUsageError(stderr, machine, err)
 	}
 	request, err := parseStatusArgs(remaining)
 	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("status", statusUsage, err), machine), exitUsage, failureClassUsage)
-		return exitUsage
+		return emitStatusUsageError(stderr, machine, err)
+	}
+	if err := validateStatusMachineFlags(machine, request); err != nil {
+		return emitStatusUsageError(stderr, machine, err)
 	}
 	if request.explicitRoot && isHelpToken(request.root) {
 		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "status"}, {"usage", statusUsage}}, machine), exitOK, failureClassNone)
@@ -29,8 +30,12 @@ func runStatus(args []string, stdout, stderr io.Writer) int {
 	defer project.close()
 	summary, err := contracts.BuildProjectStatusSummary(project.validator, project.loaded)
 	if err != nil {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("status", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
-		return exitInvalid
+		return emitStatusInvalid(stderr, machine, project.absRoot, err)
+	}
+	if !machine.jsonOutput {
+		rendered := renderHumanStatus(project.absRoot, project.loaded, summary, statusRenderOptionsForMachine(stdout, machine, request))
+		_, _ = io.WriteString(stdout, rendered)
+		return exitOK
 	}
 	output := buildStatusOutput(project.absRoot, summary)
 	if machine.explain {
@@ -38,6 +43,36 @@ func runStatus(args []string, stdout, stderr io.Writer) int {
 	}
 	emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 	return exitOK
+}
+
+func emitStatusUsageError(w io.Writer, machine machineOptions, err error) int {
+	emitOutput(w, machine, appendMachineOptionLines(buildCommandUsageErrorLines("status", statusUsage, err), machine), exitUsage, failureClassUsage)
+	return exitUsage
+}
+
+func emitStatusInvalid(w io.Writer, machine machineOptions, root string, err error) int {
+	emitOutput(w, machine, appendMachineOptionLines(buildCommandInvalidLines("status", root, err), machine), exitInvalid, failureClassInvalid)
+	return exitInvalid
+}
+
+func validateStatusMachineFlags(machine machineOptions, request statusRequest) error {
+	if !machine.jsonOutput {
+		return nil
+	}
+	if !request.historyModeSet && !request.historyLimitSet && !request.verbose {
+		return nil
+	}
+	return fmt.Errorf("--history, --history-limit, and --verbose are only supported for human status output")
+}
+
+func statusRenderOptionsForMachine(stdout io.Writer, machine machineOptions, request statusRequest) statusRenderOptions {
+	return statusRenderOptions{
+		color:        shouldUseStatusColor(stdout),
+		explain:      machine.explain,
+		historyMode:  request.historyMode,
+		historyLimit: request.historyLimit,
+		verbose:      request.verbose,
+	}
 }
 
 func buildStatusOutput(absRoot string, summary *contracts.ProjectStatusSummary) []line {

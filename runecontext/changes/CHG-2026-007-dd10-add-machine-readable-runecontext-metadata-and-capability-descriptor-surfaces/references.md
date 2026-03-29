@@ -1,0 +1,16 @@
+# References
+
+- README.md
+- adapters/generic/examples/non-agent-flow.md
+- core/terminology.md
+- core/layout.md
+- internal/cli/cli_schema.go
+- internal/cli/cli_upgrade_types.go
+- nix/release/metadata.nix
+- nix/scripts/build-release-artifacts.sh
+- runecontext/standards/cli/completion-and-metadata-from-canonical-registry.md
+- runecontext/standards/global/structured-cli-contracts.md
+- runecontext/standards/architecture/derived-artifact-non-authority.md
+- runecontext/standards/architecture/closed-schema-enforcement.md
+- runecontext/standards/release/repo-first-canonical-distribution.md
+- runecontext/standards/release/tag-driven-signed-release-process.md

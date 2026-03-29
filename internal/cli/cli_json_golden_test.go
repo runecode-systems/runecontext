@@ -41,11 +41,11 @@ func TestRunStatusExplainIncludesResolutionDetails(t *testing.T) {
 	projectRoot := prepareCLIWorkflowProject(t)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"status", "--explain", projectRoot}, &stdout, &stderr)
+	code := Run([]string{"status", "--json", "--explain", projectRoot}, &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if !strings.Contains(fields["explain_scope"], "resolution") {
 		t.Fatalf("expected resolution explain scope, got %#v", fields)
 	}

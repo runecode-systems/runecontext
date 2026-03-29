@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/runecode-systems/runecontext/internal/contracts"
@@ -49,6 +50,7 @@ func defaultUpgradePlannerRegistry() upgradePlannerRegistry {
 	installed := normalizedRunecontextVersion()
 	if installed != "" && installed != "0.0.0-dev" {
 		registry.registerEdge("0.1.0-alpha.8", installed)
+		registry.registerEdge("0.1.0-alpha.9", installed)
 	}
 	return registry
 }
@@ -104,12 +106,46 @@ func isSupportedProjectVersion(version string, registry upgradePlannerRegistry) 
 	if version == installed {
 		return true
 	}
+	if isCompatibleProjectVersionForInstalled(version, installed) {
+		return true
+	}
 	for edge := range registry.edges {
 		if edge.From == version || edge.To == version {
 			return true
 		}
 	}
 	return false
+}
+
+func isCompatibleProjectVersionForInstalled(projectVersion, installedVersion string) bool {
+	if !strings.HasPrefix(installedVersion, "0.1.0-alpha.") {
+		return false
+	}
+	projectOrdinal, ok := alphaOrdinal(projectVersion)
+	if !ok {
+		return false
+	}
+	installedOrdinal, ok := alphaOrdinal(installedVersion)
+	if !ok {
+		return false
+	}
+	return projectOrdinal >= 5 && projectOrdinal <= 8 && installedOrdinal >= projectOrdinal
+}
+
+func alphaOrdinal(version string) (int, bool) {
+	const prefix = "0.1.0-alpha."
+	if !strings.HasPrefix(version, prefix) {
+		return 0, false
+	}
+	value := strings.TrimPrefix(version, prefix)
+	if value == "" {
+		return 0, false
+	}
+	ordinal, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, false
+	}
+	return ordinal, true
 }
 
 func upgradePlanDiagnostics(plan upgradePlan) []emittedDiagnostic {
