@@ -19,12 +19,13 @@ Options:
   -Version TAG      Install a specific release tag (for example v0.1.0-alpha.8)
                     Defaults to the latest published release.
   -InstallDir DIR   Install directory for runectx (default: `$HOME/.local/bin)
+                    Must be an absolute path (for example C:\Tools\bin).
   -Yes              Skip confirmation prompt and continue install.
   -Help             Show this help text.
 
 Environment:
   RUNECTX_VERSION      Same as -Version
-  RUNECTX_INSTALL_DIR  Same as -InstallDir
+  RUNECTX_INSTALL_DIR  Same as -InstallDir (must be an absolute path)
 "@
 }
 

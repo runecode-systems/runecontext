@@ -61,18 +61,12 @@ func TestLocateSchemaRootFromInstalledShareLayout(t *testing.T) {
 	seedReleaseStyleLayout(t, schemaDir, adaptersDir)
 
 	outsideRoot := t.TempDir()
-	originalGetwd := schemaRootGetwdFn
-	originalExecutable := schemaRootExecutableFn
-	t.Cleanup(func() {
-		schemaRootGetwdFn = originalGetwd
-		schemaRootExecutableFn = originalExecutable
+	got, err := locateSchemaRootWithDeps(schemaRootDeps{
+		getwd: func() (string, error) { return outsideRoot, nil },
+		executable: func() (string, error) {
+			return filepath.Join(installRoot, "bin", "runectx"), nil
+		},
 	})
-	schemaRootGetwdFn = func() (string, error) { return outsideRoot, nil }
-	schemaRootExecutableFn = func() (string, error) {
-		return filepath.Join(installRoot, "bin", "runectx"), nil
-	}
-
-	got, err := locateSchemaRoot()
 	if err != nil {
 		t.Fatalf("locate schema root: %v", err)
 	}

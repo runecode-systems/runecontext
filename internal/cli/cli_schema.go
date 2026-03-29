@@ -6,19 +6,17 @@ import (
 	"path/filepath"
 )
 
-var schemaRootGetwdFn = os.Getwd
-var schemaRootExecutableFn = os.Executable
+type schemaRootDeps struct {
+	getwd      func() (string, error)
+	executable func() (string, error)
+}
 
 func locateSchemaRoot() (string, error) {
-	starts := make([]string, 0, 4)
-	if wd, err := schemaRootGetwdFn(); err == nil {
-		starts = append(starts, wd)
-	}
-	if exe, err := schemaRootExecutableFn(); err == nil {
-		exeDir := filepath.Dir(exe)
-		starts = append(starts, exeDir)
-		starts = append(starts, filepath.Join(exeDir, "..", "share", "runecontext"))
-	}
+	return locateSchemaRootWithDeps(schemaRootDeps{getwd: os.Getwd, executable: os.Executable})
+}
+
+func locateSchemaRootWithDeps(deps schemaRootDeps) (string, error) {
+	starts := schemaRootStartPaths(normalizeSchemaRootDeps(deps))
 
 	seen := map[string]struct{}{}
 	for _, start := range starts {
@@ -35,6 +33,29 @@ func locateSchemaRoot() (string, error) {
 		}
 	}
 	return "", fmt.Errorf("could not locate RuneContext schemas from the current working directory or executable location")
+}
+
+func normalizeSchemaRootDeps(deps schemaRootDeps) schemaRootDeps {
+	if deps.getwd == nil {
+		deps.getwd = os.Getwd
+	}
+	if deps.executable == nil {
+		deps.executable = os.Executable
+	}
+	return deps
+}
+
+func schemaRootStartPaths(deps schemaRootDeps) []string {
+	starts := make([]string, 0, 4)
+	if wd, err := deps.getwd(); err == nil {
+		starts = append(starts, wd)
+	}
+	if exe, err := deps.executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		starts = append(starts, exeDir)
+		starts = append(starts, filepath.Join(exeDir, "..", "share", "runecontext"))
+	}
+	return starts
 }
 
 func findSchemaRoot(start string) (string, bool) {

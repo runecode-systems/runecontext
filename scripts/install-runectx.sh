@@ -15,12 +15,13 @@ Options:
   --version TAG      Install a specific release tag (e.g., v0.1.0-alpha.8)
                      Defaults to the latest published release.
   --install-dir DIR  Install directory for runectx (default: $HOME/.local/bin)
+                     Must be an absolute path (for example /usr/local/bin).
   --yes              Skip confirmation prompt and continue install.
   --help             Show this help text.
 
 Environment:
   RUNECTX_VERSION      Same as --version
-  RUNECTX_INSTALL_DIR  Same as --install-dir
+  RUNECTX_INSTALL_DIR  Same as --install-dir (must be an absolute path)
 EOF
 }
 

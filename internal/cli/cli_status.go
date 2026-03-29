@@ -16,6 +16,9 @@ func runStatus(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return emitStatusUsageError(stderr, machine, err)
 	}
+	if err := validateStatusMachineFlags(machine, request); err != nil {
+		return emitStatusUsageError(stderr, machine, err)
+	}
 	if request.explicitRoot && isHelpToken(request.root) {
 		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "status"}, {"usage", statusUsage}}, machine), exitOK, failureClassNone)
 		return exitOK
@@ -28,9 +31,6 @@ func runStatus(args []string, stdout, stderr io.Writer) int {
 	summary, err := contracts.BuildProjectStatusSummary(project.validator, project.loaded)
 	if err != nil {
 		return emitStatusInvalid(stderr, machine, project.absRoot, err)
-	}
-	if err := validateStatusMachineFlags(machine, request); err != nil {
-		return emitStatusUsageError(stderr, machine, err)
 	}
 	if !machine.jsonOutput {
 		rendered := renderHumanStatus(project.absRoot, project.loaded, summary, statusRenderOptionsForMachine(stdout, machine, request))
