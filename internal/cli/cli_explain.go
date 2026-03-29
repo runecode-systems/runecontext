@@ -116,8 +116,19 @@ func appendChangeCloseExplainLines(lines []line, result *contracts.ChangeOperati
 		line{"explain_promotion_status", result.PromotionAssessmentStatus},
 		line{"explain_promotion_target_count", fmt.Sprintf("%d", len(result.SuggestedPromotionTargets))},
 	)
+	if result.Recursive {
+		lines = append(lines,
+			line{"explain_scope_2", "recursive-lifecycle-cascade"},
+			line{"explain_recursive_target_count", fmt.Sprintf("%d", result.RecursiveTargetCount)},
+		)
+	}
 	for i, target := range result.SuggestedPromotionTargets {
 		lines = append(lines, line{fmt.Sprintf("explain_promotion_target_%d", i+1), target})
+	}
+	if result.Recursive {
+		for i, targetID := range result.RecursiveTargetIDs {
+			lines = append(lines, line{fmt.Sprintf("explain_recursive_target_%d", i+1), targetID})
+		}
 	}
 	return lines
 }
@@ -151,10 +162,20 @@ func appendChangeUpdateExplainLines(lines []line, result *contracts.ChangeOperat
 	if result == nil {
 		return lines
 	}
-	return append(lines,
+	lines = append(lines,
 		line{"explain_scope", "lifecycle-transition"},
 		line{"explain_lifecycle_status", result.Status},
 	)
+	if result.Recursive {
+		lines = append(lines,
+			line{"explain_scope_2", "recursive-lifecycle-cascade"},
+			line{"explain_recursive_target_count", fmt.Sprintf("%d", result.RecursiveTargetCount)},
+		)
+		for i, targetID := range result.RecursiveTargetIDs {
+			lines = append(lines, line{fmt.Sprintf("explain_recursive_target_%d", i+1), targetID})
+		}
+	}
+	return lines
 }
 
 func appendAssuranceEnableExplainLines(lines []line, root string, plans []string) []line {

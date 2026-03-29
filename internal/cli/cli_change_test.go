@@ -210,6 +210,15 @@ func TestRunChangeUpdateUsageErrors(t *testing.T) {
 	if !strings.Contains(stderr.String(), "change update --status must be one of planned, implemented, or verified") {
 		t.Fatalf("expected invalid-status usage output, got %q", stderr.String())
 	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"change", "update", "CHG-2026-001-a3f2-auth-gateway", "--status", "planned", "--recursive=true"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for recursive flag with value, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "--recursive does not accept a value") {
+		t.Fatalf("expected recursive no-value usage output, got %q", stderr.String())
+	}
 }
 
 func TestRunPromoteOutputsAcceptedAndCompletedStatus(t *testing.T) {

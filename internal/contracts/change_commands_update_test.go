@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -47,6 +48,67 @@ func TestUpdateChangeLeavesPromotionAssessmentUntouched(t *testing.T) {
 	assertPromotionAssessmentUntouched(t, before, after)
 }
 
+func TestUpdateChangeAllowsVerifiedWhenVerificationStatusAlreadyCompleted(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, created := mustCreateDefaultFeatureChange(t, root)
+	statusPath := filepath.Join(root, "runecontext", "changes", created.ID, "status.yaml")
+	rewriteStatusVerificationStatus(t, statusPath, "passed")
+
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	result, err := UpdateChange(v, loaded, created.ID, ChangeUpdateOptions{Status: "verified"})
+	if err != nil {
+		t.Fatalf("update change to verified: %v", err)
+	}
+	if result.Status != "verified" {
+		t.Fatalf("expected verified status, got %q", result.Status)
+	}
+}
+
+func TestUpdateChangeAllowsVerifiedWithExplicitVerificationStatus(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, created := mustCreateDefaultFeatureChange(t, root)
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	result, err := UpdateChange(v, loaded, created.ID, ChangeUpdateOptions{Status: "verified", VerificationStatus: "failed"})
+	if err != nil {
+		t.Fatalf("update change to verified with verification status: %v", err)
+	}
+	if result.Status != "verified" {
+		t.Fatalf("expected verified status, got %q", result.Status)
+	}
+}
+
+func TestUpdateChangeRejectsVerifiedWhenVerificationStatusPending(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, created := mustCreateDefaultFeatureChange(t, root)
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	if _, err := UpdateChange(v, loaded, created.ID, ChangeUpdateOptions{Status: "verified"}); err == nil || !strings.Contains(err.Error(), "verified changes must record a completed verification_status") {
+		t.Fatalf("expected pending verification_status rejection, got %v", err)
+	}
+}
+
+func TestUpdateChangeRejectsSettingPendingVerificationStatus(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, created := mustCreateDefaultFeatureChange(t, root)
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	if _, err := UpdateChange(v, loaded, created.ID, ChangeUpdateOptions{Status: "verified", VerificationStatus: "pending"}); err == nil || !strings.Contains(err.Error(), "must not set verification_status to pending") {
+		t.Fatalf("expected pending verification_status set rejection, got %v", err)
+	}
+}
+
+func TestUpdateChangeRejectsVerificationStatusOnNonVerifiedTransition(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, created := mustCreateDefaultFeatureChange(t, root)
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	if _, err := UpdateChange(v, loaded, created.ID, ChangeUpdateOptions{Status: "implemented", VerificationStatus: "passed"}); err == nil || !strings.Contains(err.Error(), "--verification-status is only supported when --status verified") {
+		t.Fatalf("expected verification_status flag rejection for non-verified status, got %v", err)
+	}
+}
+
 func rewriteUpdatePromotionAssessmentFixture(t *testing.T, statusPath string) {
 	t.Helper()
 	rewriteFile(t, statusPath, func(text string) string {
@@ -64,6 +126,26 @@ func rewriteUpdatePromotionAssessmentFixture(t *testing.T, statusPath string) {
 			t.Fatalf("expected promotion_assessment block in %s", statusPath)
 		}
 		return replaced
+	})
+}
+
+func rewriteStatusVerificationStatus(t *testing.T, statusPath, value string) {
+	t.Helper()
+	rewriteFile(t, statusPath, func(text string) string {
+		lines := strings.Split(text, "\n")
+		const prefix = "verification_status: "
+		for i, line := range lines {
+			if strings.HasPrefix(line, prefix) {
+				if value == "" {
+					lines[i] = fmt.Sprintf("%s\"\"", prefix)
+				} else {
+					lines[i] = prefix + value
+				}
+				return strings.Join(lines, "\n")
+			}
+		}
+		t.Fatalf("status file %s missing verification_status field", statusPath)
+		return text
 	})
 }
 

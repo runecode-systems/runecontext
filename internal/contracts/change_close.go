@@ -3,6 +3,7 @@ package contracts
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -16,7 +17,7 @@ func CloseChange(v *Validator, loaded *LoadedProject, changeID string, options C
 		return nil, err
 	}
 	defer index.Close()
-	record, writableRoot, updated, writes, changedFiles, err := prepareCloseChange(v, index, loaded, changeID, options)
+	record, writableRoot, updated, writes, changedFiles, recursiveTargetIDs, err := prepareCloseChange(v, index, loaded, changeID, options)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +30,7 @@ func CloseChange(v *Validator, loaded *LoadedProject, changeID string, options C
 	if err := applyCloseChangeWrites(v, loaded, writes); err != nil {
 		return nil, err
 	}
-	return buildCloseChangeResult(record, writableRoot, changeID, updated, changedFiles), nil
+	return buildCloseChangeResult(record, writableRoot, changeID, updated, changedFiles, options.Recursive, recursiveTargetIDs), nil
 }
 
 func appendCloseChangeReceiptWrite(rewrites []fileRewrite, changedFiles []FileMutation, projectRoot, changeID string, updated map[string]any, options ChangeCloseOptions) ([]fileRewrite, []FileMutation, error) {
@@ -54,39 +55,84 @@ func appendCloseChangeReceiptWrite(rewrites []fileRewrite, changedFiles []FileMu
 	)
 }
 
-func prepareCloseChange(v *Validator, index *ProjectIndex, loaded *LoadedProject, changeID string, options ChangeCloseOptions) (*ChangeRecord, string, map[string]any, []fileRewrite, []FileMutation, error) {
+func prepareCloseChange(v *Validator, index *ProjectIndex, loaded *LoadedProject, changeID string, options ChangeCloseOptions) (*ChangeRecord, string, map[string]any, []fileRewrite, []FileMutation, []string, error) {
 	record := index.Changes[changeID]
 	if record == nil {
-		return nil, "", nil, nil, nil, fmt.Errorf("change %q does not exist", changeID)
+		return nil, "", nil, nil, nil, nil, fmt.Errorf("change %q does not exist", changeID)
 	}
-	if err := validateCloseVerificationStatus(record.VerificationStatus, options.VerificationStatus); err != nil {
-		return nil, "", nil, nil, nil, err
+	targets, err := resolveCloseTargets(index, record, options.Recursive)
+	if err != nil {
+		return nil, "", nil, nil, nil, nil, err
 	}
-	if err := validateCloseSuccessors(index, changeID, options.SupersededBy); err != nil {
-		return nil, "", nil, nil, nil, err
+	if err := validateCloseSuccessors(index, changeID, options.SupersededBy, targets); err != nil {
+		return nil, "", nil, nil, nil, nil, err
 	}
 	writableRoot, err := writableContentRoot(loaded)
 	if err != nil {
-		return nil, "", nil, nil, nil, err
+		return nil, "", nil, nil, nil, nil, err
+	}
+	if err := validateCloseTargetsVerificationStatus(targets, options.VerificationStatus); err != nil {
+		return nil, "", nil, nil, nil, nil, err
 	}
 	updated, err := buildClosedStatusMap(index, record, options)
 	if err != nil {
-		return nil, "", nil, nil, nil, err
+		return nil, "", nil, nil, nil, nil, err
 	}
-	writes, changedFiles, err := buildCloseStatusWrites(v, index, writableRoot, record, changeID, updated, options.SupersededBy)
+	writes, changedFiles, err := buildCloseStatusWrites(v, index, writableRoot, targets, changeID, options, updated)
 	if err != nil {
-		return nil, "", nil, nil, nil, err
+		return nil, "", nil, nil, nil, nil, err
 	}
-	return record, writableRoot, updated, writes, changedFiles, nil
+	recursiveTargetIDs := collectCloseRecursiveTargetIDs(targets, changeID)
+	return record, writableRoot, updated, writes, changedFiles, recursiveTargetIDs, nil
 }
 
-func validateCloseSuccessors(index *ProjectIndex, changeID string, successorIDs []string) error {
+func resolveCloseTargets(index *ProjectIndex, record *ChangeRecord, recursive bool) ([]*ChangeRecord, error) {
+	targets := []*ChangeRecord{record}
+	if !recursive {
+		return targets, nil
+	}
+	recursiveTargets, err := resolveRecursiveFeatureSubChangeTargets(index, record)
+	if err != nil {
+		return nil, err
+	}
+	return append(targets, recursiveTargets...), nil
+}
+
+func validateCloseTargetsVerificationStatus(targets []*ChangeRecord, requested string) error {
+	for _, target := range targets {
+		if err := validateCloseVerificationStatus(target.VerificationStatus, requested); err != nil {
+			return fmt.Errorf("change %q: %w", target.ID, err)
+		}
+	}
+	return nil
+}
+
+func collectCloseRecursiveTargetIDs(targets []*ChangeRecord, rootID string) []string {
+	recursiveTargetIDs := make([]string, 0, len(targets)-1)
+	for _, target := range targets {
+		if target.ID != rootID {
+			recursiveTargetIDs = append(recursiveTargetIDs, target.ID)
+		}
+	}
+	sort.Strings(recursiveTargetIDs)
+	return recursiveTargetIDs
+}
+
+func validateCloseSuccessors(index *ProjectIndex, changeID string, successorIDs []string, targets []*ChangeRecord) error {
+	// Build a quick set of recursive targets to detect unsafe self-supersession.
+	targetSet := make(map[string]bool, len(targets))
+	for _, t := range targets {
+		targetSet[t.ID] = true
+	}
 	for _, successorID := range successorIDs {
 		if successorID == changeID {
 			return fmt.Errorf("superseded_by must not reference the change itself")
 		}
 		if _, ok := index.Changes[successorID]; !ok {
 			return fmt.Errorf("superseded_by references missing change %q", successorID)
+		}
+		if targetSet[successorID] {
+			return fmt.Errorf("superseded_by references change %q which is also a recursive close target; this would create a self-supersession", successorID)
 		}
 	}
 	return nil
@@ -105,18 +151,34 @@ func buildClosedStatusMap(index *ProjectIndex, record *ChangeRecord, options Cha
 	return closed, nil
 }
 
-func buildCloseStatusWrites(v *Validator, index *ProjectIndex, writableRoot string, record *ChangeRecord, changeID string, updated map[string]any, successorIDs []string) ([]fileRewrite, []FileMutation, error) {
-	mainWrite, changedFiles, err := buildPrimaryCloseStatusWrite(v, writableRoot, record, updated)
-	if err != nil {
-		return nil, nil, err
+func buildCloseStatusWrites(v *Validator, index *ProjectIndex, writableRoot string, targets []*ChangeRecord, changeID string, options ChangeCloseOptions, rootUpdated map[string]any) ([]fileRewrite, []FileMutation, error) {
+	writes := make([]fileRewrite, 0, len(targets)+len(options.SupersededBy))
+	changedFiles := make([]FileMutation, 0, len(targets)+len(options.SupersededBy))
+	supersededTargetIDs := make([]string, 0, len(targets))
+	for _, target := range targets {
+		supersededTargetIDs = append(supersededTargetIDs, target.ID)
+		updated := rootUpdated
+		if target.ID != changeID {
+			var err error
+			updated, err = buildClosedStatusMap(index, target, options)
+			if err != nil {
+				return nil, nil, fmt.Errorf("change %q: %w", target.ID, err)
+			}
+		}
+		write, _, err := buildPrimaryCloseStatusWrite(v, writableRoot, target, updated)
+		if err != nil {
+			return nil, nil, err
+		}
+		writes = append(writes, write)
+		changedFiles = append(changedFiles, FileMutation{Path: runeContextRelativePath(writableRoot, target.StatusPath), Action: "updated"})
 	}
-	writes := []fileRewrite{mainWrite}
-	successorWrites, successorFiles, err := buildSuccessorCloseStatusWrites(v, index, writableRoot, changeID, successorIDs)
+	successorWrites, successorFiles, err := buildSuccessorCloseStatusWrites(v, index, writableRoot, supersededTargetIDs, options.SupersededBy)
 	if err != nil {
 		return nil, nil, err
 	}
 	writes = append(writes, successorWrites...)
 	changedFiles = append(changedFiles, successorFiles...)
+	sortFileMutations(changedFiles)
 	return writes, changedFiles, nil
 }
 
@@ -132,11 +194,11 @@ func buildPrimaryCloseStatusWrite(v *Validator, writableRoot string, record *Cha
 	return fileRewrite{Path: record.StatusPath, Data: data}, changed, nil
 }
 
-func buildSuccessorCloseStatusWrites(v *Validator, index *ProjectIndex, writableRoot, changeID string, successorIDs []string) ([]fileRewrite, []FileMutation, error) {
+func buildSuccessorCloseStatusWrites(v *Validator, index *ProjectIndex, writableRoot string, supersededTargetIDs, successorIDs []string) ([]fileRewrite, []FileMutation, error) {
 	writes := make([]fileRewrite, 0, len(successorIDs))
 	changedFiles := make([]FileMutation, 0, len(successorIDs))
 	for _, successorID := range successorIDs {
-		write, changed, err := reciprocalSupersedesWrite(v, index, writableRoot, changeID, successorID)
+		write, changed, err := reciprocalSupersedesWrite(v, index, writableRoot, supersededTargetIDs, successorID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -148,11 +210,12 @@ func buildSuccessorCloseStatusWrites(v *Validator, index *ProjectIndex, writable
 	return writes, changedFiles, nil
 }
 
-func reciprocalSupersedesWrite(v *Validator, index *ProjectIndex, writableRoot, changeID, successorID string) (fileRewrite, bool, error) {
+func reciprocalSupersedesWrite(v *Validator, index *ProjectIndex, writableRoot string, supersededTargetIDs []string, successorID string) (fileRewrite, bool, error) {
 	successor := index.Changes[successorID]
 	successorStatus := cloneMap(index.StatusFiles[successor.StatusPath].Data)
 	supersedes := extractStringList(successorStatus["supersedes"])
-	if containsString(supersedes, changeID) {
+	mergedSupersedes := uniqueSortedStrings(append(append([]string(nil), supersedes...), supersededTargetIDs...))
+	if len(mergedSupersedes) == len(supersedes) {
 		return fileRewrite{}, false, nil
 	}
 	if isTerminalLifecycleStatus(successor.Status) {
@@ -161,7 +224,7 @@ func reciprocalSupersedesWrite(v *Validator, index *ProjectIndex, writableRoot, 
 	if err := ensurePathAndParentAreNotSymlinks(successor.StatusPath); err != nil {
 		return fileRewrite{}, false, err
 	}
-	successorStatus["supersedes"] = stringSliceToAny(uniqueSortedStrings(append(supersedes, changeID)))
+	successorStatus["supersedes"] = stringSliceToAny(mergedSupersedes)
 	data, err := prepareStatusRewrite(v, successor.StatusPath, successorStatus)
 	if err != nil {
 		return fileRewrite{}, false, err
@@ -175,9 +238,8 @@ func applyCloseChangeWrites(v *Validator, loaded *LoadedProject, writes []fileRe
 	})
 }
 
-func buildCloseChangeResult(record *ChangeRecord, writableRoot, changeID string, updated map[string]any, changedFiles []FileMutation) *ChangeOperationResult {
+func buildCloseChangeResult(record *ChangeRecord, writableRoot, changeID string, updated map[string]any, changedFiles []FileMutation, recursive bool, recursiveTargetIDs []string) *ChangeOperationResult {
 	changeDir := filepath.Join(writableRoot, "changes", changeID)
-	sortFileMutations(changedFiles)
 	closedAt, _ := updated["closed_at"].(string)
 	status := fmt.Sprint(updated["status"])
 	promotionStatus, promotionTargets := closePromotionAssessmentDetails(updated)
@@ -194,5 +256,8 @@ func buildCloseChangeResult(record *ChangeRecord, writableRoot, changeID string,
 		ReviewDiffRequired:        false,
 		PromotionAssessmentStatus: promotionStatus,
 		SuggestedPromotionTargets: promotionTargets,
+		Recursive:                 recursive,
+		RecursiveTargetCount:      len(recursiveTargetIDs),
+		RecursiveTargetIDs:        append([]string(nil), recursiveTargetIDs...),
 	}
 }

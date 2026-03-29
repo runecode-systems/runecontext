@@ -27,6 +27,7 @@ func changeCloseFlags() []FlagMetadata {
 		{Name: "--verification-status", Value: enumValueSpec("pending", "passed", "failed", "skipped")},
 		{Name: "--superseded-by", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs), Repeatable: true},
 		{Name: "--closed-at", Value: textValueSpec()},
+		{Name: "--recursive", Value: noValueSpec()},
 		{Name: "--path", Value: textValueSpec()},
 	}
 }
@@ -34,6 +35,8 @@ func changeCloseFlags() []FlagMetadata {
 func changeUpdateFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--status", Value: enumValueSpec("planned", "implemented", "verified"), Required: true},
+		{Name: "--verification-status", Value: enumValueSpec("passed", "failed", "skipped")},
+		{Name: "--recursive", Value: noValueSpec()},
 		{Name: "--path", Value: textValueSpec()},
 	}
 }

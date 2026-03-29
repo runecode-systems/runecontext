@@ -127,6 +127,7 @@ func runChangeClose(args []string, machine machineOptions, stdout, stderr io.Wri
 			VerificationStatus: request.verificationStatus,
 			ClosedAt:           request.closedAt,
 			SupersededBy:       request.supersededBy,
+			Recursive:          request.recursive,
 		})
 	})
 	if err != nil {
@@ -179,7 +180,7 @@ func runChangeUpdate(args []string, machine machineOptions, stdout, stderr io.Wr
 	}
 	defer project.close()
 	result, err := runChangeOperation(project, machine, func(v *contracts.Validator, loaded *contracts.LoadedProject) (*contracts.ChangeOperationResult, error) {
-		return contracts.UpdateChange(v, loaded, request.changeID, contracts.ChangeUpdateOptions{Status: request.status})
+		return contracts.UpdateChange(v, loaded, request.changeID, contracts.ChangeUpdateOptions{Status: request.status, VerificationStatus: request.verificationStatus, Recursive: request.recursive})
 	})
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_update", project.absRoot, err), machine), exitInvalid, failureClassInvalid)

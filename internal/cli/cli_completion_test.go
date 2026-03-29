@@ -160,6 +160,22 @@ func TestCompletionMetadataSurfaceParity(t *testing.T) {
 	assertEnumValues(t, enums, "change new|--type", []string{"bug", "chore", "feature", "project", "standard"})
 	assertEnumValues(t, enums, "change new|--size", []string{"large", "medium", "small"})
 	assertEnumValues(t, enums, "change close|--verification-status", []string{"failed", "passed", "pending", "skipped"})
+	assertNoValueFlagPresent(t, "change close|--recursive")
+	assertNoValueFlagPresent(t, "change update|--recursive")
+}
+
+func assertNoValueFlagPresent(t *testing.T, key string) {
+	t.Helper()
+	for _, flag := range CompletionMetadataRegistry().Flags {
+		if flag.CommandPath+"|"+flag.Name != key {
+			continue
+		}
+		if flag.ValueKind != ValueKindNone {
+			t.Fatalf("expected %s to be no-value flag, got kind %q", key, flag.ValueKind)
+		}
+		return
+	}
+	t.Fatalf("expected no-value flag metadata key %q", key)
 }
 
 func assertUsageParity(t *testing.T, paths []string) {

@@ -99,6 +99,14 @@ func assignClosedAtFlag(args []string, flag parsedFlag, target *time.Time) (int,
 	return next, nil
 }
 
+func assignNoValueBoolFlag(flag parsedFlag, target *bool) (int, error) {
+	if flag.hasValue {
+		return flag.next, fmt.Errorf("%s does not accept a value", flag.name)
+	}
+	*target = true
+	return flag.next, nil
+}
+
 func requireFlagValue(args []string, index int, flag string) (string, int, error) {
 	if index+1 >= len(args) {
 		return "", index, fmt.Errorf("%s requires a value", flag)

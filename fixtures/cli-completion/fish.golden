@@ -126,6 +126,7 @@ complete -c runectx -n '__fish_seen_subcommand_from change close' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l json
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l recursive
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l superseded-by -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --superseded-by' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l verification-status -r
@@ -164,8 +165,11 @@ complete -c runectx -n '__fish_seen_subcommand_from change update' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from change update' -l json
 complete -c runectx -n '__fish_seen_subcommand_from change update' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from change update' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l recursive
 complete -c runectx -n '__fish_seen_subcommand_from change update' -l status -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from change update); and __runectx_prev_token_is --status' -a 'implemented planned verified'
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l verification-status -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change update); and __runectx_prev_token_is --verification-status' -a 'failed passed skipped'
 complete -c runectx -n '__fish_seen_subcommand_from completion suggest' -l path -r
 complete -c runectx -n '__fish_seen_subcommand_from completion suggest' -l prefix -r
 complete -c runectx -n '__fish_seen_subcommand_from doctor' -l explain
