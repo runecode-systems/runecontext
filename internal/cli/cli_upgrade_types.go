@@ -121,11 +121,15 @@ func isCompatibleProjectVersionForInstalled(projectVersion, installedVersion str
 	if !strings.HasPrefix(installedVersion, "0.1.0-alpha.") {
 		return false
 	}
-	ordinal, ok := alphaOrdinal(projectVersion)
+	projectOrdinal, ok := alphaOrdinal(projectVersion)
 	if !ok {
 		return false
 	}
-	return ordinal >= 5 && ordinal <= 8
+	installedOrdinal, ok := alphaOrdinal(installedVersion)
+	if !ok {
+		return false
+	}
+	return projectOrdinal >= 5 && projectOrdinal <= 8 && installedOrdinal >= projectOrdinal
 }
 
 func alphaOrdinal(version string) (int, bool) {

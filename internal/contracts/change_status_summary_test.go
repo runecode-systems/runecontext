@@ -19,8 +19,12 @@ func TestBuildProjectStatusSummaryIncludesRelationshipVerificationAndRecencyMeta
 	if len(summary.Active) != 2 || len(summary.Closed) != 0 || len(summary.Superseded) != 0 {
 		t.Fatalf("unexpected status grouping: active=%d closed=%d superseded=%d", len(summary.Active), len(summary.Closed), len(summary.Superseded))
 	}
+	assertActiveStatusRelationshipEntry(t, mustFindStatusEntryByID(t, summary.Active, "CHG-2026-001-a3f2-auth-gateway"))
+	assertActiveStatusDependencyEntry(t, mustFindStatusEntryByID(t, summary.Active, "CHG-2026-002-b4c3-auth-revision"))
+}
 
-	first := mustFindStatusEntryByID(t, summary.Active, "CHG-2026-001-a3f2-auth-gateway")
+func assertActiveStatusRelationshipEntry(t *testing.T, first ChangeStatusEntry) {
+	t.Helper()
 	if got, want := first.VerificationStatus, "pending"; got != want {
 		t.Fatalf("expected first verification_status %q, got %q", want, got)
 	}
@@ -36,8 +40,10 @@ func TestBuildProjectStatusSummaryIncludesRelationshipVerificationAndRecencyMeta
 	if first.ClosedAt != "" {
 		t.Fatalf("expected first closed_at empty, got %q", first.ClosedAt)
 	}
+}
 
-	second := mustFindStatusEntryByID(t, summary.Active, "CHG-2026-002-b4c3-auth-revision")
+func assertActiveStatusDependencyEntry(t *testing.T, second ChangeStatusEntry) {
+	t.Helper()
 	if got, want := second.VerificationStatus, "pending"; got != want {
 		t.Fatalf("expected second verification_status %q, got %q", want, got)
 	}
@@ -78,8 +84,11 @@ func TestBuildProjectStatusSummaryIncludesTerminalRecencyAndSupersessionMetadata
 	if len(summary.Active) != 1 || len(summary.Closed) != 0 || len(summary.Superseded) != 1 {
 		t.Fatalf("unexpected status grouping: active=%d closed=%d superseded=%d", len(summary.Active), len(summary.Closed), len(summary.Superseded))
 	}
+	assertSupersededStatusEntry(t, mustFindStatusEntryByID(t, summary.Superseded, "CHG-2026-001-a3f2-auth-gateway"))
+}
 
-	entry := mustFindStatusEntryByID(t, summary.Superseded, "CHG-2026-001-a3f2-auth-gateway")
+func assertSupersededStatusEntry(t *testing.T, entry ChangeStatusEntry) {
+	t.Helper()
 	if got, want := entry.VerificationStatus, "skipped"; got != want {
 		t.Fatalf("expected verification_status %q, got %q", want, got)
 	}

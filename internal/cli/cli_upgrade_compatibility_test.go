@@ -18,6 +18,7 @@ func TestIsCompatibleProjectVersionForInstalled(t *testing.T) {
 	}{
 		{name: "alpha5 on alpha10", project: "0.1.0-alpha.5", installed: "0.1.0-alpha.10", want: true},
 		{name: "alpha8 on alpha9", project: "0.1.0-alpha.8", installed: "0.1.0-alpha.9", want: true},
+		{name: "alpha8 on alpha7", project: "0.1.0-alpha.8", installed: "0.1.0-alpha.7", want: false},
 		{name: "alpha4 below supported", project: "0.1.0-alpha.4", installed: "0.1.0-alpha.10", want: false},
 		{name: "alpha9 above supported", project: "0.1.0-alpha.9", installed: "0.1.0-alpha.10", want: false},
 		{name: "non alpha installed", project: "0.1.0-alpha.8", installed: "0.1.0", want: false},

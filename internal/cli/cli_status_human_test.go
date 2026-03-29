@@ -202,48 +202,69 @@ func TestBuildStatusSummaryProvidesRelationshipMetadataForRenderer(t *testing.T)
 }
 
 func TestRenderHumanStatusNestsProjectAssociationsInFlight(t *testing.T) {
-	summary := &contracts.ProjectStatusSummary{
+	summary := nestedProjectAssociationsSummary()
+	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+	assertNestedProjectAssociations(t, out)
+}
+
+func nestedProjectAssociationsSummary() *contracts.ProjectStatusSummary {
+	return &contracts.ProjectStatusSummary{
 		SelectedConfigPath: "/tmp/runecontext.yaml",
 		RuneContextVersion: "0.1.0-alpha.10",
 		AssuranceTier:      "verified",
-		Active: []contracts.ChangeStatusEntry{
-			{
-				ID:             "CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling",
-				Title:          "Enhance human-friendly status UX and scaling",
-				Type:           "project",
-				Size:           "large",
-				Status:         "implemented",
-				RelatedChanges: []string{"CHG-2026-011", "CHG-2026-012", "CHG-2026-013"},
-			},
-			{
-				ID:             "CHG-2026-011",
-				Title:          "Summary metadata expansion",
-				Type:           "feature",
-				Size:           "medium",
-				Status:         "implemented",
-				RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
-			},
-			{
-				ID:             "CHG-2026-012",
-				Title:          "Human renderer",
-				Type:           "feature",
-				Size:           "medium",
-				Status:         "implemented",
-				RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
-				DependsOn:      []string{"CHG-2026-011"},
-			},
-			{
-				ID:             "CHG-2026-013",
-				Title:          "History controls",
-				Type:           "feature",
-				Size:           "medium",
-				Status:         "implemented",
-				RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
-				DependsOn:      []string{"CHG-2026-011", "CHG-2026-012"},
-			},
+		Active:             nestedProjectAssociationEntries(),
+	}
+}
+
+func nestedProjectAssociationEntries() []contracts.ChangeStatusEntry {
+	dependentEntries := nestedProjectAssociationDependentEntries()
+	return []contracts.ChangeStatusEntry{
+		{
+			ID:             "CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling",
+			Title:          "Enhance human-friendly status UX and scaling",
+			Type:           "project",
+			Size:           "large",
+			Status:         "implemented",
+			RelatedChanges: []string{"CHG-2026-011", "CHG-2026-012", "CHG-2026-013"},
+		},
+		{
+			ID:             "CHG-2026-011",
+			Title:          "Summary metadata expansion",
+			Type:           "feature",
+			Size:           "medium",
+			Status:         "implemented",
+			RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
+		},
+		dependentEntries[0],
+		dependentEntries[1],
+	}
+}
+
+func nestedProjectAssociationDependentEntries() []contracts.ChangeStatusEntry {
+	return []contracts.ChangeStatusEntry{
+		{
+			ID:             "CHG-2026-012",
+			Title:          "Human renderer",
+			Type:           "feature",
+			Size:           "medium",
+			Status:         "implemented",
+			RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
+			DependsOn:      []string{"CHG-2026-011"},
+		},
+		{
+			ID:             "CHG-2026-013",
+			Title:          "History controls",
+			Type:           "feature",
+			Size:           "medium",
+			Status:         "implemented",
+			RelatedChanges: []string{"CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling"},
+			DependsOn:      []string{"CHG-2026-011", "CHG-2026-012"},
 		},
 	}
-	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+}
+
+func assertNestedProjectAssociations(t *testing.T, out string) {
+	t.Helper()
 	if !strings.Contains(out, "- [implemented] CHG-2026-010 [project large]") {
 		t.Fatalf("expected project umbrella root row, got:\n%s", out)
 	}
@@ -255,6 +276,11 @@ func TestRenderHumanStatusNestsProjectAssociationsInFlight(t *testing.T) {
 			t.Fatalf("expected nested active association token %q, got:\n%s", token, out)
 		}
 	}
+	assertNestedProjectAssociationOrder(t, out)
+}
+
+func assertNestedProjectAssociationOrder(t *testing.T, out string) {
+	t.Helper()
 	idx011 := strings.Index(out, "CHG-2026-011")
 	idx012 := strings.Index(out, "CHG-2026-012")
 	idx013 := strings.Index(out, "CHG-2026-013")
@@ -413,5 +439,68 @@ func TestRenderHumanStatusFallsBackToFlatRowsWhenAssociationAmbiguous(t *testing
 	}
 	if !strings.Contains(out, "related: CHG-PROJECT-A, CHG-PROJECT-B") {
 		t.Fatalf("expected explicit relationship hints during fallback, got:\n%s", out)
+	}
+}
+
+func TestRenderHumanStatusFallsBackToFlatRowsWhenRelationshipsCycle(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml",
+		RuneContextVersion: "0.1.0-alpha.10",
+		AssuranceTier:      "verified",
+		Active: []contracts.ChangeStatusEntry{
+			{
+				ID:             "CHG-PROJECT-A",
+				Title:          "Project A",
+				Type:           "project",
+				Size:           "large",
+				RelatedChanges: []string{"CHG-PROJECT-B"},
+			},
+			{
+				ID:             "CHG-PROJECT-B",
+				Title:          "Project B",
+				Type:           "project",
+				Size:           "large",
+				RelatedChanges: []string{"CHG-PROJECT-A"},
+			},
+		},
+	}
+	out := renderHumanStatus("/tmp/project", nil, summary, statusRenderOptions{color: false})
+	for _, token := range []string{"CHG-PROJECT-A", "CHG-PROJECT-B"} {
+		if !strings.Contains(out, token) {
+			t.Fatalf("expected cyclic fallback output to include %q, got:\n%s", token, out)
+		}
+	}
+	if strings.Contains(out, "|- [") || strings.Contains(out, "\\- [") {
+		t.Fatalf("expected cyclic graph fallback to avoid nested tree connectors, got:\n%s", out)
+	}
+	if !strings.Contains(out, "related: CHG-PROJECT-A") || !strings.Contains(out, "related: CHG-PROJECT-B") {
+		t.Fatalf("expected fallback relationship hints for cyclic graph, got:\n%s", out)
+	}
+}
+
+func TestRenderHumanStatusStripsControlSequencesFromUserFields(t *testing.T) {
+	summary := &contracts.ProjectStatusSummary{
+		SelectedConfigPath: "/tmp/runecontext.yaml\x1b[32m",
+		RuneContextVersion: "0.1.0-alpha.10\x1b[31m",
+		AssuranceTier:      "verified\x1b[1m",
+		BundleIDs:          []string{"core\x1b[34m"},
+		Active: []contracts.ChangeStatusEntry{{
+			ID:        "CHG-2026-013-unsafe\x1b[31m",
+			Type:      "feature",
+			Size:      "medium",
+			Status:    "implemented\x1b[31m",
+			Title:     "Unsafe\x1b[31m title",
+			Path:      "changes/unsafe\x1b[31m/path.md",
+			DependsOn: []string{"CHG-2026-001-safe\x1b[31m"},
+		}},
+	}
+	out := renderHumanStatus("/tmp/project\x1b[35m", nil, summary, statusRenderOptions{color: false, verbose: true})
+	if strings.Contains(out, "\x1b[") {
+		t.Fatalf("expected control sequences to be stripped from user fields, got:\n%s", out)
+	}
+	for _, token := range []string{"Unsafe title", "changes/unsafe/path.md", "depends on: CHG-2026-001-safe"} {
+		if !strings.Contains(out, token) {
+			t.Fatalf("expected sanitized output to retain visible content %q, got:\n%s", token, out)
+		}
 	}
 }
