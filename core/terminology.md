@@ -37,7 +37,7 @@ This document freezes the core RuneContext terminology for `v0.1.0-alpha.1`.
 | `runectx` | The CLI surface. The CLI is important, but it is not the canonical definition of RuneContext semantics. |
 | `adapter` | A packaged tool-specific integration layer that maps a host tool's UX onto RuneContext operations without redefining the format. |
 | `adapter pack` | The packaged prompts, skills, commands, workflow docs, or similar host-tool materials that a user invokes inside a tool. An adapter pack is part of the adapter UX, not a competing source of truth. |
-| `operations reference` | The canonical in-project reference/source material for underlying RuneContext operations, stored under `runecontext/operations/`. |
+| `operations reference` | The generated docs-consumption reference surfaces derived from canonical metadata, stored under `docs/reference/generated/runecontext-reference.{json,yaml}`. |
 
 ## Storage And Assurance Terms
 

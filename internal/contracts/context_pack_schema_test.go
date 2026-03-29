@@ -164,7 +164,27 @@ func TestCapabilityDescriptorSchemaRejectsUnknownFields(t *testing.T) {
 
 func TestCapabilityDescriptorSchemaRejectsUnknownTokensAndSchemaVersion(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
-	base := map[string]any{
+	base := capabilityDescriptorSchemaBaseFixture()
+	mutations := capabilityDescriptorInvalidMutationCases()
+
+	for _, tc := range mutations {
+		t.Run(tc.name, func(t *testing.T) {
+			value := deepCopyObject(t, base)
+			tc.mut(value)
+			if err := v.ValidateValue("capability-descriptor.schema.json", "capability-descriptor.json", value); err == nil {
+				t.Fatalf("expected mutation %q to fail closed", tc.name)
+			}
+		})
+	}
+}
+
+type mutationCase struct {
+	name string
+	mut  func(map[string]any)
+}
+
+func capabilityDescriptorSchemaBaseFixture() map[string]any {
+	return map[string]any{
 		"schema_version":            1,
 		"descriptor_schema_version": "1",
 		"binary":                    "runectx",
@@ -196,11 +216,10 @@ func TestCapabilityDescriptorSchemaRejectsUnknownTokensAndSchemaVersion(t *testi
 			"verification_postures": []any{"embedded", "pinned_commit", "verified_signed_tag", "unverified_mutable_ref", "unverified_local_source"},
 		},
 	}
+}
 
-	mutations := []struct {
-		name string
-		mut  func(map[string]any)
-	}{
+func capabilityDescriptorInvalidMutationCases() []mutationCase {
+	cases := []mutationCase{
 		{
 			name: "schema version",
 			mut: func(value map[string]any) {
@@ -226,6 +245,13 @@ func TestCapabilityDescriptorSchemaRejectsUnknownTokensAndSchemaVersion(t *testi
 				value["capabilities"].(map[string]any)["value_kinds"] = []any{"none", "mystery"}
 			},
 		},
+	}
+
+	return append(cases, extraCapabilityDescriptorMutationCases()...)
+}
+
+func extraCapabilityDescriptorMutationCases() []mutationCase {
+	return []mutationCase{
 		{
 			name: "source mode",
 			mut: func(value map[string]any) {
@@ -238,16 +264,6 @@ func TestCapabilityDescriptorSchemaRejectsUnknownTokensAndSchemaVersion(t *testi
 				value["resolution"].(map[string]any)["verification_postures"] = []any{"embedded", "unknown_posture"}
 			},
 		},
-	}
-
-	for _, tc := range mutations {
-		t.Run(tc.name, func(t *testing.T) {
-			value := deepCopyObject(t, base)
-			tc.mut(value)
-			if err := v.ValidateValue("capability-descriptor.schema.json", "capability-descriptor.json", value); err == nil {
-				t.Fatalf("expected mutation %q to fail closed", tc.name)
-			}
-		})
 	}
 }
 

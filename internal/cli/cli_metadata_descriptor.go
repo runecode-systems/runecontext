@@ -20,62 +20,62 @@ const (
 )
 
 type capabilityDescriptor struct {
-	SchemaVersion           int                     `json:"schema_version"`
-	DescriptorSchemaVersion string                  `json:"descriptor_schema_version"`
-	Binary                  string                  `json:"binary"`
-	Release                 descriptorRelease       `json:"release"`
-	Compatibility           descriptorCompatibility `json:"compatibility"`
-	Runtime                 descriptorRuntime       `json:"runtime"`
-	Capabilities            descriptorCapabilities  `json:"capabilities"`
-	Assurance               descriptorAssurance     `json:"assurance"`
-	Resolution              descriptorResolution    `json:"resolution"`
+	SchemaVersion           int                     `json:"schema_version" yaml:"schema_version"`
+	DescriptorSchemaVersion string                  `json:"descriptor_schema_version" yaml:"descriptor_schema_version"`
+	Binary                  string                  `json:"binary" yaml:"binary"`
+	Release                 descriptorRelease       `json:"release" yaml:"release"`
+	Compatibility           descriptorCompatibility `json:"compatibility" yaml:"compatibility"`
+	Runtime                 descriptorRuntime       `json:"runtime" yaml:"runtime"`
+	Capabilities            descriptorCapabilities  `json:"capabilities" yaml:"capabilities"`
+	Assurance               descriptorAssurance     `json:"assurance" yaml:"assurance"`
+	Resolution              descriptorResolution    `json:"resolution" yaml:"resolution"`
 }
 
 type descriptorRelease struct {
-	PackageName string `json:"package_name"`
-	Version     string `json:"version"`
-	Tag         string `json:"tag"`
+	PackageName string `json:"package_name" yaml:"package_name"`
+	Version     string `json:"version" yaml:"version"`
+	Tag         string `json:"tag" yaml:"tag"`
 }
 
 type descriptorCompatibility struct {
-	SupportedProjectVersions []string                `json:"supported_project_versions"`
-	ExplicitUpgradeEdges     []descriptorUpgradeEdge `json:"explicit_upgrade_edges"`
+	SupportedProjectVersions []string                `json:"supported_project_versions" yaml:"supported_project_versions"`
+	ExplicitUpgradeEdges     []descriptorUpgradeEdge `json:"explicit_upgrade_edges" yaml:"explicit_upgrade_edges"`
 }
 
 type descriptorUpgradeEdge struct {
-	From string `json:"from"`
-	To   string `json:"to"`
+	From string `json:"from" yaml:"from"`
+	To   string `json:"to" yaml:"to"`
 }
 
 type descriptorRuntime struct {
-	Layouts []descriptorRuntimeLayout `json:"layouts"`
+	Layouts []descriptorRuntimeLayout `json:"layouts" yaml:"layouts"`
 }
 
 type descriptorRuntimeLayout struct {
-	Profile      string `json:"profile"`
-	SchemaPath   string `json:"schema_path"`
-	AdaptersPath string `json:"adapters_path"`
+	Profile      string `json:"profile" yaml:"profile"`
+	SchemaPath   string `json:"schema_path" yaml:"schema_path"`
+	AdaptersPath string `json:"adapters_path" yaml:"adapters_path"`
 }
 
 type descriptorCapabilities struct {
-	Commands     []descriptorCommand `json:"commands"`
-	MachineFlags []string            `json:"machine_flags"`
-	ValueKinds   []ValueKind         `json:"value_kinds"`
+	Commands     []descriptorCommand `json:"commands" yaml:"commands"`
+	MachineFlags []string            `json:"machine_flags" yaml:"machine_flags"`
+	ValueKinds   []ValueKind         `json:"value_kinds" yaml:"value_kinds"`
 }
 
 type descriptorCommand struct {
-	Path    string   `json:"path"`
-	Token   string   `json:"token"`
-	Aliases []string `json:"aliases,omitempty"`
+	Path    string   `json:"path" yaml:"path"`
+	Token   string   `json:"token" yaml:"token"`
+	Aliases []string `json:"aliases,omitempty" yaml:"aliases,omitempty"`
 }
 
 type descriptorAssurance struct {
-	Tiers []string `json:"tiers"`
+	Tiers []string `json:"tiers" yaml:"tiers"`
 }
 
 type descriptorResolution struct {
-	SourceModes         []contracts.SourceMode          `json:"source_modes"`
-	VerificationPosture []contracts.VerificationPosture `json:"verification_postures"`
+	SourceModes         []contracts.SourceMode          `json:"source_modes" yaml:"source_modes"`
+	VerificationPosture []contracts.VerificationPosture `json:"verification_postures" yaml:"verification_postures"`
 }
 
 func buildCapabilityDescriptor() capabilityDescriptor {
@@ -97,10 +97,7 @@ func buildCapabilityDescriptor() capabilityDescriptor {
 			ExplicitUpgradeEdges:     deriveExplicitUpgradeEdges(planner),
 		},
 		Runtime: descriptorRuntime{
-			Layouts: []descriptorRuntimeLayout{
-				{Profile: "repo_bundle", SchemaPath: "schemas", AdaptersPath: "adapters"},
-				{Profile: "installed_share_layout", SchemaPath: "share/runecontext/schemas", AdaptersPath: "share/runecontext/adapters"},
-			},
+			Layouts: descriptorRuntimeLayouts(),
 		},
 		Capabilities: descriptorCapabilities{
 			Commands:     deriveDescriptorCommands(registry.Commands),
@@ -109,15 +106,26 @@ func buildCapabilityDescriptor() capabilityDescriptor {
 		},
 		Assurance: descriptorAssurance{Tiers: []string{assuranceTierPlain, contracts.AssuranceTierVerified}},
 		Resolution: descriptorResolution{
-			SourceModes: []contracts.SourceMode{contracts.SourceModeEmbedded, contracts.SourceModeGit, contracts.SourceModePath},
-			VerificationPosture: []contracts.VerificationPosture{
-				contracts.VerificationPostureEmbedded,
-				contracts.VerificationPosturePinnedCommit,
-				contracts.VerificationPostureVerifiedSignedTag,
-				contracts.VerificationPostureUnverifiedMutableRef,
-				contracts.VerificationPostureUnverifiedLocal,
-			},
+			SourceModes:         []contracts.SourceMode{contracts.SourceModeEmbedded, contracts.SourceModeGit, contracts.SourceModePath},
+			VerificationPosture: descriptorVerificationPostures(),
 		},
+	}
+}
+
+func descriptorRuntimeLayouts() []descriptorRuntimeLayout {
+	return []descriptorRuntimeLayout{
+		{Profile: "repo_bundle", SchemaPath: "schemas", AdaptersPath: "adapters"},
+		{Profile: "installed_share_layout", SchemaPath: "share/runecontext/schemas", AdaptersPath: "share/runecontext/adapters"},
+	}
+}
+
+func descriptorVerificationPostures() []contracts.VerificationPosture {
+	return []contracts.VerificationPosture{
+		contracts.VerificationPostureEmbedded,
+		contracts.VerificationPosturePinnedCommit,
+		contracts.VerificationPostureVerifiedSignedTag,
+		contracts.VerificationPostureUnverifiedMutableRef,
+		contracts.VerificationPostureUnverifiedLocal,
 	}
 }
 

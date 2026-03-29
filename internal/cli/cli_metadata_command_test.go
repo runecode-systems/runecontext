@@ -11,57 +11,11 @@ import (
 )
 
 func TestRunMetadataOutputsDescriptorJSON(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.10"
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	code := Run([]string{"metadata"}, &stdout, &stderr)
-	if code != exitOK {
-		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
-	}
-	if stderr.String() != "" {
-		t.Fatalf("expected empty stderr, got %q", stderr.String())
-	}
-
-	var payload map[string]any
-	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
-		t.Fatalf("unmarshal metadata json: %v", err)
-	}
-	if got, want := int(payload["schema_version"].(float64)), 1; got != want {
-		t.Fatalf("expected schema_version %d, got %d", want, got)
-	}
-	if got, want := payload["descriptor_schema_version"], "1"; got != want {
-		t.Fatalf("expected descriptor_schema_version %q, got %#v", want, got)
-	}
-	compatibility, ok := payload["compatibility"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected compatibility object, got %#v", payload["compatibility"])
-	}
-	if _, ok := compatibility["supported_project_versions"]; !ok {
-		t.Fatalf("expected supported_project_versions in compatibility: %#v", compatibility)
-	}
-	if _, ok := compatibility["explicit_upgrade_edges"]; !ok {
-		t.Fatalf("expected explicit_upgrade_edges in compatibility: %#v", compatibility)
-	}
-	runtime, ok := payload["runtime"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected runtime object, got %#v", payload["runtime"])
-	}
-	layouts, ok := runtime["layouts"].([]any)
-	if !ok || len(layouts) < 2 {
-		t.Fatalf("expected runtime.layouts with repo and installed layouts, got %#v", runtime["layouts"])
-	}
-
-	root, err := repoRootForTests()
-	if err != nil {
-		t.Fatalf("repo root: %v", err)
-	}
-	validator := contracts.NewValidator(filepath.Join(root, "schemas"))
-	if err := validator.ValidateValue(metadataSchemaName, "metadata-output.json", payload); err != nil {
-		t.Fatalf("metadata output should validate against schema: %v", err)
-	}
+	withMetadataVersion(t, "v0.1.0-alpha.10", func() {
+		payload := runMetadataPayload(t)
+		assertMetadataSchemaAndShape(t, payload)
+		assertMetadataOutputValidAgainstSchema(t, payload)
+	})
 }
 
 func TestRunMetadataDescriptorRuntimeProfilesAndResolutionTokens(t *testing.T) {
@@ -142,36 +96,114 @@ func TestReleaseManifestDescriptorParityRoundTrip(t *testing.T) {
 }
 
 func TestCapabilityDescriptorCompatibilitySplitsSupportedVersionsAndUpgradeEdges(t *testing.T) {
+	withMetadataVersion(t, "v0.1.0-alpha.10", func() {
+		descriptor := buildCapabilityDescriptor()
+		assertCompatibilityPopulation(t, descriptor)
+		assertCompatibilityIncludesExpectedVersions(t, descriptor)
+	})
+}
+
+func withMetadataVersion(t *testing.T, version string, fn func()) {
+	t.Helper()
 	original := runecontextVersion
 	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.10"
+	runecontextVersion = version
+	fn()
+}
 
-	descriptor := buildCapabilityDescriptor()
+func runMetadataPayload(t *testing.T) map[string]any {
+	t.Helper()
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"metadata"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal metadata json: %v", err)
+	}
+	return payload
+}
+
+func assertMetadataSchemaAndShape(t *testing.T, payload map[string]any) {
+	t.Helper()
+	if got, want := int(payload["schema_version"].(float64)), 1; got != want {
+		t.Fatalf("expected schema_version %d, got %d", want, got)
+	}
+	if got, want := payload["descriptor_schema_version"], "1"; got != want {
+		t.Fatalf("expected descriptor_schema_version %q, got %#v", want, got)
+	}
+	compatibility, ok := payload["compatibility"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected compatibility object, got %#v", payload["compatibility"])
+	}
+	if _, ok := compatibility["supported_project_versions"]; !ok {
+		t.Fatalf("expected supported_project_versions in compatibility: %#v", compatibility)
+	}
+	if _, ok := compatibility["explicit_upgrade_edges"]; !ok {
+		t.Fatalf("expected explicit_upgrade_edges in compatibility: %#v", compatibility)
+	}
+	runtime, ok := payload["runtime"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected runtime object, got %#v", payload["runtime"])
+	}
+	layouts, ok := runtime["layouts"].([]any)
+	if !ok || len(layouts) < 2 {
+		t.Fatalf("expected runtime.layouts with repo and installed layouts, got %#v", runtime["layouts"])
+	}
+}
+
+func assertMetadataOutputValidAgainstSchema(t *testing.T, payload map[string]any) {
+	t.Helper()
+	root, err := repoRootForTests()
+	if err != nil {
+		t.Fatalf("repo root: %v", err)
+	}
+	validator := contracts.NewValidator(filepath.Join(root, "schemas"))
+	if err := validator.ValidateValue(metadataSchemaName, "metadata-output.json", payload); err != nil {
+		t.Fatalf("metadata output should validate against schema: %v", err)
+	}
+}
+
+func assertCompatibilityPopulation(t *testing.T, descriptor capabilityDescriptor) {
+	t.Helper()
 	if len(descriptor.Compatibility.SupportedProjectVersions) == 0 {
 		t.Fatal("expected supported project versions to be populated")
 	}
 	if len(descriptor.Compatibility.ExplicitUpgradeEdges) == 0 {
 		t.Fatal("expected explicit upgrade edges to be populated")
 	}
+}
 
-	hasAlpha5 := false
-	hasAlpha8To9 := false
-	for _, version := range descriptor.Compatibility.SupportedProjectVersions {
-		if version == "0.1.0-alpha.5" {
-			hasAlpha5 = true
-			break
-		}
-	}
-	for _, edge := range descriptor.Compatibility.ExplicitUpgradeEdges {
-		if edge.From == "0.1.0-alpha.8" && edge.To == "0.1.0-alpha.9" {
-			hasAlpha8To9 = true
-			break
-		}
-	}
-	if !hasAlpha5 {
+func assertCompatibilityIncludesExpectedVersions(t *testing.T, descriptor capabilityDescriptor) {
+	t.Helper()
+	if !containsString(descriptor.Compatibility.SupportedProjectVersions, "0.1.0-alpha.5") {
 		t.Fatalf("expected supported project versions to include alpha.5 compatibility range: %#v", descriptor.Compatibility.SupportedProjectVersions)
 	}
-	if !hasAlpha8To9 {
+	if !containsUpgradeEdge(descriptor.Compatibility.ExplicitUpgradeEdges, "0.1.0-alpha.8", "0.1.0-alpha.9") {
 		t.Fatalf("expected explicit upgrade edges to include alpha.8->alpha.9 edge: %#v", descriptor.Compatibility.ExplicitUpgradeEdges)
 	}
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
+func containsUpgradeEdge(edges []descriptorUpgradeEdge, from, to string) bool {
+	for _, edge := range edges {
+		if edge.From == from && edge.To == to {
+			return true
+		}
+	}
+	return false
 }

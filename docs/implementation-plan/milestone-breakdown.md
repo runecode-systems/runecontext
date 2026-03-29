@@ -1185,9 +1185,10 @@ tools while preserving one core model.
 - Adapters should preserve the alpha.5 split between advisory `standard
   discover` output and explicit confirmed `promote` mutations rather than
   inventing hidden tool-specific auto-promotion behavior.
-- The canonical in-project adapter reference should live under
-  `runecontext/operations/`; earlier historical references to
-  `runecontext/commands/` are stale and should not be revived.
+- Docs/reference adapter and operations surfaces should be generated from
+  canonical metadata into `docs/reference/generated/`; earlier historical
+  references to `runecontext/commands/` or `runecontext/operations/` as the
+  canonical docs source are stale and should not be revived.
 - Alpha.7 terminology should stay precise: `adapter` means the tool-specific UX
   layer, `adapter pack` means the packaged release payload for an adapter, and
   `runectx adapter sync <tool>` means local materialization of adapter files
@@ -1293,8 +1294,8 @@ recommended branch cuts.
 
 ### Recommended Branch Cut 1: Canonical operations reference, metadata registry, and static completion
 
-- [x] Issue: author the canonical in-project operations reference under
-  `runecontext/operations/`.
+- [x] Issue: author generated docs/reference surfaces from canonical metadata
+  under `docs/reference/generated/`.
 - [x] Issue: define adapter-to-core operation mapping rules.
 - [x] Issue: define how adapters consume or derive from the canonical
   operations reference without redefining semantics.

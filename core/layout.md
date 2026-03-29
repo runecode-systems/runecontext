@@ -55,10 +55,18 @@ does not live inside the embedded `runecontext/` folder.
 | `runecontext/changes/` | canonical source | mixed | optional | Change folders remain at stable paths across their lifecycle. |
 | `runecontext/specs/` | canonical source | hand-authored | optional | Stable current-state subsystem or feature specs. |
 | `runecontext/decisions/` | canonical source | hand-authored | optional | Durable ADR-like decisions. |
-| `runecontext/operations/` | canonical source | hand-authored | optional | Canonical in-project reference/source material for underlying RuneContext operations. |
 | `runecontext/schemas/` | derived artifact | generated | optional | Versioned schema assets distributed with RuneContext releases. These are not a substitute for the authoritative schema sources in this repository. |
 | `runecontext/assurance/` | generated evidence | generated | conditional | Exists only when Verified assurance is enabled. |
 | `runecontext/manifest.yaml` | derived artifact | generated | optional | Regenerable inventory/index output; never the sole source of truth. |
+
+## Repository-Local Generated Docs Reference Outputs
+
+These generated docs-facing artifacts are derived from canonical metadata but are
+not part of the portable `runecontext/` tree contract:
+
+| Path | Authority | Authoring mode | Requiredness | Notes |
+| --- | --- | --- | --- | --- |
+| `docs/reference/generated/runecontext-reference.json` | derived artifact | generated | optional | Canonical JSON reference surface for docs/renderers, derived from the typed metadata registry and descriptor builder. |
 
 ## Change Folder Contract
 
@@ -105,8 +113,8 @@ Each change lives at a stable path under `runecontext/changes/<change-id>/`.
 - Tool-specific adapter-synced files, runtime files, and host-tool configuration
   should live outside the portable `runecontext/` tree.
 - The portable `runecontext/` tree may contain canonical shared source material,
-  including `runecontext/operations/`, but it should not become a dumping
-  ground for host-specific runtime state.
+  but docs/reference derivatives should be generated under
+  `docs/reference/generated/` rather than hand-maintained inside `runecontext/`.
 - If an adapter needs tool-specific files such as `.claude/` content or other
   host-tool config, those files should live in the tool's own expected location
   rather than inside `runecontext/`.
