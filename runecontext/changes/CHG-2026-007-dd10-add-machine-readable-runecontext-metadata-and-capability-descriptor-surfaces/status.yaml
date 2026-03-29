@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
 title: Add machine-readable RuneContext metadata and capability descriptor surfaces
-status: proposed
+status: implemented
 type: project
 size: large
 verification_status: pending

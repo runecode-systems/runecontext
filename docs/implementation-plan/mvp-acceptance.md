@@ -342,7 +342,7 @@
 
 ## 7. Adapters
 
-- [x] The canonical operations reference is generated from canonical metadata at `docs/reference/generated/runecontext-reference.{json,yaml}`.
+- [x] The canonical operations reference is generated from canonical metadata at `docs/reference/generated/runecontext-reference.json`.
 - [x] The `generic` adapter exists.
 - [x] The `claude-code`, `opencode`, and `codex` adapters exist.
 - [x] Adapters differ in UX only, not in core semantics or source-of-truth

@@ -52,7 +52,7 @@ historical cleanup from new feature design work.
 - 2026-03-22: Recorded that the old `runecontext/commands/` wording in
   `docs/project_idea.md` is stale historical text. This was later superseded by
   generated reference surfaces derived from canonical metadata at
-  `docs/reference/generated/runecontext-reference.{json,yaml}`.
+  `docs/reference/generated/runecontext-reference.json`.
 - 2026-03-22: Clarified adapter terminology across the plan: `adapter` means the
   tool-specific UX layer, `adapter pack` means the packaged release payload for
   an adapter, and `runectx adapter sync <tool>` is the local materialization
