@@ -1,10 +1,10 @@
 schema_version: 1
 id: CHG-2026-012-f67a-add-human-friendly-status-rendering-with-ascii-hierarchy-and-color
 title: Add human-friendly status rendering with ASCII hierarchy and color
-status: implemented
+status: closed
 type: feature
 size: medium
-verification_status: pending
+verification_status: passed
 context_bundles: []
 related_specs: []
 related_decisions: []
@@ -18,7 +18,7 @@ informed_by: []
 supersedes: []
 superseded_by: []
 created_at: "2026-03-28"
-closed_at: null
+closed_at: "2026-03-29"
 promotion_assessment:
-  status: pending
+  status: none
   suggested_targets: []

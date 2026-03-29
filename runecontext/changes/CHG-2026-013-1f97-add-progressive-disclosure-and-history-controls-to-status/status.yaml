@@ -1,10 +1,10 @@
 schema_version: 1
 id: CHG-2026-013-1f97-add-progressive-disclosure-and-history-controls-to-status
 title: Add progressive disclosure and history controls to status
-status: implemented
+status: closed
 type: feature
 size: medium
-verification_status: pending
+verification_status: passed
 context_bundles: []
 related_specs: []
 related_decisions: []
@@ -19,7 +19,7 @@ informed_by: []
 supersedes: []
 superseded_by: []
 created_at: "2026-03-28"
-closed_at: null
+closed_at: "2026-03-29"
 promotion_assessment:
-  status: pending
+  status: none
   suggested_targets: []
