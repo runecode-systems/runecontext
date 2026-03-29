@@ -287,3 +287,27 @@ func assertSupersedesLinksContain(t *testing.T, root, successorID string, expect
 		}
 	}
 }
+
+func TestCloseChangeRecursiveRejectsSupersededByTargetSelfSupersession(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, umbrellaID, featureID := createUmbrellaAndFeatureSubChange(t, root)
+	// mark both as verified so close would otherwise proceed
+	rewriteStatusVerificationStatus(t, filepath.Join(root, "runecontext", "changes", umbrellaID, "status.yaml"), "passed")
+	rewriteStatusVerificationStatus(t, filepath.Join(root, "runecontext", "changes", featureID, "status.yaml"), "passed")
+
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	// Attempt to close umbrella recursively but declare feature as a successor
+	_, err := CloseChange(v, loaded, umbrellaID, ChangeCloseOptions{
+		ClosedAt:     time.Date(2026, time.March, 21, 0, 0, 0, 0, time.UTC),
+		Recursive:    true,
+		SupersededBy: []string{featureID},
+	})
+	if err == nil || !strings.Contains(err.Error(), featureID) || !strings.Contains(err.Error(), "recursive close target") {
+		t.Fatalf("expected rejection when superseded_by references a recursive target, got %v", err)
+	}
+
+	// ensure no statuses were mutated
+	assertStatusLifecycleEquals(t, root, umbrellaID, "proposed")
+	assertStatusLifecycleEquals(t, root, featureID, "proposed")
+}
