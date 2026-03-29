@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-019-c1af-allow-change-update-to-record-completed-verification-state
 title: Allow change update to record completed verification state
-status: proposed
+status: implemented
 type: feature
 size: medium
 verification_status: pending

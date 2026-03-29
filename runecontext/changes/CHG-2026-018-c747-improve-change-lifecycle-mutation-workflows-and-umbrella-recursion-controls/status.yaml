@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-018-c747-improve-change-lifecycle-mutation-workflows-and-umbrella-recursion-controls
 title: Improve change lifecycle mutation workflows and umbrella recursion controls
-status: proposed
+status: implemented
 type: project
 size: large
 verification_status: pending
