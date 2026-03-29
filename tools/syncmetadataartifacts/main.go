@@ -17,8 +17,12 @@ func main() {
 	if err != nil {
 		fatalf("resolve repository root: %v", err)
 	}
-	if err := cli.WriteDocumentationReferenceArtifacts(root); err != nil {
-		fatalf("write documentation reference artifacts: %v", err)
+	version, err := cli.ReadReleaseMetadataVersion(root)
+	if err != nil {
+		fatalf("read release metadata version: %v", err)
+	}
+	if err := cli.WriteMetadataSyncArtifacts(root, version); err != nil {
+		fatalf("write metadata sync artifacts: %v", err)
 	}
 }
 

@@ -3,6 +3,8 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"strings"
+	"testing"
 )
 
 func repoRootForTests() (string, error) {
@@ -20,4 +22,25 @@ func repoRootForTests() (string, error) {
 		}
 		wd = next
 	}
+}
+
+func releaseMetadataVersionForTests(t *testing.T) string {
+	t.Helper()
+	root, err := repoRootForTests()
+	if err != nil {
+		t.Fatalf("locate repo root: %v", err)
+	}
+	version, err := ReadReleaseMetadataVersion(root)
+	if err != nil {
+		t.Fatalf("read release metadata version: %v", err)
+	}
+	return strings.TrimPrefix(version, "v")
+}
+
+func withReleaseMetadataVersionForTests(t *testing.T, fn func()) {
+	t.Helper()
+	original := runecontextVersion
+	t.Cleanup(func() { runecontextVersion = original })
+	runecontextVersion = "v" + releaseMetadataVersionForTests(t)
+	fn()
 }

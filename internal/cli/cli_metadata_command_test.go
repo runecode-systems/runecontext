@@ -11,7 +11,7 @@ import (
 )
 
 func TestRunMetadataOutputsDescriptorJSON(t *testing.T) {
-	withMetadataVersion(t, "v0.1.0-alpha.10", func() {
+	withReleaseMetadataVersionForTests(t, func() {
 		payload := runMetadataPayload(t)
 		assertMetadataSchemaAndShape(t, payload)
 		assertMetadataOutputValidAgainstSchema(t, payload)
@@ -19,25 +19,23 @@ func TestRunMetadataOutputsDescriptorJSON(t *testing.T) {
 }
 
 func TestRunMetadataDescriptorRuntimeProfilesAndResolutionTokens(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.10"
+	withReleaseMetadataVersionForTests(t, func() {
+		descriptor := buildCapabilityDescriptor()
+		profiles := map[string]bool{}
+		for _, layout := range descriptor.Runtime.Layouts {
+			profiles[layout.Profile] = true
+		}
+		if !profiles["repo_bundle"] || !profiles["installed_share_layout"] {
+			t.Fatalf("expected runtime layouts to include repo_bundle and installed_share_layout, got %#v", descriptor.Runtime.Layouts)
+		}
 
-	descriptor := buildCapabilityDescriptor()
-	profiles := map[string]bool{}
-	for _, layout := range descriptor.Runtime.Layouts {
-		profiles[layout.Profile] = true
-	}
-	if !profiles["repo_bundle"] || !profiles["installed_share_layout"] {
-		t.Fatalf("expected runtime layouts to include repo_bundle and installed_share_layout, got %#v", descriptor.Runtime.Layouts)
-	}
-
-	if len(descriptor.Resolution.SourceModes) != 3 {
-		t.Fatalf("expected three source modes, got %#v", descriptor.Resolution.SourceModes)
-	}
-	if len(descriptor.Resolution.VerificationPosture) != 5 {
-		t.Fatalf("expected five verification postures, got %#v", descriptor.Resolution.VerificationPosture)
-	}
+		if len(descriptor.Resolution.SourceModes) != 3 {
+			t.Fatalf("expected three source modes, got %#v", descriptor.Resolution.SourceModes)
+		}
+		if len(descriptor.Resolution.VerificationPosture) != 5 {
+			t.Fatalf("expected five verification postures, got %#v", descriptor.Resolution.VerificationPosture)
+		}
+	})
 }
 
 func TestRunMetadataUsageAndRejections(t *testing.T) {
@@ -96,19 +94,11 @@ func TestReleaseManifestDescriptorParityRoundTrip(t *testing.T) {
 }
 
 func TestCapabilityDescriptorCompatibilitySplitsSupportedVersionsAndUpgradeEdges(t *testing.T) {
-	withMetadataVersion(t, "v0.1.0-alpha.10", func() {
+	withReleaseMetadataVersionForTests(t, func() {
 		descriptor := buildCapabilityDescriptor()
 		assertCompatibilityPopulation(t, descriptor)
 		assertCompatibilityIncludesExpectedVersions(t, descriptor)
 	})
-}
-
-func withMetadataVersion(t *testing.T, version string, fn func()) {
-	t.Helper()
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = version
-	fn()
 }
 
 func runMetadataPayload(t *testing.T) map[string]any {

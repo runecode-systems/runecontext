@@ -116,20 +116,18 @@ func TestRunValidateUsageJSONGolden(t *testing.T) {
 }
 
 func TestRunMetadataJSONGolden(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.10"
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	code := Run([]string{"metadata"}, &stdout, &stderr)
-	if code != exitOK {
-		t.Fatalf("expected metadata success exit code, got %d (%s)", code, stderr.String())
-	}
-	if stderr.String() != "" {
-		t.Fatalf("expected empty stderr, got %q", stderr.String())
-	}
-	assertRawJSONGolden(t, "metadata-success.json", stdout.Bytes())
+	withReleaseMetadataVersionForTests(t, func() {
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		code := Run([]string{"metadata"}, &stdout, &stderr)
+		if code != exitOK {
+			t.Fatalf("expected metadata success exit code, got %d (%s)", code, stderr.String())
+		}
+		if stderr.String() != "" {
+			t.Fatalf("expected empty stderr, got %q", stderr.String())
+		}
+		assertRawJSONGolden(t, "metadata-success.json", stdout.Bytes())
+	})
 }
 
 func assertRawJSONGolden(t *testing.T, fixtureName string, payload []byte) {

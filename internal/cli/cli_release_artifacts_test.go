@@ -112,10 +112,13 @@ func TestCompatibilityMatrixDocumentsCanonicalAndOptionalReleasePaths(t *testing
 }
 
 func TestReleaseManifestMetadataDescriptorParityFixture(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.10"
+	withReleaseMetadataVersionForTests(t, func() {
+		assertReleaseManifestDescriptorParityFixture(t)
+	})
+}
 
+func assertReleaseManifestDescriptorParityFixture(t *testing.T) {
+	t.Helper()
 	root, err := repoRootForTests()
 	if err != nil {
 		t.Fatalf("locate repo root: %v", err)

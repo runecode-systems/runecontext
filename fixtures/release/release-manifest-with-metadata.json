@@ -1,53 +1,13 @@
 {
-  "package_name": "runecontext",
-  "version": "0.1.0-alpha.10",
-  "tag": "v0.1.0-alpha.10",
+  "archives": [],
   "metadata_descriptor": {
-    "schema_version": 1,
-    "descriptor_schema_version": "1",
+    "assurance": {
+      "tiers": [
+        "plain",
+        "verified"
+      ]
+    },
     "binary": "runectx",
-    "release": {
-      "package_name": "runecontext",
-      "version": "0.1.0-alpha.10",
-      "tag": "v0.1.0-alpha.10"
-    },
-    "compatibility": {
-      "supported_project_versions": [
-        "0.1.0-alpha.5",
-        "0.1.0-alpha.6",
-        "0.1.0-alpha.7",
-        "0.1.0-alpha.8",
-        "0.1.0-alpha.10"
-      ],
-      "explicit_upgrade_edges": [
-        {
-          "from": "0.1.0-alpha.8",
-          "to": "0.1.0-alpha.10"
-        },
-        {
-          "from": "0.1.0-alpha.8",
-          "to": "0.1.0-alpha.9"
-        },
-        {
-          "from": "0.1.0-alpha.9",
-          "to": "0.1.0-alpha.10"
-        }
-      ]
-    },
-    "runtime": {
-      "layouts": [
-        {
-          "profile": "repo_bundle",
-          "schema_path": "schemas",
-          "adapters_path": "adapters"
-        },
-        {
-          "profile": "installed_share_layout",
-          "schema_path": "share/runecontext/schemas",
-          "adapters_path": "share/runecontext/adapters"
-        }
-      ]
-    },
     "capabilities": {
       "commands": [
         {
@@ -175,12 +135,12 @@
           "token": "validate"
         },
         {
-          "path": "version",
-          "token": "version",
           "aliases": [
             "--version",
             "-v"
-          ]
+          ],
+          "path": "version",
+          "token": "version"
         }
       ],
       "machine_flags": [
@@ -195,11 +155,34 @@
         "enum"
       ]
     },
-    "assurance": {
-      "tiers": [
-        "plain",
-        "verified"
+    "compatibility": {
+      "explicit_upgrade_edges": [
+        {
+          "from": "0.1.0-alpha.8",
+          "to": "0.1.0-alpha.11"
+        },
+        {
+          "from": "0.1.0-alpha.8",
+          "to": "0.1.0-alpha.9"
+        },
+        {
+          "from": "0.1.0-alpha.9",
+          "to": "0.1.0-alpha.11"
+        }
+      ],
+      "supported_project_versions": [
+        "0.1.0-alpha.5",
+        "0.1.0-alpha.6",
+        "0.1.0-alpha.7",
+        "0.1.0-alpha.8",
+        "0.1.0-alpha.11"
       ]
+    },
+    "descriptor_schema_version": "1",
+    "release": {
+      "package_name": "runecontext",
+      "tag": "v0.1.0-alpha.11",
+      "version": "0.1.0-alpha.11"
     },
     "resolution": {
       "source_modes": [
@@ -214,7 +197,24 @@
         "unverified_mutable_ref",
         "unverified_local_source"
       ]
-    }
+    },
+    "runtime": {
+      "layouts": [
+        {
+          "adapters_path": "adapters",
+          "profile": "repo_bundle",
+          "schema_path": "schemas"
+        },
+        {
+          "adapters_path": "share/runecontext/adapters",
+          "profile": "installed_share_layout",
+          "schema_path": "share/runecontext/schemas"
+        }
+      ]
+    },
+    "schema_version": 1
   },
-  "archives": []
+  "package_name": "runecontext",
+  "tag": "v0.1.0-alpha.11",
+  "version": "0.1.0-alpha.11"
 }

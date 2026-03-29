@@ -20,6 +20,9 @@ lint:
 test:
   go test ./...
 
+sync-metadata:
+  go run ./tools/syncmetadataartifacts --root .
+
 release-check:
   nix build --no-link .#release-artifacts
 

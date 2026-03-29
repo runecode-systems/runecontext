@@ -4,8 +4,8 @@
   "binary": "runectx",
   "release": {
     "package_name": "runecontext",
-    "version": "0.0.0-dev",
-    "tag": "v0.0.0-dev"
+    "version": "0.1.0-alpha.11",
+    "tag": "v0.1.0-alpha.11"
   },
   "commands": {
     "items": [
@@ -192,12 +192,24 @@
   },
   "compatibility": {
     "supported_project_versions": [
-      "0.0.0-dev"
+      "0.1.0-alpha.5",
+      "0.1.0-alpha.6",
+      "0.1.0-alpha.7",
+      "0.1.0-alpha.8",
+      "0.1.0-alpha.11"
     ],
     "explicit_upgrade_edges": [
       {
         "from": "0.1.0-alpha.8",
+        "to": "0.1.0-alpha.11"
+      },
+      {
+        "from": "0.1.0-alpha.8",
         "to": "0.1.0-alpha.9"
+      },
+      {
+        "from": "0.1.0-alpha.9",
+        "to": "0.1.0-alpha.11"
       }
     ]
   },

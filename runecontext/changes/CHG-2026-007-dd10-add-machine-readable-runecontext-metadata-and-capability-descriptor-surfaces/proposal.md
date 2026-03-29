@@ -2,7 +2,7 @@
 Add machine-readable RuneContext metadata and capability descriptor surfaces
 
 ## Problem
-Downstream tooling needs a stable machine-readable way to discover which RuneContext release it is talking to, which project versions that release supports, which runtime and distribution layouts it ships, and which operational, assurance, and source-verification surfaces are available. Today those facts are split across CLI registry data, contract constants, release metadata, tests, and prose docs, which makes exact feature probing and documentation sync drift-prone.
+Downstream tooling needs a stable machine-readable way to discover which RuneContext release it is talking to, which project versions that release supports, which runtime and distribution layouts it ships, and which operational, assurance, and source-verification surfaces are available. Today those facts are split across CLI registry data, contract constants, release metadata, tests, and prose docs, which makes exact feature probing and documentation sync drift-prone. The repo also needs a single maintenance workflow so release-version bumps do not require remembering to hand-edit multiple metadata-derived fixtures or docs/reference artifacts.
 
 ## Proposed Change
 Track the metadata capability initiative as an umbrella over two linked deliverables:
@@ -16,7 +16,8 @@ Recent branch work expanded alpha-line compatibility handling, added installed r
 ## Assumptions
 - Version-range compatibility remains the primary gate; the capability descriptor stays supplemental for exact feature probing and profile/layout detection.
 - `runectx metadata` and the release manifest should be derived from the same canonical builder rather than parallel implementations.
-- Docus-facing reference pages can consume generated JSON or YAML inputs while narrative documentation remains hand-authored.
+- `nix/release/metadata.nix` is the single human-edited release-version source for metadata-derived artifacts in this repo.
+- Docus-facing reference pages should consume generated JSON derived from the canonical metadata builder, while richer narrative or docs-only context remains hand-authored in the docs site rather than embedded into the canonical metadata contract.
 
 ## Out of Scope
 - Tool-specific approval, permission, or policy semantics.
@@ -24,4 +25,4 @@ Recent branch work expanded alpha-line compatibility handling, added installed r
 - Defining downstream-product-specific behavior in the descriptor itself.
 
 ## Impact
-The umbrella keeps contract design, implementation sequencing, and anti-drift documentation work explicitly linked while preserving one semantic authority for RuneContext behavior.
+The umbrella keeps contract design, implementation sequencing, and anti-drift documentation work explicitly linked while preserving one semantic authority for RuneContext behavior. It also establishes the maintenance model for future release bumps: update `nix/release/metadata.nix`, regenerate metadata-derived artifacts through one sync command, and verify parity in CI.

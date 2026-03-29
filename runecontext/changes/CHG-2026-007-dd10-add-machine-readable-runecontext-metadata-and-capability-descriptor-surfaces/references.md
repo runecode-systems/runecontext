@@ -5,9 +5,12 @@
 - core/terminology.md
 - core/layout.md
 - internal/cli/cli_schema.go
+- internal/cli/cli_metadata_sync.go
 - internal/cli/cli_upgrade_types.go
 - nix/release/metadata.nix
 - nix/scripts/build-release-artifacts.sh
+- justfile
+- tools/syncmetadataartifacts/main.go
 - runecontext/standards/cli/completion-and-metadata-from-canonical-registry.md
 - runecontext/standards/global/structured-cli-contracts.md
 - runecontext/standards/architecture/derived-artifact-non-authority.md
