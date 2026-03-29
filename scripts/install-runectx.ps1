@@ -96,6 +96,57 @@ function Resolve-InstallPrefix {
   return $clean
 }
 
+function Test-AbsolutePath {
+  param(
+    [string]$Path
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    return $false
+  }
+
+  return [System.IO.Path]::IsPathRooted($Path)
+}
+
+function Resolve-CanonicalDirectory {
+  param(
+    [string]$Path,
+    [string]$Label
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    throw "$Label must not be empty"
+  }
+  if (-not (Test-AbsolutePath -Path $Path)) {
+    throw "$Label must be an absolute path: $Path"
+  }
+
+  $null = New-Item -ItemType Directory -Force -Path $Path
+  return (Resolve-Path -LiteralPath $Path).ProviderPath
+}
+
+function Validate-RuntimeTarget {
+  param(
+    [string]$InstallPrefix,
+    [string]$RuntimeTarget
+  )
+
+  if ([string]::IsNullOrWhiteSpace($InstallPrefix)) {
+    throw "unsafe install prefix resolved from -InstallDir"
+  }
+  $normalizedPrefix = [System.IO.Path]::TrimEndingDirectorySeparator($InstallPrefix)
+  $normalizedTarget = [System.IO.Path]::TrimEndingDirectorySeparator($RuntimeTarget)
+  if ($normalizedPrefix -eq [System.IO.Path]::GetPathRoot($normalizedPrefix)) {
+    throw "unsafe install prefix resolved from -InstallDir: $InstallPrefix"
+  }
+  if ($normalizedTarget -eq $normalizedPrefix) {
+    throw "unsafe runtime target equals install prefix: $RuntimeTarget"
+  }
+  if (-not $normalizedTarget.StartsWith($normalizedPrefix + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "unsafe runtime target outside install prefix: $RuntimeTarget"
+  }
+}
+
 if ($Help) {
   Show-Usage
   exit 0
@@ -162,6 +213,7 @@ try {
     }
   }
 
+  $resolvedInstallDir = Resolve-CanonicalDirectory -Path $InstallDir -Label "-InstallDir"
   $extractDir = Join-Path $workDir "unpack"
   $null = New-Item -ItemType Directory -Force -Path $extractDir
 
@@ -193,11 +245,12 @@ try {
     throw "expected runtime adapters not found under $runtimeSource"
   }
 
-  $null = New-Item -ItemType Directory -Force -Path $InstallDir
-  $installTarget = Join-Path $InstallDir "runectx.exe"
+  $installTarget = Join-Path $resolvedInstallDir "runectx.exe"
   Copy-Item -Path $binaryPath -Destination $installTarget -Force
-  $installPrefix = Resolve-InstallPrefix -Directory $InstallDir
+  $installPrefixRaw = Resolve-InstallPrefix -Directory $resolvedInstallDir
+  $installPrefix = Resolve-CanonicalDirectory -Path $installPrefixRaw -Label "install prefix"
   $runtimeTarget = Join-Path $installPrefix "share/runecontext"
+  Validate-RuntimeTarget -InstallPrefix $installPrefix -RuntimeTarget $runtimeTarget
   $null = New-Item -ItemType Directory -Force -Path (Split-Path -Parent $runtimeTarget)
   if (Test-Path $runtimeTarget) {
     Remove-Item -Recurse -Force $runtimeTarget

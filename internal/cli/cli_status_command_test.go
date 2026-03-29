@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestRunChangeMachineFlagErrorRetainsJSON(t *testing.T) {
+func TestRunStatusMachineFlagErrorRetainsJSON(t *testing.T) {
 	projectRoot := prepareCLIWorkflowProject(t)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

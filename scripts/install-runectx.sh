@@ -32,6 +32,59 @@ require_cmd() {
   fi
 }
 
+is_absolute_path() {
+  case "$1" in
+    /*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+require_absolute_dir() {
+  local path="$1"
+  local label="$2"
+  if [ -z "${path}" ]; then
+    printf '%s must not be empty\n' "${label}" >&2
+    exit 1
+  fi
+  if ! is_absolute_path "${path}"; then
+    printf '%s must be an absolute path: %s\n' "${label}" "${path}" >&2
+    exit 1
+  fi
+}
+
+canonical_dir_path() {
+  local path="$1"
+  mkdir -p "${path}"
+  (
+    cd "${path}"
+    pwd -P
+  )
+}
+
+is_root_path() {
+  [ "$1" = "/" ]
+}
+
+validate_runtime_target() {
+  local install_prefix="$1"
+  local runtime_target="$2"
+  if [ -z "${install_prefix}" ] || is_root_path "${install_prefix}"; then
+    printf 'unsafe install prefix resolved from --install-dir: %s\n' "${install_prefix}" >&2
+    exit 1
+  fi
+  if [ "${runtime_target}" = "${install_prefix}" ]; then
+    printf 'unsafe runtime target equals install prefix: %s\n' "${runtime_target}" >&2
+    exit 1
+  fi
+  case "${runtime_target}" in
+    "${install_prefix}"/*) ;;
+    *)
+      printf 'unsafe runtime target outside install prefix: %s\n' "${runtime_target}" >&2
+      exit 1
+      ;;
+  esac
+}
+
 install_prefix_for_dir() {
   local dir="$1"
   local clean
@@ -151,6 +204,8 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
+require_absolute_dir "${install_dir}" "--install-dir"
+
 require_cmd curl
 require_cmd tar
 require_cmd install
@@ -232,17 +287,20 @@ if [ ! -d "${runtime_source}/adapters" ]; then
   exit 1
 fi
 
-mkdir -p "${install_dir}"
-install -m 0755 "${binary_path}" "${install_dir}/runectx"
-install_prefix="$(install_prefix_for_dir "${install_dir}")"
+resolved_install_dir="$(canonical_dir_path "${install_dir}")"
+install -m 0755 "${binary_path}" "${resolved_install_dir}/runectx"
+install_prefix_raw="$(install_prefix_for_dir "${resolved_install_dir}")"
+require_absolute_dir "${install_prefix_raw}" "install prefix"
+install_prefix="$(canonical_dir_path "${install_prefix_raw}")"
 runtime_target="${install_prefix}/share/runecontext"
+validate_runtime_target "${install_prefix}" "${runtime_target}"
 mkdir -p "$(dirname "${runtime_target}")"
 rm -rf "${runtime_target}"
 cp -R "${runtime_source}" "${runtime_target}"
 
-printf '\nInstalled runectx to %s/runectx\n' "${install_dir}"
+printf '\nInstalled runectx to %s/runectx\n' "${resolved_install_dir}"
 printf 'Installed runtime assets to %s\n' "${runtime_target}"
-"${install_dir}/runectx" version
+"${resolved_install_dir}/runectx" version
 
 cat <<'EOF'
 
