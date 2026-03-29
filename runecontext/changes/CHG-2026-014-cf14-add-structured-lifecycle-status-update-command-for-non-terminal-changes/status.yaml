@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-014-cf14-add-structured-lifecycle-status-update-command-for-non-terminal-changes
 title: Add structured lifecycle status update command for non-terminal changes
-status: planned
+status: implemented
 type: feature
 size: medium
 verification_status: pending
