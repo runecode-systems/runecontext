@@ -1,0 +1,220 @@
+{
+  "package_name": "runecontext",
+  "version": "0.1.0-alpha.10",
+  "tag": "v0.1.0-alpha.10",
+  "metadata_descriptor": {
+    "schema_version": 1,
+    "descriptor_schema_version": "1",
+    "binary": "runectx",
+    "release": {
+      "package_name": "runecontext",
+      "version": "0.1.0-alpha.10",
+      "tag": "v0.1.0-alpha.10"
+    },
+    "compatibility": {
+      "supported_project_versions": [
+        "0.1.0-alpha.5",
+        "0.1.0-alpha.6",
+        "0.1.0-alpha.7",
+        "0.1.0-alpha.8",
+        "0.1.0-alpha.10"
+      ],
+      "explicit_upgrade_edges": [
+        {
+          "from": "0.1.0-alpha.8",
+          "to": "0.1.0-alpha.10"
+        },
+        {
+          "from": "0.1.0-alpha.8",
+          "to": "0.1.0-alpha.9"
+        },
+        {
+          "from": "0.1.0-alpha.9",
+          "to": "0.1.0-alpha.10"
+        }
+      ]
+    },
+    "runtime": {
+      "layouts": [
+        {
+          "profile": "repo_bundle",
+          "schema_path": "schemas",
+          "adapters_path": "adapters"
+        },
+        {
+          "profile": "installed_share_layout",
+          "schema_path": "share/runecontext/schemas",
+          "adapters_path": "share/runecontext/adapters"
+        }
+      ]
+    },
+    "capabilities": {
+      "commands": [
+        {
+          "path": "adapter",
+          "token": "adapter"
+        },
+        {
+          "path": "adapter render-host-native",
+          "token": "adapter_render_host_native"
+        },
+        {
+          "path": "adapter sync",
+          "token": "adapter_sync"
+        },
+        {
+          "path": "assurance",
+          "token": "assurance"
+        },
+        {
+          "path": "assurance backfill",
+          "token": "assurance_backfill"
+        },
+        {
+          "path": "assurance capture",
+          "token": "assurance_capture"
+        },
+        {
+          "path": "assurance enable",
+          "token": "assurance_enable"
+        },
+        {
+          "path": "bundle",
+          "token": "bundle"
+        },
+        {
+          "path": "bundle resolve",
+          "token": "bundle_resolve"
+        },
+        {
+          "path": "change",
+          "token": "change"
+        },
+        {
+          "path": "change close",
+          "token": "change_close"
+        },
+        {
+          "path": "change new",
+          "token": "change_new"
+        },
+        {
+          "path": "change reallocate",
+          "token": "change_reallocate"
+        },
+        {
+          "path": "change shape",
+          "token": "change_shape"
+        },
+        {
+          "path": "change update",
+          "token": "change_update"
+        },
+        {
+          "path": "completion",
+          "token": "completion"
+        },
+        {
+          "path": "completion metadata",
+          "token": "completion_metadata"
+        },
+        {
+          "path": "completion suggest",
+          "token": "completion_suggest"
+        },
+        {
+          "path": "doctor",
+          "token": "doctor"
+        },
+        {
+          "path": "generate",
+          "token": "generate"
+        },
+        {
+          "path": "generate indexes",
+          "token": "generate_indexes"
+        },
+        {
+          "path": "help",
+          "token": "help"
+        },
+        {
+          "path": "init",
+          "token": "init"
+        },
+        {
+          "path": "metadata",
+          "token": "metadata"
+        },
+        {
+          "path": "promote",
+          "token": "promote"
+        },
+        {
+          "path": "standard",
+          "token": "standard"
+        },
+        {
+          "path": "standard discover",
+          "token": "standard_discover"
+        },
+        {
+          "path": "status",
+          "token": "status"
+        },
+        {
+          "path": "upgrade",
+          "token": "upgrade"
+        },
+        {
+          "path": "upgrade apply",
+          "token": "upgrade_apply"
+        },
+        {
+          "path": "validate",
+          "token": "validate"
+        },
+        {
+          "path": "version",
+          "token": "version",
+          "aliases": [
+            "--version",
+            "-v"
+          ]
+        }
+      ],
+      "machine_flags": [
+        "--dry-run",
+        "--explain",
+        "--json",
+        "--non-interactive"
+      ],
+      "value_kinds": [
+        "none",
+        "text",
+        "enum"
+      ]
+    },
+    "assurance": {
+      "tiers": [
+        "plain",
+        "verified"
+      ]
+    },
+    "resolution": {
+      "source_modes": [
+        "embedded",
+        "git",
+        "path"
+      ],
+      "verification_postures": [
+        "embedded",
+        "pinned_commit",
+        "verified_signed_tag",
+        "unverified_mutable_ref",
+        "unverified_local_source"
+      ]
+    }
+  },
+  "archives": []
+}

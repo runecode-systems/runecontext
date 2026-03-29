@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RuneContext Capability Descriptor",
+  "description": "Canonical machine-readable RuneContext metadata descriptor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "descriptor_schema_version",
+    "binary",
+    "release",
+    "compatibility",
+    "runtime",
+    "capabilities",
+    "assurance",
+    "resolution"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "descriptor_schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "binary": {
+      "type": "string",
+      "const": "runectx"
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package_name", "version", "tag"],
+      "properties": {
+        "package_name": {
+          "type": "string",
+          "const": "runecontext"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+        },
+        "tag": {
+          "type": "string",
+          "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported_project_versions", "explicit_upgrade_edges"],
+      "properties": {
+        "supported_project_versions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+          },
+          "uniqueItems": true
+        },
+        "explicit_upgrade_edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to"],
+            "properties": {
+              "from": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layouts"],
+      "properties": {
+        "layouts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["profile", "schema_path", "adapters_path"],
+            "properties": {
+              "profile": {
+                "type": "string",
+                "enum": ["repo_bundle", "installed_share_layout"]
+              },
+              "schema_path": {
+                "type": "string"
+              },
+              "adapters_path": {
+                "type": "string"
+              }
+            }
+          },
+          "minItems": 2
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commands", "machine_flags", "value_kinds"],
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "token"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "token": {
+                "type": "string",
+                "pattern": "^[a-z0-9_]+$"
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(--?[a-z][a-z0-9-]*)$"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        "machine_flags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["--dry-run", "--explain", "--json", "--non-interactive"]
+          },
+          "uniqueItems": true
+        },
+        "value_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["none", "text", "enum"]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tiers"],
+      "properties": {
+        "tiers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["plain", "verified"]
+          },
+          "uniqueItems": true,
+          "minItems": 2
+        }
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_modes", "verification_postures"],
+      "properties": {
+        "source_modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["embedded", "git", "path"]
+          },
+          "uniqueItems": true,
+          "minItems": 3
+        },
+        "verification_postures": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "embedded",
+              "pinned_commit",
+              "verified_signed_tag",
+              "unverified_mutable_ref",
+              "unverified_local_source"
+            ]
+          },
+          "uniqueItems": true,
+          "minItems": 5
+        }
+      }
+    }
+  }
+}

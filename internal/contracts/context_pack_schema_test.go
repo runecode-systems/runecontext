@@ -122,6 +122,148 @@ func TestContextPackReportSchemaVersionMatchesMachineContracts(t *testing.T) {
 	assertReportWarningMinimums(t, properties)
 }
 
+func TestCapabilityDescriptorSchemaRejectsUnknownFields(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	value := map[string]any{
+		"schema_version":            1,
+		"descriptor_schema_version": "1",
+		"binary":                    "runectx",
+		"release": map[string]any{
+			"package_name": "runecontext",
+			"version":      "0.1.0-alpha.10",
+			"tag":          "v0.1.0-alpha.10",
+		},
+		"compatibility": map[string]any{
+			"supported_project_versions": []any{"0.1.0-alpha.8"},
+			"explicit_upgrade_edges":     []any{map[string]any{"from": "0.1.0-alpha.8", "to": "0.1.0-alpha.9"}},
+		},
+		"runtime": map[string]any{
+			"layouts": []any{
+				map[string]any{"profile": "repo_bundle", "schema_path": "schemas", "adapters_path": "adapters"},
+				map[string]any{"profile": "installed_share_layout", "schema_path": "share/runecontext/schemas", "adapters_path": "share/runecontext/adapters"},
+			},
+		},
+		"capabilities": map[string]any{
+			"commands":      []any{map[string]any{"path": "metadata", "token": "metadata"}},
+			"machine_flags": []any{"--json", "--non-interactive", "--dry-run", "--explain"},
+			"value_kinds":   []any{"none", "text", "enum"},
+		},
+		"assurance": map[string]any{
+			"tiers": []any{"plain", "verified"},
+		},
+		"resolution": map[string]any{
+			"source_modes":          []any{"embedded", "git", "path"},
+			"verification_postures": []any{"embedded", "pinned_commit", "verified_signed_tag", "unverified_mutable_ref", "unverified_local_source"},
+		},
+		"unexpected": "value",
+	}
+	if err := v.ValidateValue("capability-descriptor.schema.json", "capability-descriptor.json", value); err == nil {
+		t.Fatal("expected capability descriptor schema to reject unknown fields")
+	}
+}
+
+func TestCapabilityDescriptorSchemaRejectsUnknownTokensAndSchemaVersion(t *testing.T) {
+	v := NewValidator(schemaRoot(t))
+	base := map[string]any{
+		"schema_version":            1,
+		"descriptor_schema_version": "1",
+		"binary":                    "runectx",
+		"release": map[string]any{
+			"package_name": "runecontext",
+			"version":      "0.1.0-alpha.10",
+			"tag":          "v0.1.0-alpha.10",
+		},
+		"compatibility": map[string]any{
+			"supported_project_versions": []any{"0.1.0-alpha.8"},
+			"explicit_upgrade_edges":     []any{map[string]any{"from": "0.1.0-alpha.8", "to": "0.1.0-alpha.9"}},
+		},
+		"runtime": map[string]any{
+			"layouts": []any{
+				map[string]any{"profile": "repo_bundle", "schema_path": "schemas", "adapters_path": "adapters"},
+				map[string]any{"profile": "installed_share_layout", "schema_path": "share/runecontext/schemas", "adapters_path": "share/runecontext/adapters"},
+			},
+		},
+		"capabilities": map[string]any{
+			"commands":      []any{map[string]any{"path": "metadata", "token": "metadata"}},
+			"machine_flags": []any{"--json", "--non-interactive", "--dry-run", "--explain"},
+			"value_kinds":   []any{"none", "text", "enum"},
+		},
+		"assurance": map[string]any{
+			"tiers": []any{"plain", "verified"},
+		},
+		"resolution": map[string]any{
+			"source_modes":          []any{"embedded", "git", "path"},
+			"verification_postures": []any{"embedded", "pinned_commit", "verified_signed_tag", "unverified_mutable_ref", "unverified_local_source"},
+		},
+	}
+
+	mutations := []struct {
+		name string
+		mut  func(map[string]any)
+	}{
+		{
+			name: "schema version",
+			mut: func(value map[string]any) {
+				value["descriptor_schema_version"] = "2"
+			},
+		},
+		{
+			name: "layout profile",
+			mut: func(value map[string]any) {
+				layouts := value["runtime"].(map[string]any)["layouts"].([]any)
+				layouts[0].(map[string]any)["profile"] = "unknown_layout"
+			},
+		},
+		{
+			name: "machine flag",
+			mut: func(value map[string]any) {
+				value["capabilities"].(map[string]any)["machine_flags"] = []any{"--json", "--unknown"}
+			},
+		},
+		{
+			name: "value kind",
+			mut: func(value map[string]any) {
+				value["capabilities"].(map[string]any)["value_kinds"] = []any{"none", "mystery"}
+			},
+		},
+		{
+			name: "source mode",
+			mut: func(value map[string]any) {
+				value["resolution"].(map[string]any)["source_modes"] = []any{"embedded", "svn"}
+			},
+		},
+		{
+			name: "verification posture",
+			mut: func(value map[string]any) {
+				value["resolution"].(map[string]any)["verification_postures"] = []any{"embedded", "unknown_posture"}
+			},
+		},
+	}
+
+	for _, tc := range mutations {
+		t.Run(tc.name, func(t *testing.T) {
+			value := deepCopyObject(t, base)
+			tc.mut(value)
+			if err := v.ValidateValue("capability-descriptor.schema.json", "capability-descriptor.json", value); err == nil {
+				t.Fatalf("expected mutation %q to fail closed", tc.name)
+			}
+		})
+	}
+}
+
+func deepCopyObject(t *testing.T, value map[string]any) map[string]any {
+	t.Helper()
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal fixture map: %v", err)
+	}
+	var copied map[string]any
+	if err := json.Unmarshal(data, &copied); err != nil {
+		t.Fatalf("unmarshal fixture map: %v", err)
+	}
+	return copied
+}
+
 func assertReportWarningMinimums(t *testing.T, properties map[string]any) {
 	t.Helper()
 	warnings, ok := properties["warnings"].(map[string]any)

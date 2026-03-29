@@ -26,6 +26,8 @@ Hand-authored JSON Schema files for machine-readable RuneContext artifacts live 
   - generated `runecontext/indexes/changes-by-status.yaml` contract
 - `bundles-index.schema.json`
   - generated `runecontext/indexes/bundles.yaml` contract
+- `capability-descriptor.schema.json`
+  - generated `runectx metadata` and release-manifest `metadata_descriptor` contract
 - `spec.schema.json`
   - YAML frontmatter contract for `specs/*.md`
 - `decision.schema.json`

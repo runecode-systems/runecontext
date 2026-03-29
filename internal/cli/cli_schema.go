@@ -80,7 +80,7 @@ func findSchemaRoot(start string) (string, bool) {
 }
 
 func isSchemaDir(path string) bool {
-	for _, name := range []string{"runecontext.schema.json", "bundle.schema.json", "change-status.schema.json", "context-pack.schema.json", "assurance-baseline.schema.json", "assurance-receipt.schema.json", "assurance-imported-history.schema.json"} {
+	for _, name := range []string{"runecontext.schema.json", "bundle.schema.json", "capability-descriptor.schema.json", "change-status.schema.json", "context-pack.schema.json", "assurance-baseline.schema.json", "assurance-receipt.schema.json", "assurance-imported-history.schema.json"} {
 		if _, err := os.Stat(filepath.Join(path, name)); err != nil {
 			return false
 		}

@@ -36,6 +36,7 @@ const (
 	completionUsage         = "runectx completion <bash|zsh|fish|suggest|metadata>"
 	completionSuggestUsage  = "runectx completion suggest [--path PATH] [--prefix PREFIX] <change-ids|bundle-ids|promotion-targets|adapter-names|adapter-names-shell-injection>"
 	completionMetadataUsage = "runectx completion metadata"
+	metadataUsage           = "runectx metadata"
 	upgradeUsage            = "runectx upgrade [--json] [--non-interactive] [--explain] [--path PATH] [--target-version VERSION]"
 	upgradeApplyUsage       = "runectx upgrade apply [--json] [--non-interactive] [--explain] [--path PATH] --target-version VERSION"
 	versionUsage            = "runectx version [--json] [--non-interactive] (aliases: --version, -v)"
@@ -91,6 +92,7 @@ func rootCommandHandler(command string) (rootCommandFunc, bool) {
 		"assurance":  runAssurance,
 		"adapter":    runAdapter,
 		"completion": runCompletion,
+		"metadata":   runMetadata,
 		"upgrade":    runUpgrade,
 		"version":    runVersion,
 		"--version":  runVersion,
@@ -135,6 +137,7 @@ func usageCommandDescriptions() []string {
 		"  assurance  Enable, backfill, or capture Verified assurance artifacts",
 		"  adapter    Sync and render tool host-native adapter artifacts",
 		"  completion Emit shell completion scripts",
+		"  metadata   Emit canonical machine-readable metadata",
 		"  upgrade    Preview or apply RuneContext version upgrades",
 		"  version    Show RuneContext CLI version (--version, -v)",
 	}
@@ -162,6 +165,7 @@ func usageExamples() []string {
 		completionUsage,
 		completionSuggestUsage,
 		completionMetadataUsage,
+		metadataUsage,
 		upgradeUsage,
 		versionUsage,
 	}

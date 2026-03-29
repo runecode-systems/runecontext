@@ -96,6 +96,9 @@ func TestRunVersionJSONEnvelope(t *testing.T) {
 	if got, want := envelope.Data["runecontext_version"], "0.1.0-alpha.8"; got != want {
 		t.Fatalf("expected runecontext_version %q, got %q", want, got)
 	}
+	if _, ok := envelope.Data["descriptor_json"]; ok {
+		t.Fatalf("expected version --json to remain backward-compatible without descriptor_json payload")
+	}
 	if got, want := envelope.Data["non_interactive"], "true"; got != want {
 		t.Fatalf("expected non_interactive %q, got %q", want, got)
 	}

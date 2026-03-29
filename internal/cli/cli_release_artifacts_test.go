@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -46,10 +47,14 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 		`process_pack_archives "adapter_pack"`,
 		`"${coreutils}/cp" -R schemas "${share_dir}/schemas"`,
 		`"${coreutils}/cp" -R adapters "${share_dir}/adapters"`,
+		`"${host_metadata_binary}" metadata > "release/metadata-descriptor.json"`,
+		`if ! @jq@/bin/jq -e '`,
+		`invalid metadata descriptor payload: release/metadata-descriptor.json`,
 		`record_archive "installer_script"`,
 		`record_archive "repo_bundle"`,
 		`record_archive "binary"`,
 		`manifest_path="release/dist/@packageName@_@tag@_release-manifest.json"`,
+		`metadata_descriptor: $metadata_descriptor[0],`,
 		`release_files=( *.tar.gz *.zip *.json *.sh *.ps1 )`,
 	)
 }
@@ -104,6 +109,38 @@ func TestCompatibilityMatrixDocumentsCanonicalAndOptionalReleasePaths(t *testing
 		"| `darwin` | `amd64` | `runecontext_<tag>_darwin_amd64.tar.gz` |",
 		"| `darwin` | `arm64` | `runecontext_<tag>_darwin_arm64.tar.gz` |",
 	)
+}
+
+func TestReleaseManifestMetadataDescriptorParityFixture(t *testing.T) {
+	original := runecontextVersion
+	t.Cleanup(func() { runecontextVersion = original })
+	runecontextVersion = "v0.1.0-alpha.10"
+
+	root, err := repoRootForTests()
+	if err != nil {
+		t.Fatalf("locate repo root: %v", err)
+	}
+	manifestPath := filepath.Join(root, "fixtures", "release", "release-manifest-with-metadata.json")
+	raw, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("read fixture release manifest: %v", err)
+	}
+	manifestDescriptor, err := releaseManifestDescriptorFromJSON(raw)
+	if err != nil {
+		t.Fatalf("parse fixture metadata descriptor: %v", err)
+	}
+	expected := descriptorMap(buildCapabilityDescriptor())
+	expectedJSON, err := json.Marshal(expected)
+	if err != nil {
+		t.Fatalf("marshal expected descriptor: %v", err)
+	}
+	manifestJSON, err := json.Marshal(manifestDescriptor)
+	if err != nil {
+		t.Fatalf("marshal manifest descriptor: %v", err)
+	}
+	if string(manifestJSON) != string(expectedJSON) {
+		t.Fatalf("expected release manifest fixture metadata_descriptor to match canonical descriptor\nexpected=%s\nactual=%s", string(expectedJSON), string(manifestJSON))
+	}
 }
 
 func readReleaseFileForTests(t *testing.T, relativePath string) string {

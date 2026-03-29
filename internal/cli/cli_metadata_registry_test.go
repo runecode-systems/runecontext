@@ -7,6 +7,9 @@ import (
 
 func TestCommandMetadataRegistryHasCompletionCommand(t *testing.T) {
 	registry := CommandMetadataRegistry()
+	if commandMetadataByPath(registry.Commands, "metadata") == nil {
+		t.Fatalf("expected metadata command in registry")
+	}
 	var completion *CommandMetadata
 	for i := range registry.Commands {
 		if registry.Commands[i].Path == "completion" {

@@ -26,6 +26,7 @@ _runectx_has_command() {
     'generate indexes') return 0 ;;
     'help') return 0 ;;
     'init') return 0 ;;
+    'metadata') return 0 ;;
     'promote') return 0 ;;
     'standard') return 0 ;;
     'standard discover') return 0 ;;
@@ -40,7 +41,7 @@ _runectx_has_command() {
 
 _runectx_subcommands_for() {
   case "$1" in
-    '') echo '--version -v adapter assurance bundle change completion doctor generate help init promote standard status upgrade validate version' ;;
+    '') echo '--version -v adapter assurance bundle change completion doctor generate help init metadata promote standard status upgrade validate version' ;;
     '--version') echo '' ;;
     '-v') echo '' ;;
     'adapter') echo 'render-host-native sync' ;;
@@ -66,6 +67,7 @@ _runectx_subcommands_for() {
     'generate indexes') echo '' ;;
     'help') echo '' ;;
     'init') echo '' ;;
+    'metadata') echo '' ;;
     'promote') echo '' ;;
     'standard') echo 'discover' ;;
     'standard discover') echo '' ;;
