@@ -176,7 +176,8 @@ Current CLI scope:
   - reports environment, install, and source-posture diagnostics separately from authoritative validation
   - supports `--json`, `--non-interactive`, and `--explain`
 - `runectx metadata`
-  - emits canonical machine-readable capability, direct-compatibility, upgrade-entry, distribution-layout, project-profile, assurance/canonicalization token, and command metadata for tooling and generated docs
+  - emits canonical machine-readable capability, default project-version posture, direct-compatibility, upgrade-entry, distribution-layout, project-profile, assurance/canonicalization token, and command metadata for tooling and generated docs
+  - compatibility semantics are explicit: `directly_supported_project_versions` allows normal operation, `upgradeable_from_project_versions` allows migration posture, and overlap is valid when a version is supported now and has an explicit forward upgrade path
 - `runectx upgrade [--path PATH] [--target-version VERSION|current|installed|latest]`
   - previews project version posture, managed host-native refresh actions, and whether apply is required
   - supports `--json`, `--non-interactive`, and `--explain`

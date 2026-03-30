@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-021-6d7e-extend-metadata-descriptor-with-explicit-layout-assurance-and-feature-contracts
 title: Extend metadata descriptor with explicit layout assurance and feature contracts
-status: proposed
+status: implemented
 type: feature
 size: large
 verification_status: pending

@@ -191,6 +191,7 @@
     ]
   },
   "compatibility": {
+    "default_project_version": "0.1.0-alpha.12",
     "directly_supported_project_versions": [
       "0.1.0-alpha.5",
       "0.1.0-alpha.6",

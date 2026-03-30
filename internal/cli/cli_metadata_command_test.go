@@ -130,7 +130,7 @@ func assertMetadataSchemaAndShape(t *testing.T, payload map[string]any) {
 		t.Fatalf("expected schema_version %d, got %d", want, got)
 	}
 	if _, ok := payload["descriptor_schema_version"]; ok {
-		t.Fatalf("expected descriptor_schema_version to be absent in v3 payload: %#v", payload["descriptor_schema_version"])
+		t.Fatalf("expected descriptor_schema_version to be absent in metadata payload: %#v", payload["descriptor_schema_version"])
 	}
 	compatibility, ok := payload["compatibility"].(map[string]any)
 	if !ok {
@@ -139,16 +139,19 @@ func assertMetadataSchemaAndShape(t *testing.T, payload map[string]any) {
 	if _, ok := compatibility["directly_supported_project_versions"]; !ok {
 		t.Fatalf("expected directly_supported_project_versions in compatibility: %#v", compatibility)
 	}
+	if _, ok := compatibility["default_project_version"]; !ok {
+		t.Fatalf("expected default_project_version in compatibility: %#v", compatibility)
+	}
 	if _, ok := compatibility["upgradeable_from_project_versions"]; !ok {
 		t.Fatalf("expected upgradeable_from_project_versions in compatibility: %#v", compatibility)
 	}
 	if _, ok := compatibility["explicit_upgrade_edges"]; !ok {
 		t.Fatalf("expected explicit_upgrade_edges in compatibility: %#v", compatibility)
 	}
-	assertMetadataV2LayoutAndFeatureSurfaces(t, payload)
+	assertMetadataLayoutAndFeatureSurfaces(t, payload)
 }
 
-func assertMetadataV2LayoutAndFeatureSurfaces(t *testing.T, payload map[string]any) {
+func assertMetadataLayoutAndFeatureSurfaces(t *testing.T, payload map[string]any) {
 	t.Helper()
 	layouts, ok := payload["distribution_layouts"].([]any)
 	if !ok || len(layouts) < 2 {
@@ -181,6 +184,9 @@ func assertCompatibilityPopulation(t *testing.T, descriptor capabilityDescriptor
 	if len(descriptor.Compatibility.DirectlySupportedProjectVersions) == 0 {
 		t.Fatal("expected directly supported project versions to be populated")
 	}
+	if descriptor.Compatibility.DefaultProjectVersion == "" {
+		t.Fatal("expected default project version to be populated")
+	}
 	if len(descriptor.Compatibility.UpgradeableFromProjectVersions) == 0 {
 		t.Fatal("expected upgradeable-from project versions to be populated")
 	}
@@ -194,6 +200,9 @@ func assertCompatibilityIncludesExpectedVersions(t *testing.T, descriptor capabi
 	if !containsString(descriptor.Compatibility.DirectlySupportedProjectVersions, "0.1.0-alpha.5") {
 		t.Fatalf("expected directly supported project versions to include alpha.5 compatibility range: %#v", descriptor.Compatibility.DirectlySupportedProjectVersions)
 	}
+	if !containsString(descriptor.Compatibility.DirectlySupportedProjectVersions, descriptor.Compatibility.DefaultProjectVersion) {
+		t.Fatalf("expected default project version %q to be directly supported: %#v", descriptor.Compatibility.DefaultProjectVersion, descriptor.Compatibility.DirectlySupportedProjectVersions)
+	}
 	if containsString(descriptor.Compatibility.DirectlySupportedProjectVersions, "0.1.0-alpha.9") {
 		t.Fatalf("expected alpha.9 to remain upgrade-only, got %#v", descriptor.Compatibility.DirectlySupportedProjectVersions)
 	}
@@ -202,6 +211,9 @@ func assertCompatibilityIncludesExpectedVersions(t *testing.T, descriptor capabi
 	}
 	if !containsUpgradeEdge(descriptor.Compatibility.ExplicitUpgradeEdges, "0.1.0-alpha.8", "0.1.0-alpha.9") {
 		t.Fatalf("expected explicit upgrade edges to include alpha.8->alpha.9 edge: %#v", descriptor.Compatibility.ExplicitUpgradeEdges)
+	}
+	if !containsString(descriptor.Compatibility.UpgradeableFromProjectVersions, "0.1.0-alpha.8") {
+		t.Fatalf("expected alpha.8 to appear in upgradeable-from set for overlap semantics: %#v", descriptor.Compatibility.UpgradeableFromProjectVersions)
 	}
 }
 

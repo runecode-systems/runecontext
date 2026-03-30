@@ -48,8 +48,12 @@
     "compatibility": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["directly_supported_project_versions", "upgradeable_from_project_versions", "explicit_upgrade_edges"],
+      "required": ["default_project_version", "directly_supported_project_versions", "upgradeable_from_project_versions", "explicit_upgrade_edges"],
       "properties": {
+        "default_project_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+        },
         "directly_supported_project_versions": {
           "type": "array",
           "items": {

@@ -1,12 +1,12 @@
 # Tasks
 
-- Define and document the descriptor `v3` target shape, including one authoritative schema version field, explicit top-level `distribution_layouts`, `project_profiles`, `features`, and `canonicalization` surfaces plus expanded `assurance` fields.
-- Update the canonical metadata builder to emit the new `v3` descriptor while preserving one semantic authority for release identity, compatibility, layout, assurance, and canonicalization facts.
+- Define and document the refined descriptor `v2` target shape, including one authoritative schema version field, explicit top-level `distribution_layouts`, `project_profiles`, `features`, and `canonicalization` surfaces plus expanded `assurance` fields.
+- Update the canonical metadata builder to emit the refined `v2` descriptor while preserving one semantic authority for release identity, compatibility, layout, assurance, and canonicalization facts.
 - Replace the old ambiguous `runtime.layouts` field with explicit distribution-layout reporting and add portable project-profile path metadata derived from the project layout contract.
-- Replace ambiguous `compatibility.supported_project_versions` reporting with explicit direct-support and upgrade-entry surfaces.
+- Replace ambiguous `compatibility.supported_project_versions` reporting with explicit default/direct-support and upgrade-entry surfaces.
 - Extend assurance metadata to report baseline support and supported verified receipt families using existing portable artifact-family contracts.
 - Publish canonicalization and hash-profile tokens for context packs and assurance artifacts from existing machine-contract constants and schemas.
 - Add a narrow semantic feature-token surface that captures implemented high-level capabilities without mirroring every command token or structured assurance detail.
-- Update the descriptor schema to a closed `v3` contract and add fail-closed tests for unknown schema versions, unknown fields, legacy compatibility/version fields, unknown feature tokens, unknown receipt families, and unknown canonicalization/hash tokens.
+- Update the descriptor schema to a closed refined `v2` contract and add fail-closed tests for unknown schema versions, unknown fields, legacy compatibility/version fields, unknown feature tokens, unknown receipt families, and unknown canonicalization/hash tokens.
 - Refresh metadata-derived fixtures and generated docs/reference artifacts, and add CLI/schema/release/docs parity tests so all derived surfaces stay aligned.
 - Document the meaning of the new metadata fields in the repo's metadata/docs surface without relocating core semantic authority away from `core/`, `schemas/`, and `internal/contracts/`.

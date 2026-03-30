@@ -38,6 +38,7 @@ type descriptorRelease struct {
 }
 
 type descriptorCompatibility struct {
+	DefaultProjectVersion            string                  `json:"default_project_version" yaml:"default_project_version"`
 	DirectlySupportedProjectVersions []string                `json:"directly_supported_project_versions" yaml:"directly_supported_project_versions"`
 	UpgradeableFromProjectVersions   []string                `json:"upgradeable_from_project_versions" yaml:"upgradeable_from_project_versions"`
 	ExplicitUpgradeEdges             []descriptorUpgradeEdge `json:"explicit_upgrade_edges" yaml:"explicit_upgrade_edges"`
@@ -79,6 +80,7 @@ func buildCapabilityDescriptor() capabilityDescriptor {
 			Tag:         "v" + version,
 		},
 		Compatibility: descriptorCompatibility{
+			DefaultProjectVersion:            version,
 			DirectlySupportedProjectVersions: deriveDirectlySupportedProjectVersions(version),
 			UpgradeableFromProjectVersions:   deriveUpgradeableFromProjectVersions(planner),
 			ExplicitUpgradeEdges:             deriveExplicitUpgradeEdges(planner),

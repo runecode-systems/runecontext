@@ -27,7 +27,7 @@ Hand-authored JSON Schema files for machine-readable RuneContext artifacts live 
 - `bundles-index.schema.json`
   - generated `runecontext/indexes/bundles.yaml` contract
 - `capability-descriptor.schema.json`
-  - generated `runectx metadata` and release-manifest `metadata_descriptor` contract (`v3` descriptor with one authoritative schema version, explicit direct-vs-upgradeable compatibility reporting, explicit distribution layouts/project profiles, narrowed semantic features, and canonicalization/assurance token surfaces)
+  - generated `runectx metadata` and release-manifest `metadata_descriptor` contract (`v2` descriptor with one authoritative schema version, explicit default/direct-vs-upgradeable compatibility reporting, explicit distribution layouts/project profiles, narrowed semantic features, and canonicalization/assurance token surfaces)
 - `spec.schema.json`
   - YAML frontmatter contract for `specs/*.md`
 - `decision.schema.json`

@@ -189,6 +189,7 @@ func capabilityDescriptorReleaseFixture() map[string]any {
 
 func capabilityDescriptorCompatibilityFixture() map[string]any {
 	return map[string]any{
+		"default_project_version":             "0.1.0-alpha.8",
 		"directly_supported_project_versions": []any{"0.1.0-alpha.8"},
 		"upgradeable_from_project_versions":   []any{"0.1.0-alpha.8", "0.1.0-alpha.9"},
 		"explicit_upgrade_edges":              []any{map[string]any{"from": "0.1.0-alpha.8", "to": "0.1.0-alpha.9"}},
@@ -265,6 +266,12 @@ func capabilityDescriptorVersionMutationCases() []mutationCase {
 			name: "legacy supported project versions field",
 			mut: func(value map[string]any) {
 				value["compatibility"].(map[string]any)["supported_project_versions"] = []any{"0.1.0-alpha.8"}
+			},
+		},
+		{
+			name: "missing default project version",
+			mut: func(value map[string]any) {
+				delete(value["compatibility"].(map[string]any), "default_project_version")
 			},
 		},
 	}
