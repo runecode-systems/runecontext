@@ -48,6 +48,7 @@ complete -c runectx -f -n '__fish_use_subcommand' -a 'doctor'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'generate'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'help'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'init'
+complete -c runectx -f -n '__fish_use_subcommand' -a 'metadata'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'promote'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'standard'
 complete -c runectx -f -n '__fish_use_subcommand' -a 'status'
@@ -64,6 +65,7 @@ complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'close'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'new'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'reallocate'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'shape'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'update'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'metadata'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'suggest'
 complete -c runectx -f -n '__fish_seen_subcommand_from generate' -a 'indexes'
@@ -124,10 +126,11 @@ complete -c runectx -n '__fish_seen_subcommand_from change close' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l json
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change close' -l recursive
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l superseded-by -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --superseded-by' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l verification-status -r
-complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --verification-status' -a 'failed passed pending skipped'
+complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --verification-status' -a 'failed passed skipped'
 complete -c runectx -n '__fish_seen_subcommand_from change new' -l bundle -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from change new); and __runectx_prev_token_is --bundle' -a '(__runectx_dynamic_suggest bundle-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from change new' -l description -r
@@ -157,6 +160,16 @@ complete -c runectx -n '__fish_seen_subcommand_from change shape' -l path -r
 complete -c runectx -n '__fish_seen_subcommand_from change shape' -l reference -r
 complete -c runectx -n '__fish_seen_subcommand_from change shape' -l task -r
 complete -c runectx -n '__fish_seen_subcommand_from change shape' -l verification -r
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l recursive
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l status -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change update); and __runectx_prev_token_is --status' -a 'implemented planned verified'
+complete -c runectx -n '__fish_seen_subcommand_from change update' -l verification-status -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change update); and __runectx_prev_token_is --verification-status' -a 'failed passed skipped'
 complete -c runectx -n '__fish_seen_subcommand_from completion suggest' -l path -r
 complete -c runectx -n '__fish_seen_subcommand_from completion suggest' -l prefix -r
 complete -c runectx -n '__fish_seen_subcommand_from doctor' -l explain
@@ -257,6 +270,8 @@ function __runectx_flag_name_takes_value
     return 0
   case --ssh-allowed-signers
     return 0
+  case --status
+    return 0
   case --superseded-by
     return 0
   case --target
@@ -346,6 +361,7 @@ complete -c runectx -f -n '__fish_seen_subcommand_from adapter sync' -a '(__rune
 complete -c runectx -f -n '__fish_seen_subcommand_from change close' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change reallocate' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change shape' -a '(__runectx_dynamic_suggest change-ids)'
+complete -c runectx -f -n '__fish_seen_subcommand_from change update' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from promote' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance capture; and __runectx_positional_index_at_least 2 assurance capture' -a '(__runectx_dynamic_suggest bundle-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from bundle resolve; and __runectx_positional_index_at_least 1 bundle resolve' -a '(__runectx_dynamic_suggest bundle-ids)'

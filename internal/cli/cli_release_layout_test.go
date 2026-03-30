@@ -102,6 +102,7 @@ func requiredSchemaNames() []string {
 	return []string{
 		"runecontext.schema.json",
 		"bundle.schema.json",
+		"capability-descriptor.schema.json",
 		"change-status.schema.json",
 		"context-pack.schema.json",
 		"assurance-baseline.schema.json",

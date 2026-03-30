@@ -42,6 +42,13 @@ type ChangeCloseOptions struct {
 	VerificationStatus string
 	ClosedAt           time.Time
 	SupersededBy       []string
+	Recursive          bool
+}
+
+type ChangeUpdateOptions struct {
+	Status             string
+	VerificationStatus string
+	Recursive          bool
 }
 
 type ChangeReallocateOptions struct {
@@ -76,6 +83,9 @@ type ChangeOperationResult struct {
 	Assumptions               []string
 	PromotionAssessmentStatus string
 	SuggestedPromotionTargets []string
+	Recursive                 bool
+	RecursiveTargetCount      int
+	RecursiveTargetIDs        []string
 }
 
 type ChangeReallocationResult struct {

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling",
+  "created_at": 1774828579,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-010-97a3-enhance-human-friendly-status-ux-and-scaling",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-50a4eb47-1774828579-a510ec1fd132",
+  "receipt_hash": "2066281adee3d6aaefaf1b7dc8e64b6f92d9720485143fa37670596a39a6d158",
+  "provenance": "captured_verified"
+}

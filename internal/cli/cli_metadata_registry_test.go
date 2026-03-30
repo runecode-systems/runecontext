@@ -7,6 +7,9 @@ import (
 
 func TestCommandMetadataRegistryHasCompletionCommand(t *testing.T) {
 	registry := CommandMetadataRegistry()
+	if commandMetadataByPath(registry.Commands, "metadata") == nil {
+		t.Fatalf("expected metadata command in registry")
+	}
 	var completion *CommandMetadata
 	for i := range registry.Commands {
 		if registry.Commands[i].Path == "completion" {
@@ -49,4 +52,71 @@ func TestCommandMetadataRegistryDefensiveCopy(t *testing.T) {
 	if len(second.Commands) > 1 && second.Commands[1].Flags == nil {
 		t.Fatalf("expected registry defensive copy for nested flags")
 	}
+}
+
+func TestCommandMetadataRegistryIncludesChangeUpdate(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	change := commandMetadataByPath(registry.Commands, "change")
+	if change == nil {
+		t.Fatalf("expected change command in registry")
+	}
+	update := commandMetadataByPath(change.Subcommands, "change update")
+	if update == nil {
+		t.Fatalf("expected change update subcommand in registry")
+	}
+	if update.Usage != changeUpdateUsage {
+		t.Fatalf("expected change update usage %q, got %q", changeUpdateUsage, update.Usage)
+	}
+	if len(update.Positionals) != 1 || update.Positionals[0].Name != "CHANGE_ID" {
+		t.Fatalf("expected one CHANGE_ID positional for change update, got %#v", update.Positionals)
+	}
+	validateChangeUpdateFlags(t, update)
+}
+
+func validateChangeUpdateFlags(t *testing.T, update *CommandMetadata) {
+	status := flagMetadataByName(update.Flags, "--status")
+	if status == nil {
+		t.Fatalf("expected --status flag for change update")
+	}
+	if !status.Required {
+		t.Fatalf("expected --status to be required")
+	}
+	if got := status.Value.EnumValues; !slices.Equal(got, []string{"implemented", "planned", "verified"}) {
+		t.Fatalf("expected status enums [implemented planned verified], got %#v", got)
+	}
+	verification := flagMetadataByName(update.Flags, "--verification-status")
+	if verification == nil {
+		t.Fatalf("expected --verification-status flag for change update")
+	}
+	if verification.Required {
+		t.Fatalf("expected --verification-status to be optional")
+	}
+	if got := verification.Value.EnumValues; !slices.Equal(got, []string{"failed", "passed", "skipped"}) {
+		t.Fatalf("expected verification_status enums [failed passed skipped], got %#v", got)
+	}
+	recursive := flagMetadataByName(update.Flags, "--recursive")
+	if recursive == nil {
+		t.Fatalf("expected --recursive flag for change update")
+	}
+	if recursive.Value.Kind != ValueKindNone {
+		t.Fatalf("expected --recursive to be a no-value flag")
+	}
+}
+
+func commandMetadataByPath(commands []CommandMetadata, path string) *CommandMetadata {
+	for i := range commands {
+		if commands[i].Path == path {
+			return &commands[i]
+		}
+	}
+	return nil
+}
+
+func flagMetadataByName(flags []FlagMetadata, name string) *FlagMetadata {
+	for i := range flags {
+		if flags[i].Name == name {
+			return &flags[i]
+		}
+	}
+	return nil
 }

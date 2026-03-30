@@ -1,0 +1,22 @@
+schema_version: 1
+id: CHG-2026-019-c1af-allow-change-update-to-record-completed-verification-state
+title: Allow change update to record completed verification state
+status: implemented
+type: feature
+size: medium
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-018-c747-improve-change-lifecycle-mutation-workflows-and-umbrella-recursion-controls
+  - CHG-2026-020-75ba-add-explicit-recursive-umbrella-lifecycle-propagation-for-sub-changes
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-29"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

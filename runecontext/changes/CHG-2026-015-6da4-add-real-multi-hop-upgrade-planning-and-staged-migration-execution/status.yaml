@@ -1,0 +1,22 @@
+schema_version: 1
+id: CHG-2026-015-6da4-add-real-multi-hop-upgrade-planning-and-staged-migration-execution
+title: Add real multi-hop upgrade planning and staged migration execution
+status: proposed
+type: project
+size: large
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts
+  - CHG-2026-017-d68f-add-staged-per-hop-upgrade-execution-and-validation
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-29"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

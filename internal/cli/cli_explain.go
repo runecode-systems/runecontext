@@ -116,8 +116,19 @@ func appendChangeCloseExplainLines(lines []line, result *contracts.ChangeOperati
 		line{"explain_promotion_status", result.PromotionAssessmentStatus},
 		line{"explain_promotion_target_count", fmt.Sprintf("%d", len(result.SuggestedPromotionTargets))},
 	)
+	if result.Recursive {
+		lines = append(lines,
+			line{"explain_scope_2", "recursive-lifecycle-cascade"},
+			line{"explain_recursive_target_count", fmt.Sprintf("%d", result.RecursiveTargetCount)},
+		)
+	}
 	for i, target := range result.SuggestedPromotionTargets {
 		lines = append(lines, line{fmt.Sprintf("explain_promotion_target_%d", i+1), target})
+	}
+	if result.Recursive {
+		for i, targetID := range result.RecursiveTargetIDs {
+			lines = append(lines, line{fmt.Sprintf("explain_recursive_target_%d", i+1), targetID})
+		}
 	}
 	return lines
 }
@@ -145,6 +156,26 @@ func appendChangeReallocateExplainLines(lines []line, result *contracts.ChangeRe
 		line{"explain_scope", "reference-rewrite"},
 		line{"explain_rewrite_count_reason", fmt.Sprintf("%d local markdown references rewritten from old change path to new change path", result.RewrittenReferenceCount)},
 	)
+}
+
+func appendChangeUpdateExplainLines(lines []line, result *contracts.ChangeOperationResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "lifecycle-transition"},
+		line{"explain_lifecycle_status", result.Status},
+	)
+	if result.Recursive {
+		lines = append(lines,
+			line{"explain_scope_2", "recursive-lifecycle-cascade"},
+			line{"explain_recursive_target_count", fmt.Sprintf("%d", result.RecursiveTargetCount)},
+		)
+		for i, targetID := range result.RecursiveTargetIDs {
+			lines = append(lines, line{fmt.Sprintf("explain_recursive_target_%d", i+1), targetID})
+		}
+	}
+	return lines
 }
 
 func appendAssuranceEnableExplainLines(lines []line, root string, plans []string) []line {

@@ -20,6 +20,7 @@ _runectx_has_command() {
     'change new') return 0 ;;
     'change reallocate') return 0 ;;
     'change shape') return 0 ;;
+    'change update') return 0 ;;
     'completion') return 0 ;;
     'completion metadata') return 0 ;;
     'completion suggest') return 0 ;;
@@ -28,6 +29,7 @@ _runectx_has_command() {
     'generate indexes') return 0 ;;
     'help') return 0 ;;
     'init') return 0 ;;
+    'metadata') return 0 ;;
     'promote') return 0 ;;
     'standard') return 0 ;;
     'standard discover') return 0 ;;
@@ -42,7 +44,7 @@ _runectx_has_command() {
 
 _runectx_subcommands_for() {
   case "$1" in
-    '') echo '--version -v adapter assurance bundle change completion doctor generate help init promote standard status upgrade validate version' ;;
+    '') echo '--version -v adapter assurance bundle change completion doctor generate help init metadata promote standard status upgrade validate version' ;;
     '--version') echo '' ;;
     '-v') echo '' ;;
     'adapter') echo 'render-host-native sync' ;;
@@ -54,11 +56,12 @@ _runectx_subcommands_for() {
     'assurance enable') echo '' ;;
     'bundle') echo 'resolve' ;;
     'bundle resolve') echo '' ;;
-    'change') echo 'close new reallocate shape' ;;
+    'change') echo 'close new reallocate shape update' ;;
     'change close') echo '' ;;
     'change new') echo '' ;;
     'change reallocate') echo '' ;;
     'change shape') echo '' ;;
+    'change update') echo '' ;;
     'completion') echo 'metadata suggest' ;;
     'completion metadata') echo '' ;;
     'completion suggest') echo '' ;;
@@ -67,6 +70,7 @@ _runectx_subcommands_for() {
     'generate indexes') echo '' ;;
     'help') echo '' ;;
     'init') echo '' ;;
+    'metadata') echo '' ;;
     'promote') echo '' ;;
     'standard') echo 'discover' ;;
     'standard discover') echo '' ;;
@@ -93,10 +97,11 @@ _runectx_flags_for() {
     'bundle') echo '--explain --json --non-interactive' ;;
     'bundle resolve') echo '--explain --json --non-interactive --path' ;;
     'change') echo '--dry-run --explain --json --non-interactive' ;;
-    'change close') echo '--closed-at --dry-run --explain --json --non-interactive --path --superseded-by --verification-status' ;;
+    'change close') echo '--closed-at --dry-run --explain --json --non-interactive --path --recursive --superseded-by --verification-status' ;;
     'change new') echo '--bundle --description --dry-run --explain --json --non-interactive --path --shape --size --title --type' ;;
     'change reallocate') echo '--dry-run --explain --json --non-interactive --path' ;;
     'change shape') echo '--design --dry-run --explain --json --non-interactive --path --reference --task --verification' ;;
+    'change update') echo '--dry-run --explain --json --non-interactive --path --recursive --status --verification-status' ;;
     'completion suggest') echo '--path --prefix' ;;
     'doctor') echo '--explain --json --non-interactive --path' ;;
     'generate') echo '--explain --json --non-interactive' ;;
@@ -139,6 +144,9 @@ _runectx_flag_takes_value() {
     'change shape|--reference') return 0 ;;
     'change shape|--task') return 0 ;;
     'change shape|--verification') return 0 ;;
+    'change update|--path') return 0 ;;
+    'change update|--status') return 0 ;;
+    'change update|--verification-status') return 0 ;;
     'completion suggest|--path') return 0 ;;
     'completion suggest|--prefix') return 0 ;;
     'doctor|--path') return 0 ;;
@@ -167,10 +175,12 @@ _runectx_flag_takes_value() {
 _runectx_enum_for_flag() {
   case "$1" in
     'adapter render-host-native|--role') echo 'discoverability_shim flow_asset' ;;
-    'change close|--verification-status') echo 'failed passed pending skipped' ;;
+    'change close|--verification-status') echo 'failed passed skipped' ;;
     'change new|--shape') echo 'full minimum' ;;
     'change new|--size') echo 'large medium small' ;;
     'change new|--type') echo 'bug chore feature project standard' ;;
+    'change update|--status') echo 'implemented planned verified' ;;
+    'change update|--verification-status') echo 'failed passed skipped' ;;
     'init|--mode') echo 'embedded linked' ;;
     *) echo '' ;;
   esac
@@ -208,6 +218,7 @@ _runectx_suggest_provider_for_positional() {
     'change close|1') echo 'change-ids' ;;
     'change reallocate|1') echo 'change-ids' ;;
     'change shape|1') echo 'change-ids' ;;
+    'change update|1') echo 'change-ids' ;;
     'promote|1') echo 'change-ids' ;;
     *) echo '' ;;
   esac

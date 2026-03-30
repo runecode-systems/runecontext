@@ -231,14 +231,36 @@ done
 
 manifest_path="release/dist/@packageName@_@tag@_release-manifest.json"
 
+host_metadata_binary="release/runectx-release-metadata"
+go build -ldflags="-s -w -X github.com/runecode-systems/runecontext/internal/cli.runecontextVersion=@version@" -o "${host_metadata_binary}" "./cmd/runectx"
+"${host_metadata_binary}" metadata > "release/metadata-descriptor.json"
+
+if ! @jq@/bin/jq -e '
+  type == "object"
+  and .schema_version == 1
+  and .descriptor_schema_version == "1"
+  and .binary == "runectx"
+  and (.release | type == "object" and .package_name == "runecontext" and (.version | type == "string") and (.tag | type == "string"))
+  and (.compatibility | type == "object" and (.supported_project_versions | type == "array") and (.explicit_upgrade_edges | type == "array"))
+  and (.runtime | type == "object" and (.layouts | type == "array"))
+  and (.capabilities | type == "object" and (.commands | type == "array") and (.machine_flags | type == "array") and (.value_kinds | type == "array"))
+  and (.assurance | type == "object" and (.tiers | type == "array"))
+  and (.resolution | type == "object" and (.source_modes | type == "array") and (.verification_postures | type == "array"))
+' "release/metadata-descriptor.json" >/dev/null; then
+  printf 'invalid metadata descriptor payload: release/metadata-descriptor.json\n' >&2
+  exit 1
+fi
+
 @jq@/bin/jq -s \
   --arg package_name "@packageName@" \
   --arg version "@version@" \
   --arg tag "@tag@" \
+  --slurpfile metadata_descriptor "release/metadata-descriptor.json" \
   '{
     package_name: $package_name,
     version: $version,
     tag: $tag,
+    metadata_descriptor: $metadata_descriptor[0],
     archives: .
   }' "${archive_records}" > "${manifest_path}"
 

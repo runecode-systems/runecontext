@@ -50,8 +50,9 @@ historical cleanup from new feature design work.
   rollback, no hidden migrations in read-only commands, and externally managed
   handling for `type: path` sources.
 - 2026-03-22: Recorded that the old `runecontext/commands/` wording in
-  `docs/project_idea.md` is stale historical text. The current normative path
-  for the canonical in-project reference is `runecontext/operations/`.
+  `docs/project_idea.md` is stale historical text. This was later superseded by
+  generated reference surfaces derived from canonical metadata at
+  `docs/reference/generated/runecontext-reference.json`.
 - 2026-03-22: Clarified adapter terminology across the plan: `adapter` means the
   tool-specific UX layer, `adapter pack` means the packaged release payload for
   an adapter, and `runectx adapter sync <tool>` is the local materialization

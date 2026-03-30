@@ -115,6 +115,41 @@ func TestRunValidateUsageJSONGolden(t *testing.T) {
 	assertJSONGolden(t, "validate-usage-error.json", stderr.Bytes())
 }
 
+func TestRunMetadataJSONGolden(t *testing.T) {
+	withReleaseMetadataVersionForTests(t, func() {
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		code := Run([]string{"metadata"}, &stdout, &stderr)
+		if code != exitOK {
+			t.Fatalf("expected metadata success exit code, got %d (%s)", code, stderr.String())
+		}
+		if stderr.String() != "" {
+			t.Fatalf("expected empty stderr, got %q", stderr.String())
+		}
+		assertRawJSONGolden(t, "metadata-success.json", stdout.Bytes())
+	})
+}
+
+func assertRawJSONGolden(t *testing.T, fixtureName string, payload []byte) {
+	t.Helper()
+	var value any
+	if err := json.Unmarshal(payload, &value); err != nil {
+		t.Fatalf("unmarshal raw json payload: %v", err)
+	}
+	normalized, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal normalized raw json payload: %v", err)
+	}
+	goldenPath := repoFixtureRoot(t, "cli-json-golden", fixtureName)
+	expected, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("read golden fixture: %v", err)
+	}
+	if strings.TrimSpace(string(expected)) != string(normalized) {
+		t.Fatalf("unexpected raw JSON golden for %s\nexpected: %s\nactual:   %s", fixtureName, string(expected), string(normalized))
+	}
+}
+
 func TestCLIParityStatusMatchesLibrarySummary(t *testing.T) {
 	projectRoot := prepareCLIWorkflowProject(t)
 	fields := runCLIStatus(t, projectRoot)

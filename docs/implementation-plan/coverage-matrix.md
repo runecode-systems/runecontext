@@ -311,9 +311,9 @@ milestones, and executable fixtures/tests.
   alpha.8 work.
   - Planned capture: `alpha.5`, `alpha.8`
 - Decision: `adapter` means the tool UX layer, `adapter pack` means the
-  packaged release payload for an adapter, and `runecontext/operations/` is the
-  canonical in-project reference/source area for underlying RuneContext
-  operations.
+  packaged release payload for an adapter, and docs/reference surfaces for
+  underlying RuneContext operations are generated from canonical metadata into
+  `docs/reference/generated/runecontext-reference.json`.
   - Planned capture: `alpha.1`, `alpha.7`
 - Decision: one typed internal command/operation registry should be the
   canonical source for operations docs, completion generation,

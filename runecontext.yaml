@@ -1,5 +1,5 @@
 schema_version: 1
-runecontext_version: "0.1.0-alpha.10"
+runecontext_version: "0.1.0-alpha.11"
 assurance_tier: verified
 source:
   type: embedded
