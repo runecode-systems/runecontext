@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-018-c747-improve-change-lifecycle-mutation-workflows-and-umbrella-recursion-controls",
+  "created_at": 1774890245,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-018-c747-improve-change-lifecycle-mutation-workflows-and-umbrella-recursion-controls",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-a6d2e91b-1774890245-d1055bfedb0c",
+  "receipt_hash": "1bb2f13b694ec60e50ba78b85df9e33136da58429f10e87d0a6f606ecbe39bcb",
+  "provenance": "captured_verified"
+}

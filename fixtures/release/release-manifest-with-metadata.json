@@ -159,7 +159,7 @@
       "explicit_upgrade_edges": [
         {
           "from": "0.1.0-alpha.8",
-          "to": "0.1.0-alpha.11"
+          "to": "0.1.0-alpha.12"
         },
         {
           "from": "0.1.0-alpha.8",
@@ -167,7 +167,7 @@
         },
         {
           "from": "0.1.0-alpha.9",
-          "to": "0.1.0-alpha.11"
+          "to": "0.1.0-alpha.12"
         }
       ],
       "supported_project_versions": [
@@ -175,14 +175,14 @@
         "0.1.0-alpha.6",
         "0.1.0-alpha.7",
         "0.1.0-alpha.8",
-        "0.1.0-alpha.11"
+        "0.1.0-alpha.12"
       ]
     },
     "descriptor_schema_version": "1",
     "release": {
       "package_name": "runecontext",
-      "tag": "v0.1.0-alpha.11",
-      "version": "0.1.0-alpha.11"
+      "tag": "v0.1.0-alpha.12",
+      "version": "0.1.0-alpha.12"
     },
     "resolution": {
       "source_modes": [
@@ -215,6 +215,6 @@
     "schema_version": 1
   },
   "package_name": "runecontext",
-  "tag": "v0.1.0-alpha.11",
-  "version": "0.1.0-alpha.11"
+  "tag": "v0.1.0-alpha.12",
+  "version": "0.1.0-alpha.12"
 }
