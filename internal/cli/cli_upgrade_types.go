@@ -92,14 +92,6 @@ func (r *upgradePlannerRegistry) registerEdge(from, to string) {
 	sort.Strings(r.next[from])
 }
 
-func (r *upgradePlannerRegistry) hasEdge(from, to string) bool {
-	if r == nil {
-		return false
-	}
-	_, ok := r.edges[upgradeEdgeKey{From: strings.TrimSpace(from), To: strings.TrimSpace(to)}]
-	return ok
-}
-
 func (r *upgradePlannerRegistry) planPath(from, to string) ([]upgradeHop, bool) {
 	from = strings.TrimSpace(from)
 	to = strings.TrimSpace(to)
