@@ -176,7 +176,7 @@ Current CLI scope:
   - reports environment, install, and source-posture diagnostics separately from authoritative validation
   - supports `--json`, `--non-interactive`, and `--explain`
 - `runectx metadata`
-  - emits canonical machine-readable capability, compatibility, runtime-layout, and command metadata for tooling and generated docs
+  - emits canonical machine-readable capability, direct-compatibility, upgrade-entry, distribution-layout, project-profile, assurance/canonicalization token, and command metadata for tooling and generated docs
 - `runectx upgrade [--path PATH] [--target-version VERSION|current|installed|latest]`
   - previews project version posture, managed host-native refresh actions, and whether apply is required
   - supports `--json`, `--non-interactive`, and `--explain`

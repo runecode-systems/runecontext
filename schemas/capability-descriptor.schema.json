@@ -6,23 +6,21 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
-    "descriptor_schema_version",
     "binary",
     "release",
     "compatibility",
-    "runtime",
+    "distribution_layouts",
+    "project_profiles",
     "capabilities",
+    "features",
     "assurance",
+    "canonicalization",
     "resolution"
   ],
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 1
-    },
-    "descriptor_schema_version": {
-      "type": "string",
-      "const": "1"
+      "const": 2
     },
     "binary": {
       "type": "string",
@@ -50,9 +48,17 @@
     "compatibility": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["supported_project_versions", "explicit_upgrade_edges"],
+      "required": ["directly_supported_project_versions", "upgradeable_from_project_versions", "explicit_upgrade_edges"],
       "properties": {
-        "supported_project_versions": {
+        "directly_supported_project_versions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+          },
+          "uniqueItems": true
+        },
+        "upgradeable_from_project_versions": {
           "type": "array",
           "items": {
             "type": "string",
@@ -80,53 +86,99 @@
         }
       }
     },
-    "runtime": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["layouts"],
-      "properties": {
-        "layouts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["profile", "schema_path", "adapters_path"],
-            "properties": {
-              "profile": {
-                "type": "string",
-                "enum": ["repo_bundle", "installed_share_layout"]
-              },
-              "schema_path": {
-                "type": "string"
-              },
-              "adapters_path": {
-                "type": "string"
-              }
-            }
+    "distribution_layouts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["profile", "schema_path", "adapters_path"],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": ["repo_bundle", "installed_share_layout"]
           },
-          "minItems": 2,
-          "allOf": [
-            {
-              "contains": {
-                "type": "object",
-                "required": ["profile"],
-                "properties": {
-                  "profile": {"const": "repo_bundle"}
-                }
-              }
-            },
-            {
-              "contains": {
-                "type": "object",
-                "required": ["profile"],
-                "properties": {
-                  "profile": {"const": "installed_share_layout"}
-                }
-              }
-            }
-          ]
+          "schema_path": {
+            "type": "string"
+          },
+          "adapters_path": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "minItems": 2,
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "required": ["profile"],
+            "properties": {
+              "profile": {"const": "repo_bundle"}
+            }
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": ["profile"],
+            "properties": {
+              "profile": {"const": "installed_share_layout"}
+            }
+          }
+        }
+      ]
+    },
+    "project_profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "root_config",
+          "content_root",
+          "assurance_path",
+          "manifest_path",
+          "indexes_root"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": ["portable_project_root"]
+          },
+          "root_config": {
+            "type": "string",
+            "const": "runecontext.yaml"
+          },
+          "content_root": {
+            "type": "string",
+            "const": "runecontext"
+          },
+          "assurance_path": {
+            "type": "string",
+            "const": "runecontext/assurance"
+          },
+          "manifest_path": {
+            "type": "string",
+            "const": "runecontext/manifest.yaml"
+          },
+          "indexes_root": {
+            "type": "string",
+            "const": "runecontext/indexes"
+          }
+        }
+      },
+      "minItems": 1,
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "required": ["profile"],
+            "properties": {
+              "profile": {"const": "portable_project_root"}
+            }
+          }
+        }
+      ]
     },
     "capabilities": {
       "type": "object",
@@ -177,10 +229,32 @@
         }
       }
     },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "signed_tag_verification",
+          "mutable_ref_opt_in",
+          "monorepo_nearest_root_discovery",
+          "context_pack_capture",
+          "verified_assurance",
+          "completion_registry",
+          "completion_dynamic_suggestions",
+          "generated_indexes",
+          "promotion_workflow",
+          "upgrade_planning",
+          "staged_upgrade_execution",
+          "mixed_or_stale_tree_detection"
+        ]
+      },
+      "uniqueItems": true,
+      "minItems": 1
+    },
     "assurance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["tiers"],
+      "required": ["tiers", "baseline_supported", "receipt_families"],
       "properties": {
         "tiers": {
           "type": "array",
@@ -190,6 +264,31 @@
           },
           "uniqueItems": true,
           "minItems": 2
+        },
+        "baseline_supported": {
+          "type": "boolean"
+        },
+        "receipt_families": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["context-packs", "changes", "promotions", "verifications"]
+          },
+          "uniqueItems": true,
+          "minItems": 4
+        }
+      }
+    },
+    "canonicalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["context_pack", "assurance_artifacts"],
+      "properties": {
+        "context_pack": {
+          "$ref": "#/$defs/canonicalizationProfile"
+        },
+        "assurance_artifacts": {
+          "$ref": "#/$defs/canonicalizationProfile"
         }
       }
     },
@@ -221,6 +320,23 @@
           },
           "uniqueItems": true,
           "minItems": 5
+        }
+      }
+    }
+  },
+  "$defs": {
+    "canonicalizationProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "hash_algorithm"],
+      "properties": {
+        "profile": {
+          "type": "string",
+          "const": "runecontext-canonical-json-v1"
+        },
+        "hash_algorithm": {
+          "type": "string",
+          "const": "sha256"
         }
       }
     }

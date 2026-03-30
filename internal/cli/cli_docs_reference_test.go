@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -12,22 +13,51 @@ func TestDocumentationReferenceArtifactIncludesCanonicalDescriptorSurfaces(t *te
 		artifact := buildDocumentationReferenceArtifact()
 		descriptor := buildCapabilityDescriptor()
 
-		if got, want := artifact.ReferenceSchemaVersion, documentationReferenceSchemaVersion; got != want {
-			t.Fatalf("expected reference_schema_version %d, got %d", want, got)
-		}
-		if got, want := artifact.DescriptorSchema, descriptor.DescriptorSchemaVersion; got != want {
-			t.Fatalf("expected descriptor_schema_version %q, got %q", want, got)
-		}
-		if len(artifact.Commands.Items) != len(descriptor.Capabilities.Commands) {
-			t.Fatalf("expected commands parity with descriptor, got %d commands and %d descriptor commands", len(artifact.Commands.Items), len(descriptor.Capabilities.Commands))
-		}
-		if len(artifact.Capabilities.CommandTokens) == 0 {
-			t.Fatal("expected non-empty capability command_tokens")
-		}
-		if len(artifact.Capabilities.MachineFlags) == 0 {
-			t.Fatal("expected non-empty capability machine_flags")
-		}
+		assertDocumentationReferenceVersions(t, artifact, descriptor)
+		assertDocumentationReferenceParity(t, artifact, descriptor)
+		assertDocumentationReferenceCapabilities(t, artifact, descriptor)
 	})
+}
+
+func assertDocumentationReferenceVersions(t *testing.T, artifact documentationReferenceArtifact, descriptor capabilityDescriptor) {
+	t.Helper()
+	if got, want := artifact.ReferenceSchemaVersion, documentationReferenceSchemaVersion; got != want {
+		t.Fatalf("expected reference_schema_version %d, got %d", want, got)
+	}
+	if got, want := artifact.DescriptorSchema, descriptor.SchemaVersion; got != want {
+		t.Fatalf("expected descriptor_schema_version %d, got %d", want, got)
+	}
+}
+
+func assertDocumentationReferenceParity(t *testing.T, artifact documentationReferenceArtifact, descriptor capabilityDescriptor) {
+	t.Helper()
+	assertDocumentationReferenceFieldParity(t, "compatibility", artifact.Compatibility, descriptor.Compatibility)
+	assertDocumentationReferenceFieldParity(t, "distribution layouts", artifact.DistributionLayouts, descriptor.DistributionLayouts)
+	assertDocumentationReferenceFieldParity(t, "project profiles", artifact.ProjectProfiles, descriptor.ProjectProfiles)
+	assertDocumentationReferenceFieldParity(t, "features", artifact.Features, descriptor.Features)
+	assertDocumentationReferenceFieldParity(t, "assurance", artifact.Assurance, descriptor.Assurance)
+	assertDocumentationReferenceFieldParity(t, "canonicalization", artifact.Canonicalization, descriptor.Canonicalization)
+	assertDocumentationReferenceFieldParity(t, "resolution", artifact.Resolution, descriptor.Resolution)
+}
+
+func assertDocumentationReferenceFieldParity(t *testing.T, name string, got, want any) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("expected %s parity with descriptor, got %#v want %#v", name, got, want)
+	}
+}
+
+func assertDocumentationReferenceCapabilities(t *testing.T, artifact documentationReferenceArtifact, descriptor capabilityDescriptor) {
+	t.Helper()
+	if len(artifact.Commands.Items) != len(descriptor.Capabilities.Commands) {
+		t.Fatalf("expected commands parity with descriptor, got %d commands and %d descriptor commands", len(artifact.Commands.Items), len(descriptor.Capabilities.Commands))
+	}
+	if len(artifact.Capabilities.CommandTokens) == 0 {
+		t.Fatal("expected non-empty capability command_tokens")
+	}
+	if len(artifact.Capabilities.MachineFlags) == 0 {
+		t.Fatal("expected non-empty capability machine_flags")
+	}
 }
 
 func TestDocumentationReferenceGeneratedArtifactsParity(t *testing.T) {

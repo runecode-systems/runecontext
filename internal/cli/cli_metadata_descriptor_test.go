@@ -47,19 +47,19 @@ func TestDescriptorMapReturnsUnmarshalError(t *testing.T) {
 	}
 }
 
-func TestRuntimeLayoutsRequireBothProfiles(t *testing.T) {
+func TestDistributionLayoutsRequireBothProfiles(t *testing.T) {
 	root, err := repoRootForTests()
 	if err != nil {
 		t.Fatalf("repo root: %v", err)
 	}
 	descriptor := buildCapabilityDescriptor()
-	descriptor.Runtime.Layouts = []descriptorRuntimeLayout{{
+	descriptor.DistributionLayouts = []descriptorLayout{{
 		Profile:      "repo_bundle",
 		SchemaPath:   "schemas",
 		AdaptersPath: "adapters",
 	}}
 	if err := validateCapabilityDescriptorSchemaAtRoot(schemaRootForTests(root), descriptor); err == nil {
-		t.Fatal("expected runtime layout schema validation to fail when installed_share_layout is missing")
+		t.Fatal("expected distribution layout schema validation to fail when installed_share_layout is missing")
 	}
 }
 

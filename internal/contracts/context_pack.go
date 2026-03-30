@@ -14,6 +14,18 @@ const (
 	contextPackHashAlgorithm    = "sha256"
 )
 
+// ContextPackCanonicalizationTokenForCLI exposes the canonical token used by
+// context-pack machine contracts.
+func ContextPackCanonicalizationTokenForCLI() string {
+	return contextPackCanonicalization
+}
+
+// ContextPackHashAlgorithmForCLI exposes the hash algorithm token used by
+// context-pack machine contracts.
+func ContextPackHashAlgorithmForCLI() string {
+	return contextPackHashAlgorithm
+}
+
 var (
 	contextPackReadProjectFileMu sync.RWMutex
 	contextPackReadProjectFile   = readProjectFile

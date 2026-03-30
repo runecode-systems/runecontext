@@ -15,14 +15,17 @@ const (
 
 type documentationReferenceArtifact struct {
 	ReferenceSchemaVersion int                              `json:"reference_schema_version" yaml:"reference_schema_version"`
-	DescriptorSchema       string                           `json:"descriptor_schema_version" yaml:"descriptor_schema_version"`
+	DescriptorSchema       int                              `json:"descriptor_schema_version" yaml:"descriptor_schema_version"`
 	Binary                 string                           `json:"binary" yaml:"binary"`
 	Release                descriptorRelease                `json:"release" yaml:"release"`
 	Commands               documentationCommandReference    `json:"commands" yaml:"commands"`
 	Capabilities           documentationCapabilityReference `json:"capabilities" yaml:"capabilities"`
 	Compatibility          descriptorCompatibility          `json:"compatibility" yaml:"compatibility"`
-	Runtime                descriptorRuntime                `json:"runtime" yaml:"runtime"`
+	DistributionLayouts    []descriptorLayout               `json:"distribution_layouts" yaml:"distribution_layouts"`
+	ProjectProfiles        []descriptorProject              `json:"project_profiles" yaml:"project_profiles"`
+	Features               []string                         `json:"features" yaml:"features"`
 	Assurance              descriptorAssurance              `json:"assurance" yaml:"assurance"`
+	Canonicalization       descriptorCanonicalization       `json:"canonicalization" yaml:"canonicalization"`
 	Resolution             descriptorResolution             `json:"resolution" yaml:"resolution"`
 }
 
@@ -71,7 +74,7 @@ func buildDocumentationReferenceArtifact() documentationReferenceArtifact {
 
 	return documentationReferenceArtifact{
 		ReferenceSchemaVersion: documentationReferenceSchemaVersion,
-		DescriptorSchema:       descriptor.DescriptorSchemaVersion,
+		DescriptorSchema:       descriptor.SchemaVersion,
 		Binary:                 descriptor.Binary,
 		Release:                descriptor.Release,
 		Commands: documentationCommandReference{
@@ -82,10 +85,13 @@ func buildDocumentationReferenceArtifact() documentationReferenceArtifact {
 			MachineFlags:  descriptor.Capabilities.MachineFlags,
 			ValueKinds:    descriptor.Capabilities.ValueKinds,
 		},
-		Compatibility: descriptor.Compatibility,
-		Runtime:       descriptor.Runtime,
-		Assurance:     descriptor.Assurance,
-		Resolution:    descriptor.Resolution,
+		Compatibility:       descriptor.Compatibility,
+		DistributionLayouts: descriptor.DistributionLayouts,
+		ProjectProfiles:     descriptor.ProjectProfiles,
+		Features:            descriptor.Features,
+		Assurance:           descriptor.Assurance,
+		Canonicalization:    descriptor.Canonicalization,
+		Resolution:          descriptor.Resolution,
 	}
 }
 

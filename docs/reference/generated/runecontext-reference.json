@@ -1,6 +1,6 @@
 {
   "reference_schema_version": 1,
-  "descriptor_schema_version": "1",
+  "descriptor_schema_version": 2,
   "binary": "runectx",
   "release": {
     "package_name": "runecontext",
@@ -191,12 +191,16 @@
     ]
   },
   "compatibility": {
-    "supported_project_versions": [
+    "directly_supported_project_versions": [
       "0.1.0-alpha.5",
       "0.1.0-alpha.6",
       "0.1.0-alpha.7",
       "0.1.0-alpha.8",
       "0.1.0-alpha.12"
+    ],
+    "upgradeable_from_project_versions": [
+      "0.1.0-alpha.8",
+      "0.1.0-alpha.9"
     ],
     "explicit_upgrade_edges": [
       {
@@ -213,25 +217,64 @@
       }
     ]
   },
-  "runtime": {
-    "layouts": [
-      {
-        "profile": "repo_bundle",
-        "schema_path": "schemas",
-        "adapters_path": "adapters"
-      },
-      {
-        "profile": "installed_share_layout",
-        "schema_path": "share/runecontext/schemas",
-        "adapters_path": "share/runecontext/adapters"
-      }
-    ]
-  },
+  "distribution_layouts": [
+    {
+      "profile": "repo_bundle",
+      "schema_path": "schemas",
+      "adapters_path": "adapters"
+    },
+    {
+      "profile": "installed_share_layout",
+      "schema_path": "share/runecontext/schemas",
+      "adapters_path": "share/runecontext/adapters"
+    }
+  ],
+  "project_profiles": [
+    {
+      "profile": "portable_project_root",
+      "root_config": "runecontext.yaml",
+      "content_root": "runecontext",
+      "assurance_path": "runecontext/assurance",
+      "manifest_path": "runecontext/manifest.yaml",
+      "indexes_root": "runecontext/indexes"
+    }
+  ],
+  "features": [
+    "signed_tag_verification",
+    "mutable_ref_opt_in",
+    "monorepo_nearest_root_discovery",
+    "context_pack_capture",
+    "verified_assurance",
+    "completion_registry",
+    "completion_dynamic_suggestions",
+    "generated_indexes",
+    "promotion_workflow",
+    "upgrade_planning",
+    "staged_upgrade_execution",
+    "mixed_or_stale_tree_detection"
+  ],
   "assurance": {
     "tiers": [
       "plain",
       "verified"
+    ],
+    "baseline_supported": true,
+    "receipt_families": [
+      "context-packs",
+      "changes",
+      "promotions",
+      "verifications"
     ]
+  },
+  "canonicalization": {
+    "context_pack": {
+      "profile": "runecontext-canonical-json-v1",
+      "hash_algorithm": "sha256"
+    },
+    "assurance_artifacts": {
+      "profile": "runecontext-canonical-json-v1",
+      "hash_algorithm": "sha256"
+    }
   },
   "resolution": {
     "source_modes": [
