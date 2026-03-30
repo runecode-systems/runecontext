@@ -104,7 +104,27 @@
               }
             }
           },
-          "minItems": 2
+          "minItems": 2,
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "required": ["profile"],
+                "properties": {
+                  "profile": {"const": "repo_bundle"}
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": ["profile"],
+                "properties": {
+                  "profile": {"const": "installed_share_layout"}
+                }
+              }
+            }
+          ]
         }
       }
     },
