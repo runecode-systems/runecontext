@@ -93,7 +93,7 @@ func classifyUpgradePlanCommon(plan *upgradePlan, edgeAction, conflictAction str
 	if classifyExternallyManagedPath(plan, readSourcePathFromConfig(plan.ConfigPath), "run upgrade in the external source root that owns this path source") {
 		return true, nil
 	}
-	if classifyMissingUpgradeEdge(plan, registry, edgeAction) {
+	if classifyMissingUpgradePath(plan, registry, edgeAction) {
 		return true, nil
 	}
 	if err := classifyAdapterState(plan, plan.TargetVersion != plan.CurrentVersion, conflictAction); err != nil {
@@ -129,14 +129,17 @@ func classifyExternallyManagedPath(plan *upgradePlan, sourcePath, fallbackAction
 	return true
 }
 
-func classifyMissingUpgradeEdge(plan *upgradePlan, registry upgradePlannerRegistry, nextAction string) bool {
-	if plan.TargetVersion == plan.CurrentVersion || registry.hasEdge(plan.CurrentVersion, plan.TargetVersion) {
-		return false
+func classifyMissingUpgradePath(plan *upgradePlan, registry upgradePlannerRegistry, nextAction string) bool {
+	hops, ok := registry.planPath(plan.CurrentVersion, plan.TargetVersion)
+	if !ok {
+		plan.State = upgradeStateUnsupportedProjectVersion
+		plan.PlanActions = append(plan.PlanActions, fmt.Sprintf("no registered upgrader path for runecontext_version transition %s -> %s", plan.CurrentVersion, plan.TargetVersion))
+		plan.NextActions = append(plan.NextActions, nextAction)
+		return true
 	}
-	plan.State = upgradeStateUnsupportedProjectVersion
-	plan.PlanActions = append(plan.PlanActions, fmt.Sprintf("no registered upgrader edge for runecontext_version transition %s -> %s", plan.CurrentVersion, plan.TargetVersion))
-	plan.NextActions = append(plan.NextActions, nextAction)
-	return true
+	plan.UpgradeHops = hops
+	plan.HopActions = buildUpgradeHopActions(hops)
+	return false
 }
 
 func classifyAdapterState(plan *upgradePlan, includeCreate bool, nextAction string) error {
@@ -172,15 +175,18 @@ func finalizeUpgradeVersionState(plan *upgradePlan, staleAction string) {
 	if plan.TargetVersion == plan.CurrentVersion {
 		if hasAdapterMutations(plan.AdapterPlans) {
 			plan.State = upgradeStateMixedOrStaleTree
+			plan.PlanActions = append(plan.PlanActions, plan.HopActions...)
 			plan.PlanActions = append(plan.PlanActions, collectAdapterPlanActions(plan.AdapterPlans)...)
 			plan.NextActions = append(plan.NextActions, staleAction)
 			plan.ApplyMutations = append(plan.ApplyMutations, collectAdapterMutationLines(plan.AdapterPlans)...)
 		} else {
+			plan.PlanActions = append(plan.PlanActions, plan.HopActions...)
 			plan.PlanActions = append(plan.PlanActions, "no changes required")
 		}
 		return
 	}
 	plan.State = upgradeStateUpgradeable
+	plan.PlanActions = append(plan.PlanActions, plan.HopActions...)
 	plan.PlanActions = append(plan.PlanActions, fmt.Sprintf("set runecontext_version to %s", plan.TargetVersion))
 	plan.ApplyMutations = append(plan.ApplyMutations, fmt.Sprintf("updated %s", filepath.ToSlash(filepath.Base(plan.ConfigPath))))
 	if hasAdapterMutations(plan.AdapterPlans) {

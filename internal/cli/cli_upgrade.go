@@ -176,10 +176,19 @@ func runUpgradePreview(project *cliProject, request upgradeRequest, machine mach
 		{"current_version", plan.CurrentVersion},
 		{"target_version", plan.TargetVersion},
 		{"state", string(plan.State)},
+		{"hop_count", fmt.Sprintf("%d", len(plan.UpgradeHops))},
 		{"network_access", boolString(plan.NetworkAccess)},
 		{"plan_action_count", fmt.Sprintf("%d", len(plan.PlanActions))},
 		{"apply_required", boolString(applyRequired)},
 	}
+	for i, hop := range plan.UpgradeHops {
+		index := i + 1
+		output = append(output,
+			line{fmt.Sprintf("hop_%d_from", index), hop.From},
+			line{fmt.Sprintf("hop_%d_to", index), hop.To},
+		)
+	}
+	output = appendStringItems(output, "hop_action", plan.HopActions)
 	output = appendStringItems(output, "plan_action", plan.PlanActions)
 	output = appendStringItems(output, "next_action", plan.NextActions)
 	output = appendStringItems(output, "conflict", plan.Conflicts)

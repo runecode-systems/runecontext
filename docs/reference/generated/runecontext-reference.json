@@ -206,10 +206,6 @@
     "explicit_upgrade_edges": [
       {
         "from": "0.1.0-alpha.8",
-        "to": "0.1.0-alpha.12"
-      },
-      {
-        "from": "0.1.0-alpha.8",
         "to": "0.1.0-alpha.9"
       },
       {
