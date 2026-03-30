@@ -1,0 +1,27 @@
+# References
+
+- README.md
+- core/layout.md
+- schemas/README.md
+- schemas/capability-descriptor.schema.json
+- schemas/context-pack.schema.json
+- schemas/assurance-baseline.schema.json
+- schemas/assurance-receipt.schema.json
+- internal/cli/cli_metadata_descriptor.go
+- internal/cli/cli_metadata_command_test.go
+- internal/cli/cli_metadata_descriptor_test.go
+- internal/cli/cli_docs_reference.go
+- internal/cli/cli_metadata_sync.go
+- internal/contracts/context_pack.go
+- internal/contracts/assurance.go
+- internal/contracts/assurance_runtime_shared.go
+- internal/contracts/generated_indexes_consts.go
+- runecontext/standards/architecture/closed-schema-enforcement.md
+- runecontext/standards/architecture/derived-artifact-non-authority.md
+- runecontext/standards/cli/completion-and-metadata-from-canonical-registry.md
+- runecontext/standards/context-packs/explicit-generated-at-and-stable-hashing.md
+- runecontext/standards/assurance/fail-closed-verified-boundary.md
+- runecontext/standards/assurance/portable-receipt-linkage.md
+- runecontext/standards/global/compatibility-is-not-upgradeability.md
+- runecontext/standards/global/structured-cli-contracts.md
+- runecontext/standards/release/repo-first-canonical-distribution.md

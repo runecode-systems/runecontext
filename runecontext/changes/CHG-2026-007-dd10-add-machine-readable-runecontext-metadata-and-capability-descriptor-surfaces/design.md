@@ -12,6 +12,7 @@ Capture the metadata capability work as an umbrella over descriptor design, cano
 ## Planned Sub-Changes
 - `CHG-2026-008-47e1-add-canonical-metadata-builder-and-capability-descriptor-outputs` owns the descriptor schema, canonical builder, `runectx metadata`, release-manifest embedding, and parity tests.
 - `CHG-2026-009-eb40-derive-docs-and-reference-surfaces-from-canonical-runecontext-metadata` owns Docus-facing generated reference data, stale-reference cleanup, and anti-drift checks for documentation-facing outputs.
+- `CHG-2026-021-6d7e-extend-metadata-descriptor-with-explicit-layout-assurance-and-feature-contracts` owns the descriptor `v2` extension for explicit distribution layouts, portable project profiles, assurance artifact-family metadata, canonicalization/hash profile tokens, and semantic feature tokens.
 
 ## Branch-Specific Constraints
 - Supported-project-version reporting must reflect the current alpha-line compatibility rules, not only the explicit upgrade-edge registry.
