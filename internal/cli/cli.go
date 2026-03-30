@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 const (
@@ -60,9 +61,10 @@ func Run(args []string, stdout, stderr io.Writer) int {
 }
 
 func printUsage(w io.Writer) {
-	printUsageHeader(w)
-	printUsageCommands(w)
-	printUsageExamples(w)
+	printRootHelpHeader(w)
+	printRootHelpCommandGroups(w)
+	printRootHelpExamples(w)
+	printRootHelpFooter(w)
 }
 
 type rootCommandFunc func([]string, io.Writer, io.Writer) int
@@ -102,72 +104,100 @@ func rootCommandHandler(command string) (rootCommandFunc, bool) {
 	return handler, ok
 }
 
-func printUsageHeader(w io.Writer) {
+func printRootHelpHeader(w io.Writer) {
 	fmt.Fprintln(w, "RuneContext CLI")
+	fmt.Fprintln(w, "Portable, markdown-first project context operations")
 	fmt.Fprintln(w)
 }
 
-func printUsageCommands(w io.Writer) {
-	fmt.Fprintln(w, "Commands:")
-	for _, entry := range usageCommandDescriptions() {
-		fmt.Fprintln(w, entry)
+func printRootHelpCommandGroups(w io.Writer) {
+	for _, group := range rootHelpCommandGroups() {
+		fmt.Fprintln(w, group.title+":")
+		for _, command := range group.commands {
+			fmt.Fprintln(w, rootHelpCommandLine(command.name, command.description))
+		}
+		fmt.Fprintln(w)
+	}
+}
+
+func printRootHelpExamples(w io.Writer) {
+	fmt.Fprintln(w, "Quick Start:")
+	for _, example := range rootHelpExamples() {
+		fmt.Fprintln(w, "  "+example)
 	}
 	fmt.Fprintln(w)
 }
 
-func printUsageExamples(w io.Writer) {
-	fmt.Fprintln(w, "Usage:")
-	for _, usage := range usageExamples() {
-		fmt.Fprintln(w, "  "+usage)
+func printRootHelpFooter(w io.Writer) {
+	fmt.Fprintln(w, "Use 'runectx <command> --help' for command-specific usage.")
+}
+
+type rootHelpGroup struct {
+	title    string
+	commands []rootHelpCommand
+}
+
+type rootHelpCommand struct {
+	name        string
+	description string
+}
+
+func rootHelpCommandGroups() []rootHelpGroup {
+	return []rootHelpGroup{
+		{
+			title: "Core",
+			commands: []rootHelpCommand{
+				{name: "help", description: "Show this help screen"},
+				{name: "version", description: "Show CLI version (--version, -v)"},
+				{name: "init", description: "Scaffold a RuneContext project"},
+				{name: "validate", description: "Validate RuneContext contracts"},
+				{name: "status", description: "Show active, closed, and superseded changes"},
+				{name: "doctor", description: "Run environment and resolution diagnostics"},
+			},
+		},
+		{
+			title: "Change Workflow",
+			commands: []rootHelpCommand{
+				{name: "change", description: "Create, shape, update, close, and reallocate changes"},
+				{name: "promote", description: "Advance promotion assessment state"},
+				{name: "standard", description: "Discover advisory standards candidates"},
+			},
+		},
+		{
+			title: "Project Operations",
+			commands: []rootHelpCommand{
+				{name: "bundle", description: "Resolve context bundles"},
+				{name: "upgrade", description: "Preview or apply version upgrades"},
+				{name: "assurance", description: "Enable, backfill, or capture assurance artifacts"},
+				{name: "generate", description: "Write generated indexes and manifest"},
+			},
+		},
+		{
+			title: "Tooling",
+			commands: []rootHelpCommand{
+				{name: "adapter", description: "Sync and render host-native adapter artifacts"},
+				{name: "completion", description: "Emit completion scripts, suggestions, and metadata"},
+				{name: "metadata", description: "Emit canonical machine-readable capability metadata"},
+			},
+		},
 	}
 }
 
-func usageCommandDescriptions() []string {
-	return []string{
-		"  help       Show CLI usage",
-		"  status     Report active, closed, and superseded changes",
-		"  change     Create, shape, update, close, and reallocate changes",
-		"  generate   Write optional generated indexes and manifest",
-		"  bundle     Resolve context bundles",
-		"  validate   Validate RuneContext contracts for a project root",
-		"  doctor     Run environment and resolution diagnostics",
-		"  init       Scaffold a RuneContext project",
-		"  promote    Explicitly advance promotion assessment state (summary auto-filled for --target entries)",
-		"  standard   Discover advisory standards candidates for promotion handoff",
-		"  assurance  Enable, backfill, or capture Verified assurance artifacts",
-		"  adapter    Sync and render tool host-native adapter artifacts",
-		"  completion Emit shell completion scripts",
-		"  metadata   Emit canonical machine-readable metadata",
-		"  upgrade    Preview or apply RuneContext version upgrades",
-		"  version    Show RuneContext CLI version (--version, -v)",
+func rootHelpCommandLine(name, description string) string {
+	padding := 12 - len(name)
+	if padding < 2 {
+		padding = 2
 	}
+	return "  " + name + strings.Repeat(" ", padding) + description
 }
 
-func usageExamples() []string {
+func rootHelpExamples() []string {
 	return []string{
 		"runectx help",
-		statusUsage,
-		changeNewUsage,
-		changeShapeUsage,
-		changeCloseUsage,
-		changeReallocateUsage,
-		changeUpdateUsage,
-		generateIndexesUsage,
-		validateUsage,
-		bundleResolveUsage,
-		doctorUsage,
-		initUsage,
-		promoteUsage,
-		standardDiscoverUsage,
-		assuranceUsage,
-		adapterSyncUsage,
-		adapterRenderUsage,
-		completionUsage,
-		completionSuggestUsage,
-		completionMetadataUsage,
-		metadataUsage,
-		upgradeUsage,
-		versionUsage,
+		"runectx status --path /path/to/project",
+		"runectx change update CHANGE_ID --status verified --verification-status passed",
+		"runectx change close CHANGE_ID --verification-status passed --closed-at YYYY-MM-DD",
+		"runectx completion metadata",
 	}
 }
 

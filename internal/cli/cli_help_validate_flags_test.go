@@ -95,8 +95,14 @@ func TestRunNoCommand(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected help exit code, got %d", code)
 	}
-	if !strings.Contains(stdout.String(), "Usage:") {
+	if !strings.Contains(stdout.String(), "Core:") {
 		t.Fatalf("expected help output, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Quick Start:") {
+		t.Fatalf("expected quick-start help output, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "runectx change update CHANGE_ID --status verified --verification-status passed") {
+		t.Fatalf("expected change update example in help output, got %q", stdout.String())
 	}
 	if stderr.String() != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())
@@ -111,14 +117,33 @@ func TestRunHelp(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected help exit code, got %d", code)
 	}
-	if !strings.Contains(stdout.String(), "Usage:") {
+	if !strings.Contains(stdout.String(), "Core:") {
 		t.Fatalf("expected help output, got %q", stdout.String())
 	}
-	if !strings.Contains(stdout.String(), "runectx help") {
-		t.Fatalf("expected help subcommand in usage output, got %q", stdout.String())
-	}
-	if !strings.Contains(stdout.String(), "help       Show CLI usage") {
+	if !strings.Contains(stdout.String(), "help        Show this help screen") {
 		t.Fatalf("expected help command description, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Use 'runectx <command> --help' for command-specific usage.") {
+		t.Fatalf("expected help footer guidance, got %q", stdout.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	}
+}
+
+func TestRunShortHelpFlagUsesRootHelpScreen(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := Run([]string{"-h"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected help exit code, got %d", code)
+	}
+	if !strings.Contains(stdout.String(), "RuneContext CLI") {
+		t.Fatalf("expected root help header, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Tooling:") {
+		t.Fatalf("expected grouped help sections, got %q", stdout.String())
 	}
 	if stderr.String() != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())
