@@ -172,7 +172,7 @@ _runectx_flag_takes_value() {
 _runectx_enum_for_flag() {
   case "$1" in
     'adapter render-host-native|--role') echo 'discoverability_shim flow_asset' ;;
-    'change close|--verification-status') echo 'failed passed pending skipped' ;;
+    'change close|--verification-status') echo 'failed passed skipped' ;;
     'change new|--shape') echo 'full minimum' ;;
     'change new|--size') echo 'large medium small' ;;
     'change new|--type') echo 'bug chore feature project standard' ;;

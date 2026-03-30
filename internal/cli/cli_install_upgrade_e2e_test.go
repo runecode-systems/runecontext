@@ -45,9 +45,7 @@ func TestManualRepoInstallFlowOverReferenceFixture(t *testing.T) {
 }
 
 func TestQuickInstallConfirmationViaVersionAndDoctor(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.8"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.8")
 
 	var versionOut bytes.Buffer
 	var versionErr bytes.Buffer

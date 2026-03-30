@@ -39,9 +39,7 @@ func TestRunUpgradePreviewOnReferenceFixture(t *testing.T) {
 func TestRunUpgradePreviewSupportsStateClassificationAndAliases(t *testing.T) {
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.9"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -255,9 +253,7 @@ func TestRunUpgradeApplyIdempotentRerun(t *testing.T) {
 }
 
 func TestRunUpgradePreviewUnsupportedProjectVersion(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.9"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
 
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "runecontext.yaml"), []byte("schema_version: 1\nrunecontext_version: 9.9.9\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"), 0o644); err != nil {

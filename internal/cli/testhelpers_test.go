@@ -4,8 +4,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
+
+var runecontextVersionTestMu sync.Mutex
 
 func repoRootForTests() (string, error) {
 	wd, err := os.Getwd()
@@ -39,8 +42,17 @@ func releaseMetadataVersionForTests(t *testing.T) string {
 
 func withReleaseMetadataVersionForTests(t *testing.T, fn func()) {
 	t.Helper()
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v" + releaseMetadataVersionForTests(t)
+	setRunecontextVersionForTests(t, "v"+releaseMetadataVersionForTests(t))
 	fn()
+}
+
+func setRunecontextVersionForTests(t *testing.T, value string) {
+	t.Helper()
+	runecontextVersionTestMu.Lock()
+	original := runecontextVersion
+	runecontextVersion = value
+	t.Cleanup(func() {
+		runecontextVersion = original
+		runecontextVersionTestMu.Unlock()
+	})
 }

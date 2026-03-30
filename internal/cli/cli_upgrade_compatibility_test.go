@@ -47,9 +47,7 @@ func writeEmbeddedProjectVersion(t *testing.T, root, version string) {
 }
 
 func TestRunUpgradePreviewSupportsAlphaFiveWithoutRegisteredEdge(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.9"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
 
 	root := t.TempDir()
 	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.5")
@@ -73,9 +71,7 @@ func TestRunUpgradePreviewSupportsAlphaFiveWithoutRegisteredEdge(t *testing.T) {
 }
 
 func TestRunUpgradePreviewAlphaFiveTargetAlphaNineStillRejected(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.9"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
 
 	root := t.TempDir()
 	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.5")
@@ -96,9 +92,7 @@ func TestRunUpgradePreviewAlphaFiveTargetAlphaNineStillRejected(t *testing.T) {
 }
 
 func TestRunUpgradePreviewAlphaNineTargetAlphaTenSupportedEdge(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.10"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 
 	root := t.TempDir()
 	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.9")
@@ -119,9 +113,7 @@ func TestRunUpgradePreviewAlphaNineTargetAlphaTenSupportedEdge(t *testing.T) {
 }
 
 func TestRunUpgradeApplyAlphaNineToAlphaTenRewrites(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.10"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 
 	root := t.TempDir()
 	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.9")

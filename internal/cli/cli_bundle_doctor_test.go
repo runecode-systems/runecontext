@@ -24,9 +24,7 @@ func TestRunBundleUsageMissingSubcommand(t *testing.T) {
 }
 
 func TestRunDoctorReportsUnsupportedProjectVersion(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.9"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
 
 	projectRoot := t.TempDir()
 	config := "schema_version: 1\nrunecontext_version: 9.9.9\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"

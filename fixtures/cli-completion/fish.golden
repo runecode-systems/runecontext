@@ -130,7 +130,7 @@ complete -c runectx -n '__fish_seen_subcommand_from change close' -l recursive
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l superseded-by -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --superseded-by' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l verification-status -r
-complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --verification-status' -a 'failed passed pending skipped'
+complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --verification-status' -a 'failed passed skipped'
 complete -c runectx -n '__fish_seen_subcommand_from change new' -l bundle -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from change new); and __runectx_prev_token_is --bundle' -a '(__runectx_dynamic_suggest bundle-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from change new' -l description -r

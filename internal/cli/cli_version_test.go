@@ -8,9 +8,7 @@ import (
 )
 
 func TestRunVersionCommandOutputsNormalizedVersion(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v1.2.3-test"
+	setRunecontextVersionForTests(t, "v1.2.3-test")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -37,9 +35,7 @@ func TestRunVersionCommandOutputsNormalizedVersion(t *testing.T) {
 }
 
 func TestRunVersionAliasesMatchVersionCommand(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v9.9.9-alias"
+	setRunecontextVersionForTests(t, "v9.9.9-alias")
 
 	assertVersionAliasOutput(t, []string{"version"}, "9.9.9-alias")
 	assertVersionAliasOutput(t, []string{"--version"}, "9.9.9-alias")
@@ -67,9 +63,7 @@ func assertVersionAliasOutput(t *testing.T, args []string, wantVersion string) {
 }
 
 func TestRunVersionJSONEnvelope(t *testing.T) {
-	original := runecontextVersion
-	t.Cleanup(func() { runecontextVersion = original })
-	runecontextVersion = "v0.1.0-alpha.8"
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.8")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
