@@ -69,7 +69,11 @@ func writeDocumentationReferenceJSON(repoRoot string) error {
 }
 
 func writeMetadataGoldenFixture(repoRoot string, descriptor capabilityDescriptor) error {
-	metadataGoldenJSON, err := json.Marshal(descriptorMap(descriptor))
+	payload, err := descriptorMap(descriptor)
+	if err != nil {
+		return fmt.Errorf("build metadata golden fixture payload: %w", err)
+	}
+	metadataGoldenJSON, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("marshal metadata golden fixture: %w", err)
 	}
@@ -100,11 +104,15 @@ func withRunecontextVersion(version string, fn func() error) error {
 }
 
 func buildReleaseManifestFixtureJSON(descriptor capabilityDescriptor) ([]byte, error) {
+	payload, err := descriptorMap(descriptor)
+	if err != nil {
+		return nil, fmt.Errorf("build release manifest descriptor payload: %w", err)
+	}
 	manifest := map[string]any{
 		"package_name":        descriptor.Release.PackageName,
 		"version":             descriptor.Release.Version,
 		"tag":                 descriptor.Release.Tag,
-		"metadata_descriptor": descriptorMap(descriptor),
+		"metadata_descriptor": payload,
 		"archives":            []any{},
 	}
 	formatted, err := json.MarshalIndent(manifest, "", "  ")

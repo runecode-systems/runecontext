@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -17,6 +16,7 @@ const (
 	runecontextPackageName              = "runecontext"
 	assuranceTierPlain                  = "plain"
 	metadataSchemaName                  = "capability-descriptor.schema.json"
+	metadataOutputInstancePath          = "metadata-output.json"
 )
 
 type capabilityDescriptor struct {
@@ -139,17 +139,14 @@ func validateCapabilityDescriptorSchema(descriptor capabilityDescriptor) error {
 
 func validateCapabilityDescriptorSchemaAtRoot(schemaRoot string, descriptor capabilityDescriptor) error {
 	validator := contracts.NewValidator(schemaRoot)
-	if err := validator.ValidateValue(metadataSchemaName, metadataSchemaName, descriptorMap(descriptor)); err != nil {
+	payload, err := descriptorMap(descriptor)
+	if err != nil {
+		return fmt.Errorf("build capability descriptor validation payload: %w", err)
+	}
+	if err := validator.ValidateValue(metadataSchemaName, metadataOutputInstancePath, payload); err != nil {
 		return err
 	}
 	return nil
-}
-
-func descriptorMap(descriptor capabilityDescriptor) map[string]any {
-	data, _ := json.Marshal(descriptor)
-	var value map[string]any
-	_ = json.Unmarshal(data, &value)
-	return value
 }
 
 func deriveSupportedProjectVersions(installedVersion string, planner upgradePlannerRegistry) []string {
@@ -273,8 +270,4 @@ func releaseManifestDescriptorFromJSON(raw []byte) (map[string]any, error) {
 		return nil, fmt.Errorf("release manifest metadata_descriptor must be an object")
 	}
 	return obj, nil
-}
-
-func metadataSchemaPathFromRepoRoot(root string) string {
-	return filepath.Join(root, "schemas", metadataSchemaName)
 }

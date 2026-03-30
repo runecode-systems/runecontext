@@ -132,7 +132,10 @@ func assertReleaseManifestDescriptorParityFixture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse fixture metadata descriptor: %v", err)
 	}
-	expected := descriptorMap(buildCapabilityDescriptor())
+	expected, err := descriptorMap(buildCapabilityDescriptor())
+	if err != nil {
+		t.Fatalf("build expected descriptor map: %v", err)
+	}
 	expectedJSON, err := json.Marshal(expected)
 	if err != nil {
 		t.Fatalf("marshal expected descriptor: %v", err)

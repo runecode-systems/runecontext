@@ -80,7 +80,11 @@ func TestReleaseManifestDescriptorParityRoundTrip(t *testing.T) {
 		t.Fatalf("parse release manifest descriptor: %v", err)
 	}
 
-	want, err := json.Marshal(descriptorMap(descriptor))
+	expectedDescriptor, err := descriptorMap(descriptor)
+	if err != nil {
+		t.Fatalf("build expected descriptor map: %v", err)
+	}
+	want, err := json.Marshal(expectedDescriptor)
 	if err != nil {
 		t.Fatalf("marshal expected descriptor map: %v", err)
 	}
