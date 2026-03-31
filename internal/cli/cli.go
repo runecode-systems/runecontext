@@ -39,7 +39,9 @@ const (
 	completionMetadataUsage = "runectx completion metadata"
 	metadataUsage           = "runectx metadata"
 	upgradeUsage            = "runectx upgrade [--json] [--non-interactive] [--explain] [--path PATH] [--target-version VERSION]"
-	upgradeApplyUsage       = "runectx upgrade apply [--json] [--non-interactive] [--explain] [--path PATH] --target-version VERSION"
+	upgradeApplyUsage       = "runectx upgrade apply [--json] [--non-interactive] [--explain] [--path PATH] [--target-version VERSION]"
+	upgradeCLIUsage         = "runectx upgrade cli [--json] [--non-interactive] [--explain] [--target-version VERSION]"
+	upgradeCLIApplyUsage    = "runectx upgrade cli apply [--json] [--non-interactive] [--explain] [--target-version VERSION]"
 	versionUsage            = "runectx version [--json] [--non-interactive] (aliases: --version, -v)"
 )
 

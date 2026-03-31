@@ -11,6 +11,7 @@ related_decisions: []
 related_changes:
   - CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
   - CHG-2026-009-eb40-derive-docs-and-reference-surfaces-from-canonical-runecontext-metadata
+  - CHG-2026-021-6d7e-extend-metadata-descriptor-with-explicit-layout-assurance-and-feature-contracts
 depends_on:
   - CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
 informed_by: []

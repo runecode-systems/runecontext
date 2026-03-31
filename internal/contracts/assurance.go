@@ -10,7 +10,16 @@ import (
 	"unicode/utf8"
 )
 
-const AssuranceCanonicalizationToken = "runecontext-canonical-json-v1"
+const (
+	AssuranceCanonicalizationToken = "runecontext-canonical-json-v1"
+	assuranceHashAlgorithmToken    = "sha256"
+)
+
+// AssuranceHashAlgorithmTokenForCLI exposes the hash algorithm token used by
+// assurance artifact machine contracts.
+func AssuranceHashAlgorithmTokenForCLI() string {
+	return assuranceHashAlgorithmToken
+}
 
 // AssuranceEnvelope is a minimal portable assurance artifact envelope.
 type AssuranceEnvelope struct {

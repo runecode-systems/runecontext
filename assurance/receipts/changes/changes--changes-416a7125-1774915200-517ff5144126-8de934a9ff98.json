@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-017-d68f-add-staged-per-hop-upgrade-execution-and-validation",
+  "created_at": 1774915200,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-017-d68f-add-staged-per-hop-upgrade-execution-and-validation",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-416a7125-1774915200-517ff5144126",
+  "receipt_hash": "8de934a9ff981d7f2930df2c86fc838b688516cd7ab81ed031e3ec9b797d5133",
+  "provenance": "captured_verified"
+}

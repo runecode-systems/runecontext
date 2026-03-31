@@ -8,6 +8,15 @@ func upgradeCommandMetadata() CommandMetadata {
 		Flags: readOnlyCommandFlags(upgradeFlags()),
 		Subcommands: []CommandMetadata{
 			{Name: "apply", Path: "upgrade apply", Usage: upgradeApplyUsage, Flags: readOnlyCommandFlags(upgradeApplyFlags())},
+			{
+				Name:  "cli",
+				Path:  "upgrade cli",
+				Usage: upgradeCLIUsage,
+				Flags: readOnlyCommandFlags(upgradeCLIFlags()),
+				Subcommands: []CommandMetadata{
+					{Name: "apply", Path: "upgrade cli apply", Usage: upgradeCLIApplyUsage, Flags: readOnlyCommandFlags(upgradeCLIApplyFlags())},
+				},
+			},
 		},
 	}
 }
@@ -22,6 +31,18 @@ func upgradeFlags() []FlagMetadata {
 func upgradeApplyFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--path", Value: textValueSpec()},
-		{Name: "--target-version", Value: textValueSpec(), Required: true},
+		{Name: "--target-version", Value: textValueSpec()},
+	}
+}
+
+func upgradeCLIFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--target-version", Value: textValueSpec()},
+	}
+}
+
+func upgradeCLIApplyFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--target-version", Value: textValueSpec()},
 	}
 }

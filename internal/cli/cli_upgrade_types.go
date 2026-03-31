@@ -2,10 +2,9 @@ package cli
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/runecode-systems/runecontext/internal/contracts"
 )
 
 type upgradeState string
@@ -14,6 +13,7 @@ const (
 	upgradeStateCurrent                   upgradeState = "current"
 	upgradeStateUpgradeable               upgradeState = "upgradeable"
 	upgradeStateUnsupportedProjectVersion upgradeState = "unsupported_project_version"
+	upgradeStateProjectNewerThanCLI       upgradeState = "project_newer_than_cli"
 	upgradeStateMixedOrStaleTree          upgradeState = "mixed_or_stale_tree"
 	upgradeStateConflicted                upgradeState = "conflicted"
 )
@@ -22,6 +22,8 @@ type upgradePlan struct {
 	State          upgradeState
 	CurrentVersion string
 	TargetVersion  string
+	UpgradeHops    []upgradeHop
+	HopActions     []string
 	NetworkAccess  bool
 	PlanActions    []string
 	NextActions    []string
@@ -40,19 +42,18 @@ type upgradeEdgeKey struct {
 	To   string
 }
 
+type upgradeHop struct {
+	From string
+	To   string
+}
+
 type upgradePlannerRegistry struct {
 	edges map[upgradeEdgeKey]struct{}
+	next  map[string][]string
 }
 
 func defaultUpgradePlannerRegistry() upgradePlannerRegistry {
-	registry := upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}}
-	registry.registerEdge("0.1.0-alpha.8", "0.1.0-alpha.9")
-	installed := normalizedRunecontextVersion()
-	if installed != "" && installed != "0.0.0-dev" {
-		registry.registerEdge("0.1.0-alpha.8", installed)
-		registry.registerEdge("0.1.0-alpha.9", installed)
-	}
-	return registry
+	return upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
 }
 
 func (r *upgradePlannerRegistry) registerEdge(from, to string) {
@@ -64,21 +65,89 @@ func (r *upgradePlannerRegistry) registerEdge(from, to string) {
 	if from == "" || to == "" {
 		return
 	}
-	r.edges[upgradeEdgeKey{From: from, To: to}] = struct{}{}
+	key := upgradeEdgeKey{From: from, To: to}
+	if _, exists := r.edges[key]; exists {
+		return
+	}
+	r.edges[key] = struct{}{}
+	r.next[from] = append(r.next[from], to)
+	sort.Strings(r.next[from])
 }
 
-func (r *upgradePlannerRegistry) hasEdge(from, to string) bool {
-	if r == nil {
-		return false
+func (r *upgradePlannerRegistry) planPath(from, to string) ([]upgradeHop, bool) {
+	from = strings.TrimSpace(from)
+	to = strings.TrimSpace(to)
+	if r == nil || from == "" || to == "" {
+		return nil, false
 	}
-	_, ok := r.edges[upgradeEdgeKey{From: strings.TrimSpace(from), To: strings.TrimSpace(to)}]
-	return ok
+	if from == to {
+		return nil, true
+	}
+	parents, found := r.searchPathParents(from, to)
+	if !found {
+		return nil, false
+	}
+	return buildUpgradeHops(parents, from, to), true
+}
+
+func (r *upgradePlannerRegistry) searchPathParents(from, to string) (map[string]string, bool) {
+
+	queue := []string{from}
+	seen := map[string]struct{}{from: {}}
+	parent := map[string]string{}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		for _, next := range r.next[current] {
+			if _, visited := seen[next]; visited {
+				continue
+			}
+			seen[next] = struct{}{}
+			parent[next] = current
+			if next == to {
+				return parent, true
+			}
+			queue = append(queue, next)
+		}
+	}
+
+	return nil, false
+}
+
+func buildUpgradeHops(parent map[string]string, from, to string) []upgradeHop {
+	versions := []string{to}
+	current := to
+	for current != from {
+		current = parent[current]
+		versions = append(versions, current)
+	}
+	reverseStrings(versions)
+	hops := make([]upgradeHop, 0, len(versions)-1)
+	for i := 0; i+1 < len(versions); i++ {
+		hops = append(hops, upgradeHop{From: versions[i], To: versions[i+1]})
+	}
+	return hops
+}
+
+func reverseStrings(values []string) {
+	for left, right := 0, len(values)-1; left < right; left, right = left+1, right-1 {
+		values[left], values[right] = values[right], values[left]
+	}
+}
+
+func buildUpgradeHopActions(hops []upgradeHop) []string {
+	actions := make([]string, 0, len(hops))
+	for _, hop := range hops {
+		actions = append(actions, fmt.Sprintf("migrate runecontext_version %s -> %s", hop.From, hop.To))
+	}
+	return actions
 }
 
 func resolveUpgradeTargetVersion(current, requested string) (string, bool) {
 	target := strings.TrimSpace(requested)
 	if target == "" {
-		return current, false
+		return defaultUpgradeTargetVersion(current)
 	}
 	switch strings.ToLower(target) {
 	case "current":
@@ -94,16 +163,21 @@ func resolveUpgradeTargetVersion(current, requested string) (string, bool) {
 	}
 }
 
+func defaultUpgradeTargetVersion(current string) (string, bool) {
+	installed := normalizedRunecontextVersion()
+	if installed == "" || installed == "0.0.0-dev" {
+		return current, false
+	}
+	return installed, false
+}
+
 func isSupportedProjectVersion(version string, registry upgradePlannerRegistry) bool {
 	version = strings.TrimSpace(version)
 	if version == "" {
 		return false
 	}
 	installed := normalizedRunecontextVersion()
-	if installed == "0.0.0-dev" {
-		return true
-	}
-	if version == installed {
+	if supportsByInstalledVersion(version, installed) {
 		return true
 	}
 	if isCompatibleProjectVersionForInstalled(version, installed) {
@@ -115,6 +189,29 @@ func isSupportedProjectVersion(version string, registry upgradePlannerRegistry) 
 		}
 	}
 	return false
+}
+
+func supportsByInstalledVersion(version, installed string) bool {
+	if installed == "0.0.0-dev" || version == installed {
+		return true
+	}
+	if isPreAlphaFiveProjectVersion(version, installed) {
+		return false
+	}
+	if !isComparableVersionLine(version, installed) {
+		return false
+	}
+	comparison, comparable := compareKnownRunecontextVersions(version, installed)
+	return comparable && comparison <= 0
+}
+
+func isPreAlphaFiveProjectVersion(projectVersion, installedVersion string) bool {
+	installedOrdinal, ok := alphaOrdinal(installedVersion)
+	if !ok || installedOrdinal < 8 {
+		return false
+	}
+	projectOrdinal, ok := alphaOrdinal(projectVersion)
+	return ok && projectOrdinal < 5
 }
 
 func isCompatibleProjectVersionForInstalled(projectVersion, installedVersion string) bool {
@@ -149,34 +246,5 @@ func alphaOrdinal(version string) (int, bool) {
 }
 
 func upgradePlanDiagnostics(plan upgradePlan) []emittedDiagnostic {
-	switch plan.State {
-	case upgradeStateUnsupportedProjectVersion:
-		return []emittedDiagnostic{{
-			Severity: contracts.DiagnosticSeverityError,
-			Code:     "unsupported_project_version",
-			Message:  fmt.Sprintf("project runecontext_version %s is not supported for upgrade to %s", plan.CurrentVersion, plan.TargetVersion),
-		}}
-	case upgradeStateMixedOrStaleTree:
-		return []emittedDiagnostic{{
-			Severity: contracts.DiagnosticSeverityWarning,
-			Code:     "mixed_or_stale_tree",
-			Message:  "stale RuneContext-managed artifacts detected; rerun runectx upgrade apply",
-		}}
-	case upgradeStateConflicted:
-		return []emittedDiagnostic{{
-			Severity: contracts.DiagnosticSeverityError,
-			Code:     "conflicted",
-			Message:  "managed artifact conflicts detected; resolve ownership conflicts before upgrade apply",
-		}}
-	default:
-		diagnostics := make([]emittedDiagnostic, 0, len(plan.Warnings))
-		for _, warning := range plan.Warnings {
-			diagnostics = append(diagnostics, emittedDiagnostic{
-				Severity: contracts.DiagnosticSeverityWarning,
-				Code:     "optional_adapter_pack_unavailable",
-				Message:  warning,
-			})
-		}
-		return diagnostics
-	}
+	return buildUpgradePlanDiagnostics(plan)
 }

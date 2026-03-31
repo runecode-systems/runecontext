@@ -22,6 +22,8 @@ Keep RuneContext operations machine-friendly, stable, and reusable across direct
 - New command behavior should prefer explicit structured fields over output text that requires fragile parsing.
 - Read-only advisory flows should emit reusable candidate data and next-step hints without hidden session state.
 - Completion metadata, command docs, and adapter-native command surfaces should derive from the same canonical operation metadata where possible.
+- Release manifests and generated docs/reference artifacts should derive from the same canonical metadata descriptor when they expose CLI capability or compatibility information.
+- Compatibility reporting should remain distinct from explicit upgrade-path reporting when both concepts are surfaced to machines.
 
 ## Rationale
 

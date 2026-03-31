@@ -1,0 +1,26 @@
+schema_version: 1
+id: CHG-2026-021-6d7e-extend-metadata-descriptor-with-explicit-layout-assurance-and-feature-contracts
+title: Extend metadata descriptor with explicit layout assurance and feature contracts
+status: implemented
+type: feature
+size: large
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
+  - CHG-2026-008-47e1-add-canonical-metadata-builder-and-capability-descriptor-outputs
+  - CHG-2026-009-eb40-derive-docs-and-reference-surfaces-from-canonical-runecontext-metadata
+depends_on:
+  - CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
+  - CHG-2026-008-47e1-add-canonical-metadata-builder-and-capability-descriptor-outputs
+  - CHG-2026-009-eb40-derive-docs-and-reference-surfaces-from-canonical-runecontext-metadata
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-03-30"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

@@ -11,24 +11,24 @@ import (
 )
 
 const (
-	capabilityDescriptorSchemaVersion   = 1
-	capabilityDescriptorContractVersion = "1"
-	runecontextPackageName              = "runecontext"
-	assuranceTierPlain                  = "plain"
-	metadataSchemaName                  = "capability-descriptor.schema.json"
-	metadataOutputInstancePath          = "metadata-output.json"
+	runecontextPackageName     = "runecontext"
+	assuranceTierPlain         = "plain"
+	metadataSchemaName         = "capability-descriptor.schema.json"
+	metadataOutputInstancePath = "metadata-output.json"
 )
 
 type capabilityDescriptor struct {
-	SchemaVersion           int                     `json:"schema_version" yaml:"schema_version"`
-	DescriptorSchemaVersion string                  `json:"descriptor_schema_version" yaml:"descriptor_schema_version"`
-	Binary                  string                  `json:"binary" yaml:"binary"`
-	Release                 descriptorRelease       `json:"release" yaml:"release"`
-	Compatibility           descriptorCompatibility `json:"compatibility" yaml:"compatibility"`
-	Runtime                 descriptorRuntime       `json:"runtime" yaml:"runtime"`
-	Capabilities            descriptorCapabilities  `json:"capabilities" yaml:"capabilities"`
-	Assurance               descriptorAssurance     `json:"assurance" yaml:"assurance"`
-	Resolution              descriptorResolution    `json:"resolution" yaml:"resolution"`
+	SchemaVersion       int                        `json:"schema_version" yaml:"schema_version"`
+	Binary              string                     `json:"binary" yaml:"binary"`
+	Release             descriptorRelease          `json:"release" yaml:"release"`
+	Compatibility       descriptorCompatibility    `json:"compatibility" yaml:"compatibility"`
+	DistributionLayouts []descriptorLayout         `json:"distribution_layouts" yaml:"distribution_layouts"`
+	ProjectProfiles     []descriptorProject        `json:"project_profiles" yaml:"project_profiles"`
+	Capabilities        descriptorCapabilities     `json:"capabilities" yaml:"capabilities"`
+	Features            []string                   `json:"features" yaml:"features"`
+	Assurance           descriptorAssurance        `json:"assurance" yaml:"assurance"`
+	Canonicalization    descriptorCanonicalization `json:"canonicalization" yaml:"canonicalization"`
+	Resolution          descriptorResolution       `json:"resolution" yaml:"resolution"`
 }
 
 type descriptorRelease struct {
@@ -38,23 +38,15 @@ type descriptorRelease struct {
 }
 
 type descriptorCompatibility struct {
-	SupportedProjectVersions []string                `json:"supported_project_versions" yaml:"supported_project_versions"`
-	ExplicitUpgradeEdges     []descriptorUpgradeEdge `json:"explicit_upgrade_edges" yaml:"explicit_upgrade_edges"`
+	DefaultProjectVersion            string                  `json:"default_project_version" yaml:"default_project_version"`
+	DirectlySupportedProjectVersions []string                `json:"directly_supported_project_versions" yaml:"directly_supported_project_versions"`
+	UpgradeableFromProjectVersions   []string                `json:"upgradeable_from_project_versions" yaml:"upgradeable_from_project_versions"`
+	ExplicitUpgradeEdges             []descriptorUpgradeEdge `json:"explicit_upgrade_edges" yaml:"explicit_upgrade_edges"`
 }
 
 type descriptorUpgradeEdge struct {
 	From string `json:"from" yaml:"from"`
 	To   string `json:"to" yaml:"to"`
-}
-
-type descriptorRuntime struct {
-	Layouts []descriptorRuntimeLayout `json:"layouts" yaml:"layouts"`
-}
-
-type descriptorRuntimeLayout struct {
-	Profile      string `json:"profile" yaml:"profile"`
-	SchemaPath   string `json:"schema_path" yaml:"schema_path"`
-	AdaptersPath string `json:"adapters_path" yaml:"adapters_path"`
 }
 
 type descriptorCapabilities struct {
@@ -69,10 +61,6 @@ type descriptorCommand struct {
 	Aliases []string `json:"aliases,omitempty" yaml:"aliases,omitempty"`
 }
 
-type descriptorAssurance struct {
-	Tiers []string `json:"tiers" yaml:"tiers"`
-}
-
 type descriptorResolution struct {
 	SourceModes         []contracts.SourceMode          `json:"source_modes" yaml:"source_modes"`
 	VerificationPosture []contracts.VerificationPosture `json:"verification_postures" yaml:"verification_postures"`
@@ -84,38 +72,33 @@ func buildCapabilityDescriptor() capabilityDescriptor {
 	planner := defaultUpgradePlannerRegistry()
 
 	return capabilityDescriptor{
-		SchemaVersion:           capabilityDescriptorSchemaVersion,
-		DescriptorSchemaVersion: capabilityDescriptorContractVersion,
-		Binary:                  registry.Binary,
+		SchemaVersion: contracts.CapabilityDescriptorSchemaVersionForCLI(),
+		Binary:        registry.Binary,
 		Release: descriptorRelease{
 			PackageName: runecontextPackageName,
 			Version:     version,
 			Tag:         "v" + version,
 		},
 		Compatibility: descriptorCompatibility{
-			SupportedProjectVersions: deriveSupportedProjectVersions(version, planner),
-			ExplicitUpgradeEdges:     deriveExplicitUpgradeEdges(planner),
+			DefaultProjectVersion:            version,
+			DirectlySupportedProjectVersions: deriveDirectlySupportedProjectVersions(version),
+			UpgradeableFromProjectVersions:   deriveUpgradeableFromProjectVersions(planner),
+			ExplicitUpgradeEdges:             deriveExplicitUpgradeEdges(planner),
 		},
-		Runtime: descriptorRuntime{
-			Layouts: descriptorRuntimeLayouts(),
-		},
+		DistributionLayouts: descriptorDistributionLayouts(),
+		ProjectProfiles:     descriptorProjectProfiles(),
 		Capabilities: descriptorCapabilities{
 			Commands:     deriveDescriptorCommands(registry.Commands),
 			MachineFlags: deriveMachineFlagNames(),
 			ValueKinds:   []ValueKind{ValueKindNone, ValueKindText, ValueKindEnum},
 		},
-		Assurance: descriptorAssurance{Tiers: []string{assuranceTierPlain, contracts.AssuranceTierVerified}},
+		Features:         descriptorFeatures(),
+		Assurance:        buildDescriptorAssurance(),
+		Canonicalization: buildDescriptorCanonicalization(),
 		Resolution: descriptorResolution{
 			SourceModes:         []contracts.SourceMode{contracts.SourceModeEmbedded, contracts.SourceModeGit, contracts.SourceModePath},
 			VerificationPosture: descriptorVerificationPostures(),
 		},
-	}
-}
-
-func descriptorRuntimeLayouts() []descriptorRuntimeLayout {
-	return []descriptorRuntimeLayout{
-		{Profile: "repo_bundle", SchemaPath: "schemas", AdaptersPath: "adapters"},
-		{Profile: "installed_share_layout", SchemaPath: "share/runecontext/schemas", AdaptersPath: "share/runecontext/adapters"},
 	}
 }
 
@@ -149,7 +132,7 @@ func validateCapabilityDescriptorSchemaAtRoot(schemaRoot string, descriptor capa
 	return nil
 }
 
-func deriveSupportedProjectVersions(installedVersion string, planner upgradePlannerRegistry) []string {
+func deriveDirectlySupportedProjectVersions(installedVersion string) []string {
 	seen := map[string]struct{}{}
 	candidates := make([]string, 0, 16)
 
@@ -177,6 +160,22 @@ func deriveSupportedProjectVersions(installedVersion string, planner upgradePlan
 
 	sortVersions(candidates)
 	return candidates
+}
+
+func deriveUpgradeableFromProjectVersions(planner upgradePlannerRegistry) []string {
+	seen := map[string]struct{}{}
+	versions := make([]string, 0, len(planner.edges)*2)
+	for edge := range planner.edges {
+		for _, candidate := range []string{edge.From, edge.To} {
+			if _, ok := seen[candidate]; ok {
+				continue
+			}
+			seen[candidate] = struct{}{}
+			versions = append(versions, candidate)
+		}
+	}
+	sortVersions(versions)
+	return versions
 }
 
 func deriveExplicitUpgradeEdges(planner upgradePlannerRegistry) []descriptorUpgradeEdge {

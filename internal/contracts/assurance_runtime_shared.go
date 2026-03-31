@@ -24,6 +24,12 @@ var assuranceReceiptFamilies = []string{
 	assuranceReceiptFamilyVerifications,
 }
 
+// AssuranceReceiptFamiliesForCLI exposes the portable receipt-family contract
+// tokens used by verified assurance artifacts.
+func AssuranceReceiptFamiliesForCLI() []string {
+	return append([]string(nil), assuranceReceiptFamilies...)
+}
+
 type AssuranceReceiptRecord struct {
 	Path     string
 	Family   string

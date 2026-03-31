@@ -47,6 +47,86 @@ func TestRunDoctorReportsUnsupportedProjectVersion(t *testing.T) {
 	}
 }
 
+func TestRunDoctorReportsProjectNewerThanCLI(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
+
+	projectRoot := t.TempDir()
+	config := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.10\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(projectRoot, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir runecontext root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"doctor", "--path", projectRoot}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected doctor success with diagnostics, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["upgrade_state"], "project_newer_than_cli"; got != want {
+		t.Fatalf("expected upgrade_state %q, got %q", want, got)
+	}
+	if got := fields["diagnostic_1_message"]; !strings.Contains(got, "runectx upgrade cli apply") {
+		t.Fatalf("expected doctor diagnostic guidance for CLI upgrade, got %q", got)
+	}
+}
+
+func TestRunDoctorReportsProjectNewerThanCLIStableVersions(t *testing.T) {
+	setRunecontextVersionForTests(t, "v1.2.3")
+
+	projectRoot := t.TempDir()
+	config := "schema_version: 1\nrunecontext_version: 1.2.4\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	if err := os.WriteFile(filepath.Join(projectRoot, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(projectRoot, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir runecontext root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"doctor", "--path", projectRoot}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected doctor success with diagnostics, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["upgrade_state"], "project_newer_than_cli"; got != want {
+		t.Fatalf("expected upgrade_state %q, got %q", want, got)
+	}
+	if got := fields["diagnostic_1_message"]; !strings.Contains(got, "runectx upgrade cli apply") {
+		t.Fatalf("expected doctor diagnostic guidance for CLI upgrade, got %q", got)
+	}
+}
+
+func TestRunValidateReportsProjectNewerThanCLIDiagnosticsStableVersions(t *testing.T) {
+	setRunecontextVersionForTests(t, "v1.2.3")
+
+	root := t.TempDir()
+	config := "schema_version: 1\nrunecontext_version: 1.2.4\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	if err := os.WriteFile(filepath.Join(root, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir content root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", "--path", root}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected validate success with diagnostics, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "project_newer_than_cli") {
+		t.Fatalf("expected project_newer_than_cli diagnostic, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "runectx upgrade cli apply") {
+		t.Fatalf("expected CLI upgrade guidance, got %q", stdout.String())
+	}
+}
+
 func TestRunBundleResolveRequiresBundleID(t *testing.T) {
 	projectRoot := repoFixtureRoot(t, "bundle-resolution", "valid-project")
 	var stdout bytes.Buffer

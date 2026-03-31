@@ -103,8 +103,8 @@ func TestLocalCLIManagedInitFlow(t *testing.T) {
 }
 
 func TestPreviewFirstUpgradeFlowOverReferenceFixture(t *testing.T) {
-	projectRoot := t.TempDir()
-	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), projectRoot)
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
+	projectRoot := createEmbeddedProjectForUpgradeTests(t)
 	configPath := filepath.Join(projectRoot, "runecontext.yaml")
 	originalConfig, err := os.ReadFile(configPath)
 	if err != nil {
@@ -125,7 +125,7 @@ func TestPreviewFirstUpgradeFlowOverReferenceFixture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config after apply: %v", err)
 	}
-	if !strings.Contains(string(updatedConfig), "runecontext_version: 0.1.0-alpha.9") {
+	if !strings.Contains(string(updatedConfig), "runecontext_version: \"0.1.0-alpha.10\"") && !strings.Contains(string(updatedConfig), "runecontext_version: 0.1.0-alpha.10") {
 		t.Fatalf("expected updated runecontext_version, got %q", string(updatedConfig))
 	}
 }
@@ -134,14 +134,14 @@ func runUpgradePreviewAndAssert(t *testing.T, projectRoot string) {
 	t.Helper()
 	var previewOut bytes.Buffer
 	var previewErr bytes.Buffer
-	if code := Run([]string{"upgrade", "--path", projectRoot, "--target-version", "0.1.0-alpha.9"}, &previewOut, &previewErr); code != exitOK {
+	if code := Run([]string{"upgrade", "--path", projectRoot, "--json"}, &previewOut, &previewErr); code != exitOK {
 		t.Fatalf("expected preview upgrade success, got %d (%s)", code, previewErr.String())
 	}
-	previewFields := parseCLIKeyValueOutput(t, previewOut.String())
+	previewFields := parseCLIJSONEnvelopeData(t, previewOut.Bytes())
 	if got, want := previewFields["phase"], "preview"; got != want {
 		t.Fatalf("expected preview phase %q, got %q", want, got)
 	}
-	if got, want := previewFields["state"], "upgradeable"; got != want {
+	if got, want := previewFields["state"], "current"; got != want {
 		t.Fatalf("expected preview state %q, got %q", want, got)
 	}
 }
@@ -150,14 +150,14 @@ func runUpgradeApplyAndAssert(t *testing.T, projectRoot string) {
 	t.Helper()
 	var applyOut bytes.Buffer
 	var applyErr bytes.Buffer
-	if code := Run([]string{"upgrade", "apply", "--path", projectRoot, "--target-version", "0.1.0-alpha.9"}, &applyOut, &applyErr); code != exitOK {
+	if code := Run([]string{"upgrade", "apply", "--path", projectRoot, "--json"}, &applyOut, &applyErr); code != exitOK {
 		t.Fatalf("expected apply success, got %d (%s)", code, applyErr.String())
 	}
-	applyFields := parseCLIKeyValueOutput(t, applyOut.String())
+	applyFields := parseCLIJSONEnvelopeData(t, applyOut.Bytes())
 	if got, want := applyFields["phase"], "apply"; got != want {
 		t.Fatalf("expected apply phase %q, got %q", want, got)
 	}
-	if got, want := applyFields["current_version"], "0.1.0-alpha.9"; got != want {
+	if got, want := applyFields["current_version"], "0.1.0-alpha.10"; got != want {
 		t.Fatalf("expected current_version %q, got %q", want, got)
 	}
 }

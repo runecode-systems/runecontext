@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-015-6da4-add-real-multi-hop-upgrade-planning-and-staged-migration-execution",
+  "created_at": 1774915200,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-015-6da4-add-real-multi-hop-upgrade-planning-and-staged-migration-execution",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-fe9b1dfe-1774915200-222ed2038720",
+  "receipt_hash": "c3eda9a2b25f8532c70b44a978580e36d61373b50a07ffbc4bc16811043b4aa9",
+  "provenance": "captured_verified"
+}

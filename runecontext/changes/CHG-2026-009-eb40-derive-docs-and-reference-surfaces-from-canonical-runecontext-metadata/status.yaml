@@ -11,6 +11,7 @@ related_decisions: []
 related_changes:
   - CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
   - CHG-2026-008-47e1-add-canonical-metadata-builder-and-capability-descriptor-outputs
+  - CHG-2026-021-6d7e-extend-metadata-descriptor-with-explicit-layout-assurance-and-feature-contracts
 depends_on:
   - CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces
   - CHG-2026-008-47e1-add-canonical-metadata-builder-and-capability-descriptor-outputs

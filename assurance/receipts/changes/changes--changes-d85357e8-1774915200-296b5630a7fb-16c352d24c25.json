@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts",
+  "created_at": 1774915200,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-d85357e8-1774915200-296b5630a7fb",
+  "receipt_hash": "16c352d24c25fe32aa23228cf6262a00b28b96dfbaf17dbdd51b92b1ac761685",
+  "provenance": "captured_verified"
+}

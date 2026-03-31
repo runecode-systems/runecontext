@@ -1,10 +1,10 @@
 schema_version: 1
 id: CHG-2026-020-75ba-add-explicit-recursive-umbrella-lifecycle-propagation-for-sub-changes
 title: Add explicit recursive umbrella lifecycle propagation for sub-changes
-status: implemented
+status: closed
 type: feature
 size: large
-verification_status: pending
+verification_status: passed
 context_bundles: []
 related_specs: []
 related_decisions: []
@@ -17,7 +17,7 @@ informed_by: []
 supersedes: []
 superseded_by: []
 created_at: "2026-03-29"
-closed_at: null
+closed_at: "2026-03-30"
 promotion_assessment:
-  status: pending
+  status: none
   suggested_targets: []

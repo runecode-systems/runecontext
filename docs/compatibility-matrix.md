@@ -13,6 +13,22 @@ compatibility gate for project upgrades and runtime wiring.
 If a project reports an out-of-range `runecontext_version`, validation and
 integration flows should fail closed and direct users to upgrade.
 
+## Upgrade preview and migration-path semantics
+
+- `runectx upgrade` is a read-only assessment/dry-run surface.
+- `runectx upgrade apply` remains the only mutating upgrade command.
+- `runectx upgrade cli` is the explicit CLI self-update preview/check surface.
+- `runectx upgrade cli apply` is the explicit mutating CLI self-update surface.
+- Upgrade planning follows explicit registered migration hops. Preview reports an
+  ordered hop chain (`hop_count`, `hop_N_from`, `hop_N_to`) plus readable
+  per-hop actions.
+- If no registered migration path exists but the selected target only requires a
+  compatible version bump with no migration logic, planning may still produce a
+  zero-hop version-bump-only upgrade.
+- If the requested target requires migrations and no registered path exists,
+  planning fails closed with an unsupported-project-version state instead of
+  auto-bumping the version.
+
 ## Release distribution semantics
 
 RuneContext release semantics are intentionally two-lane:

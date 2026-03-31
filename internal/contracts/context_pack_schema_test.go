@@ -124,39 +124,8 @@ func TestContextPackReportSchemaVersionMatchesMachineContracts(t *testing.T) {
 
 func TestCapabilityDescriptorSchemaRejectsUnknownFields(t *testing.T) {
 	v := NewValidator(schemaRoot(t))
-	value := map[string]any{
-		"schema_version":            1,
-		"descriptor_schema_version": "1",
-		"binary":                    "runectx",
-		"release": map[string]any{
-			"package_name": "runecontext",
-			"version":      "0.1.0-alpha.10",
-			"tag":          "v0.1.0-alpha.10",
-		},
-		"compatibility": map[string]any{
-			"supported_project_versions": []any{"0.1.0-alpha.8"},
-			"explicit_upgrade_edges":     []any{map[string]any{"from": "0.1.0-alpha.8", "to": "0.1.0-alpha.9"}},
-		},
-		"runtime": map[string]any{
-			"layouts": []any{
-				map[string]any{"profile": "repo_bundle", "schema_path": "schemas", "adapters_path": "adapters"},
-				map[string]any{"profile": "installed_share_layout", "schema_path": "share/runecontext/schemas", "adapters_path": "share/runecontext/adapters"},
-			},
-		},
-		"capabilities": map[string]any{
-			"commands":      []any{map[string]any{"path": "metadata", "token": "metadata"}},
-			"machine_flags": []any{"--json", "--non-interactive", "--dry-run", "--explain"},
-			"value_kinds":   []any{"none", "text", "enum"},
-		},
-		"assurance": map[string]any{
-			"tiers": []any{"plain", "verified"},
-		},
-		"resolution": map[string]any{
-			"source_modes":          []any{"embedded", "git", "path"},
-			"verification_postures": []any{"embedded", "pinned_commit", "verified_signed_tag", "unverified_mutable_ref", "unverified_local_source"},
-		},
-		"unexpected": "value",
-	}
+	value := capabilityDescriptorSchemaBaseFixture()
+	value["unexpected"] = "value"
 	if err := v.ValidateValue("capability-descriptor.schema.json", "capability-descriptor.json", value); err == nil {
 		t.Fatal("expected capability descriptor schema to reject unknown fields")
 	}
@@ -178,58 +147,142 @@ func TestCapabilityDescriptorSchemaRejectsUnknownTokensAndSchemaVersion(t *testi
 	}
 }
 
+func TestCapabilityDescriptorSchemaConstMatchesMachineContractVersion(t *testing.T) {
+	data := readFixture(t, filepath.Join(schemaRoot(t), "capability-descriptor.schema.json"))
+	var schema map[string]any
+	if err := json.Unmarshal(data, &schema); err != nil {
+		t.Fatalf("parse capability descriptor schema: %v", err)
+	}
+	properties := schemaProperties(t, schema)
+	assertSchemaConstValue(t, properties, "schema_version", fmt.Sprintf("%d", CapabilityDescriptorSchemaVersionForCLI()))
+}
+
 type mutationCase struct {
 	name string
 	mut  func(map[string]any)
 }
 
 func capabilityDescriptorSchemaBaseFixture() map[string]any {
+	return capabilityDescriptorSchemaBaseFixtureWithVersion(CapabilityDescriptorSchemaVersionForCLI())
+}
+
+func capabilityDescriptorSchemaBaseFixtureWithVersion(schemaVersion int) map[string]any {
+	value := map[string]any{
+		"schema_version":       schemaVersion,
+		"binary":               "runectx",
+		"release":              capabilityDescriptorReleaseFixture(),
+		"compatibility":        capabilityDescriptorCompatibilityFixture(),
+		"distribution_layouts": capabilityDescriptorDistributionLayoutsFixture(),
+		"project_profiles":     capabilityDescriptorProjectProfilesFixture(),
+		"capabilities":         capabilityDescriptorCapabilitiesFixture(),
+		"features":             []any{"signed_tag_verification", "verified_assurance"},
+		"assurance":            capabilityDescriptorAssuranceFixture(),
+		"canonicalization":     capabilityDescriptorCanonicalizationFixture(),
+		"resolution":           capabilityDescriptorResolutionFixture(),
+	}
+	return value
+}
+
+func capabilityDescriptorReleaseFixture() map[string]any {
+	return map[string]any{"package_name": "runecontext", "version": "0.1.0-alpha.10", "tag": "v0.1.0-alpha.10"}
+}
+
+func capabilityDescriptorCompatibilityFixture() map[string]any {
 	return map[string]any{
-		"schema_version":            1,
-		"descriptor_schema_version": "1",
-		"binary":                    "runectx",
-		"release": map[string]any{
-			"package_name": "runecontext",
-			"version":      "0.1.0-alpha.10",
-			"tag":          "v0.1.0-alpha.10",
-		},
-		"compatibility": map[string]any{
-			"supported_project_versions": []any{"0.1.0-alpha.8"},
-			"explicit_upgrade_edges":     []any{map[string]any{"from": "0.1.0-alpha.8", "to": "0.1.0-alpha.9"}},
-		},
-		"runtime": map[string]any{
-			"layouts": []any{
-				map[string]any{"profile": "repo_bundle", "schema_path": "schemas", "adapters_path": "adapters"},
-				map[string]any{"profile": "installed_share_layout", "schema_path": "share/runecontext/schemas", "adapters_path": "share/runecontext/adapters"},
-			},
-		},
-		"capabilities": map[string]any{
-			"commands":      []any{map[string]any{"path": "metadata", "token": "metadata"}},
-			"machine_flags": []any{"--json", "--non-interactive", "--dry-run", "--explain"},
-			"value_kinds":   []any{"none", "text", "enum"},
-		},
-		"assurance": map[string]any{
-			"tiers": []any{"plain", "verified"},
-		},
-		"resolution": map[string]any{
-			"source_modes":          []any{"embedded", "git", "path"},
-			"verification_postures": []any{"embedded", "pinned_commit", "verified_signed_tag", "unverified_mutable_ref", "unverified_local_source"},
-		},
+		"default_project_version":             "0.1.0-alpha.8",
+		"directly_supported_project_versions": []any{"0.1.0-alpha.8"},
+		"upgradeable_from_project_versions":   []any{"0.1.0-alpha.8", "0.1.0-alpha.9"},
+		"explicit_upgrade_edges":              []any{map[string]any{"from": "0.1.0-alpha.8", "to": "0.1.0-alpha.9"}},
 	}
 }
 
+func capabilityDescriptorDistributionLayoutsFixture() []any {
+	return []any{
+		map[string]any{"profile": "repo_bundle", "schema_path": "schemas", "adapters_path": "adapters"},
+		map[string]any{"profile": "installed_share_layout", "schema_path": "share/runecontext/schemas", "adapters_path": "share/runecontext/adapters"},
+	}
+}
+
+func capabilityDescriptorProjectProfilesFixture() []any {
+	return []any{map[string]any{"profile": "portable_project_root", "root_config": "runecontext.yaml", "content_root": "runecontext", "assurance_path": "runecontext/assurance", "manifest_path": "runecontext/manifest.yaml", "indexes_root": "runecontext/indexes"}}
+}
+
+func capabilityDescriptorCapabilitiesFixture() map[string]any {
+	return map[string]any{"commands": []any{map[string]any{"path": "metadata", "token": "metadata"}}, "machine_flags": []any{"--json", "--non-interactive", "--dry-run", "--explain"}, "value_kinds": []any{"none", "text", "enum"}}
+}
+
+func capabilityDescriptorAssuranceFixture() map[string]any {
+	return map[string]any{"tiers": []any{"plain", "verified"}, "baseline_supported": true, "receipt_families": []any{"context-packs", "changes", "promotions", "verifications"}}
+}
+
+func capabilityDescriptorCanonicalizationFixture() map[string]any {
+	profile := map[string]any{"profile": "runecontext-canonical-json-v1", "hash_algorithm": "sha256"}
+	return map[string]any{"context_pack": profile, "assurance_artifacts": map[string]any{"profile": "runecontext-canonical-json-v1", "hash_algorithm": "sha256"}}
+}
+
+func capabilityDescriptorResolutionFixture() map[string]any {
+	return map[string]any{"source_modes": []any{"embedded", "git", "path"}, "verification_postures": []any{"embedded", "pinned_commit", "verified_signed_tag", "unverified_mutable_ref", "unverified_local_source"}}
+}
+
 func capabilityDescriptorInvalidMutationCases() []mutationCase {
-	cases := []mutationCase{
+	cases := append([]mutationCase{}, coreCapabilityDescriptorMutationCases()...)
+	return append(cases, extraCapabilityDescriptorMutationCases()...)
+}
+
+func coreCapabilityDescriptorMutationCases() []mutationCase {
+	cases := []mutationCase{}
+	cases = append(cases, capabilityDescriptorVersionMutationCases()...)
+	cases = append(cases, capabilityDescriptorLayoutAndCapabilityMutationCases()...)
+	cases = append(cases, capabilityDescriptorAssuranceAndCanonicalizationMutationCases()...)
+	return cases
+}
+
+func capabilityDescriptorVersionMutationCases() []mutationCase {
+	return []mutationCase{
 		{
-			name: "schema version",
+			name: "unexpected legacy descriptor version field",
 			mut: func(value map[string]any) {
 				value["descriptor_schema_version"] = "2"
 			},
 		},
 		{
-			name: "layout profile",
+			name: "unknown schema version",
 			mut: func(value map[string]any) {
-				layouts := value["runtime"].(map[string]any)["layouts"].([]any)
+				value["schema_version"] = 99
+			},
+		},
+		{
+			name: "mixed v1 and v2 payload fields",
+			mut: func(value map[string]any) {
+				value["runtime"] = map[string]any{
+					"layouts": []any{
+						map[string]any{"profile": "repo_bundle", "schema_path": "schemas", "adapters_path": "adapters"},
+						map[string]any{"profile": "installed_share_layout", "schema_path": "share/runecontext/schemas", "adapters_path": "share/runecontext/adapters"},
+					},
+				}
+			},
+		},
+		{
+			name: "legacy supported project versions field",
+			mut: func(value map[string]any) {
+				value["compatibility"].(map[string]any)["supported_project_versions"] = []any{"0.1.0-alpha.8"}
+			},
+		},
+		{
+			name: "missing default project version",
+			mut: func(value map[string]any) {
+				delete(value["compatibility"].(map[string]any), "default_project_version")
+			},
+		},
+	}
+}
+
+func capabilityDescriptorLayoutAndCapabilityMutationCases() []mutationCase {
+	return []mutationCase{
+		{
+			name: "distribution layout profile",
+			mut: func(value map[string]any) {
+				layouts := value["distribution_layouts"].([]any)
 				layouts[0].(map[string]any)["profile"] = "unknown_layout"
 			},
 		},
@@ -245,9 +298,36 @@ func capabilityDescriptorInvalidMutationCases() []mutationCase {
 				value["capabilities"].(map[string]any)["value_kinds"] = []any{"none", "mystery"}
 			},
 		},
+		{
+			name: "feature token",
+			mut: func(value map[string]any) {
+				value["features"] = []any{"signed_tag_verification", "unknown_feature"}
+			},
+		},
 	}
+}
 
-	return append(cases, extraCapabilityDescriptorMutationCases()...)
+func capabilityDescriptorAssuranceAndCanonicalizationMutationCases() []mutationCase {
+	return []mutationCase{
+		{
+			name: "receipt family",
+			mut: func(value map[string]any) {
+				value["assurance"].(map[string]any)["receipt_families"] = []any{"context-packs", "unknown_family"}
+			},
+		},
+		{
+			name: "canonicalization profile token",
+			mut: func(value map[string]any) {
+				value["canonicalization"].(map[string]any)["context_pack"].(map[string]any)["profile"] = "unknown-profile"
+			},
+		},
+		{
+			name: "canonicalization hash token",
+			mut: func(value map[string]any) {
+				value["canonicalization"].(map[string]any)["context_pack"].(map[string]any)["hash_algorithm"] = "sha1"
+			},
+		},
+	}
 }
 
 func extraCapabilityDescriptorMutationCases() []mutationCase {

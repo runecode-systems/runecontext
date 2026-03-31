@@ -22,6 +22,9 @@ func runUpgrade(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("upgrade", upgradeUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
+	if len(remaining) > 0 && remaining[0] == "cli" {
+		return runUpgradeCLI(remaining[1:], machine, stdout, stderr)
+	}
 	request, usageErr, usage := parseUpgradeRequest(remaining, stdout, machine)
 	if usageErr != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("upgrade", usage, usageErr), machine), exitUsage, failureClassUsage)
@@ -103,7 +106,7 @@ func parseUpgradePreviewArgs(args []string) (upgradeRequest, error) {
 	if len(positionals) > 0 {
 		return upgradeRequest{}, fmt.Errorf("unknown upgrade subcommand %q", positionals[0])
 	}
-	if err := validateUpgradeTargetVersion(request.targetVersion, false); err != nil {
+	if err := validateUpgradeTargetVersion(request.targetVersion); err != nil {
 		return upgradeRequest{}, err
 	}
 	return request, nil
@@ -137,18 +140,15 @@ func parseUpgradeApplyArgs(args []string) (upgradeRequest, error) {
 	if len(positionals) > 0 {
 		return upgradeRequest{}, fmt.Errorf("upgrade apply does not accept positional arguments")
 	}
-	if err := validateUpgradeTargetVersion(request.targetVersion, true); err != nil {
+	if err := validateUpgradeTargetVersion(request.targetVersion); err != nil {
 		return upgradeRequest{}, err
 	}
 	return request, nil
 }
 
-func validateUpgradeTargetVersion(target string, apply bool) error {
+func validateUpgradeTargetVersion(target string) error {
 	target = strings.TrimSpace(target)
 	if target == "" {
-		if apply {
-			return fmt.Errorf("upgrade apply requires --target-version")
-		}
 		return nil
 	}
 	if isUpgradeTargetAlias(target) {
@@ -166,6 +166,10 @@ func runUpgradePreview(project *cliProject, request upgradeRequest, machine mach
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
 	}
+	if !machine.jsonOutput {
+		_, _ = io.WriteString(stdout, renderHumanUpgradePreview(plan, project.absRoot, selectedConfigPath(project.loaded), upgradeHumanOptionsForMachine(stdout, machine)))
+		return exitOK
+	}
 	applyRequired := plan.State == upgradeStateUpgradeable || plan.State == upgradeStateMixedOrStaleTree
 	output := []line{
 		{"result", "ok"},
@@ -176,10 +180,19 @@ func runUpgradePreview(project *cliProject, request upgradeRequest, machine mach
 		{"current_version", plan.CurrentVersion},
 		{"target_version", plan.TargetVersion},
 		{"state", string(plan.State)},
+		{"hop_count", fmt.Sprintf("%d", len(plan.UpgradeHops))},
 		{"network_access", boolString(plan.NetworkAccess)},
 		{"plan_action_count", fmt.Sprintf("%d", len(plan.PlanActions))},
 		{"apply_required", boolString(applyRequired)},
 	}
+	for i, hop := range plan.UpgradeHops {
+		index := i + 1
+		output = append(output,
+			line{fmt.Sprintf("hop_%d_from", index), hop.From},
+			line{fmt.Sprintf("hop_%d_to", index), hop.To},
+		)
+	}
+	output = appendStringItems(output, "hop_action", plan.HopActions)
 	output = appendStringItems(output, "plan_action", plan.PlanActions)
 	output = appendStringItems(output, "next_action", plan.NextActions)
 	output = appendStringItems(output, "conflict", plan.Conflicts)
@@ -195,6 +208,10 @@ func runUpgradeApply(project *cliProject, request upgradeRequest, machine machin
 	}
 	configPath := selectedConfigPath(project.loaded)
 	if plan.State == upgradeStateCurrent {
+		if !machine.jsonOutput {
+			_, _ = io.WriteString(stdout, renderHumanUpgradeApply(project.absRoot, configPath, plan.CurrentVersion, plan.CurrentVersion, plan.TargetVersion, false, nil, plan.NetworkAccess, upgradeHumanOptionsForMachine(stdout, machine)))
+			return exitOK
+		}
 		output := upgradeApplyOutput(project.absRoot, configPath, plan.CurrentVersion, plan.CurrentVersion, plan.TargetVersion, false)
 		emitOutput(stdout, machine, appendMachineOptionLines(output, machine), exitOK, failureClassNone)
 		return exitOK
@@ -206,6 +223,10 @@ func runUpgradeApply(project *cliProject, request upgradeRequest, machine machin
 	if err := applyUpgradePlan(project, plan); err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("upgrade", project.absRoot, err), machine), exitInvalid, failureClassInvalid)
 		return exitInvalid
+	}
+	if !machine.jsonOutput {
+		_, _ = io.WriteString(stdout, renderHumanUpgradeApply(project.absRoot, configPath, plan.CurrentVersion, plan.TargetVersion, plan.TargetVersion, true, plan.ApplyMutations, plan.NetworkAccess, upgradeHumanOptionsForMachine(stdout, machine)))
+		return exitOK
 	}
 	output := upgradeApplyOutput(project.absRoot, configPath, plan.CurrentVersion, plan.TargetVersion, plan.TargetVersion, true)
 	output = append(output, line{"network_access", boolString(plan.NetworkAccess)})

@@ -6,4 +6,4 @@
 - `just test`
 
 ## Close Gate
-Close the umbrella only after path planning, staged execution, and rollback coverage all pass, and both sub-changes land with reciprocal relationships and clean project validation.
+Close the umbrella only after path planning, staged execution, compatibility/version-bump-only semantics, and CLI self-update flows all pass reviewable verification, and all associated feature changes land with reciprocal relationships and clean project validation.
