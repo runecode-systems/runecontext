@@ -237,14 +237,20 @@ go build -ldflags="-s -w -X github.com/runecode-systems/runecontext/internal/cli
 
 if ! @jq@/bin/jq -e '
   type == "object"
-  and .schema_version == 1
-  and .descriptor_schema_version == "1"
+  and .schema_version == 2
   and .binary == "runectx"
   and (.release | type == "object" and .package_name == "runecontext" and (.version | type == "string") and (.tag | type == "string"))
-  and (.compatibility | type == "object" and (.supported_project_versions | type == "array") and (.explicit_upgrade_edges | type == "array"))
-  and (.runtime | type == "object" and (.layouts | type == "array"))
+  and (.compatibility | type == "object"
+       and (.default_project_version | type == "string")
+       and (.directly_supported_project_versions | type == "array")
+       and (.upgradeable_from_project_versions | type == "array")
+       and (.explicit_upgrade_edges | type == "array"))
+  and (.distribution_layouts | type == "array")
+  and (.project_profiles | type == "array")
   and (.capabilities | type == "object" and (.commands | type == "array") and (.machine_flags | type == "array") and (.value_kinds | type == "array"))
-  and (.assurance | type == "object" and (.tiers | type == "array"))
+  and (.features | type == "array")
+  and (.assurance | type == "object" and (.tiers | type == "array") and (.baseline_supported | type == "boolean") and (.receipt_families | type == "array"))
+  and (.canonicalization | type == "object" and (.context_pack | type == "object") and (.assurance_artifacts | type == "object"))
   and (.resolution | type == "object" and (.source_modes | type == "array") and (.verification_postures | type == "array"))
 ' "release/metadata-descriptor.json" >/dev/null; then
   printf 'invalid metadata descriptor payload: release/metadata-descriptor.json\n' >&2

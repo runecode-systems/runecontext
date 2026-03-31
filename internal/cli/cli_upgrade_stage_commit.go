@@ -30,6 +30,16 @@ func applyStageDeletes(root string, deletedFiles []string) error {
 }
 
 func deleteOneUpgradePath(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if info.IsDir() {
+		return os.RemoveAll(path)
+	}
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		return err
 	}

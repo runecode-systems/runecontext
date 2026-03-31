@@ -104,8 +104,7 @@ func TestLocalCLIManagedInitFlow(t *testing.T) {
 
 func TestPreviewFirstUpgradeFlowOverReferenceFixture(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
-	projectRoot := t.TempDir()
-	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), projectRoot)
+	projectRoot := createEmbeddedProjectForUpgradeTests(t)
 	configPath := filepath.Join(projectRoot, "runecontext.yaml")
 	originalConfig, err := os.ReadFile(configPath)
 	if err != nil {
@@ -126,7 +125,7 @@ func TestPreviewFirstUpgradeFlowOverReferenceFixture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config after apply: %v", err)
 	}
-	if !strings.Contains(string(updatedConfig), "runecontext_version: 0.1.0-alpha.10") {
+	if !strings.Contains(string(updatedConfig), "runecontext_version: \"0.1.0-alpha.10\"") && !strings.Contains(string(updatedConfig), "runecontext_version: 0.1.0-alpha.10") {
 		t.Fatalf("expected updated runecontext_version, got %q", string(updatedConfig))
 	}
 }

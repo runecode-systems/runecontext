@@ -13,8 +13,8 @@ import (
 )
 
 func TestRunUpgradePreviewOnReferenceFixture(t *testing.T) {
-	root := repoFixtureRoot(t, "reference-projects", "embedded")
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
+	root := createEmbeddedProjectForUpgradeTests(t)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -38,9 +38,8 @@ func TestRunUpgradePreviewOnReferenceFixture(t *testing.T) {
 }
 
 func TestRunUpgradePreviewSupportsStateClassificationAndAliases(t *testing.T) {
-	root := t.TempDir()
-	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
+	root := createEmbeddedProjectForUpgradeTests(t)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -72,9 +71,8 @@ func TestRunUpgradePreviewSupportsStateClassificationAndAliases(t *testing.T) {
 }
 
 func TestRunUpgradePreviewDefaultsTargetVersionToInstalledCLI(t *testing.T) {
-	root := t.TempDir()
-	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
+	root := createEmbeddedProjectForUpgradeTests(t)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -272,9 +270,8 @@ func TestRunUpgradePreviewUnsupportedProjectVersion(t *testing.T) {
 }
 
 func TestRunUpgradeApplyRewritesTargetVersion(t *testing.T) {
-	root := t.TempDir()
-	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
+	root := createEmbeddedProjectForUpgradeTests(t)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -309,7 +306,7 @@ func TestRunUpgradeApplyRewritesTargetVersion(t *testing.T) {
 
 func TestRunUpgradeApplyDefaultsTargetVersionToInstalledCLI(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
-	root := repoFixtureRoot(t, "reference-projects", "embedded")
+	root := createEmbeddedProjectForUpgradeTests(t)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	code := Run([]string{"upgrade", "apply", "--path", root, "--json"}, &stdout, &stderr)
@@ -333,7 +330,7 @@ func TestRunUpgradeApplyDefaultsTargetVersionToInstalledCLI(t *testing.T) {
 
 func TestRunUpgradeApplyNoOpUsesStableOutputFields(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
-	root := repoFixtureRoot(t, "reference-projects", "embedded")
+	root := createEmbeddedProjectForUpgradeTests(t)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "current", "--json"}, &stdout, &stderr)
@@ -405,6 +402,15 @@ func TestRunUpgradeApplyHandlesValidYAMLSpacing(t *testing.T) {
 			t.Fatalf("expected config mode %o, got %o", want, got)
 		}
 	}
+}
+
+func createEmbeddedProjectForUpgradeTests(t *testing.T) string {
+	t.Helper()
+	root := filepath.Join(t.TempDir(), "project")
+	if code := Run([]string{"init", "--path", root}, &bytes.Buffer{}, &bytes.Buffer{}); code != exitOK {
+		t.Fatalf("expected init success for upgrade fixture, got %d", code)
+	}
+	return root
 }
 
 func TestRunUpgradeApplyPreservesCommentsAndCRLF(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -240,26 +241,48 @@ func TestInstallerCommandForCurrentPlatformAnchorsToExecutableRepoNotCwd(t *test
 	if err != nil {
 		t.Fatalf("expected installer resolution success, got %v", err)
 	}
-	if script != "bash" {
-		t.Fatalf("expected bash launcher, got %q", script)
+	assertInstallerResolutionAnchorsToExecutableRepo(t, script, args, executableRepo, cwdRepo)
+}
+
+func assertInstallerResolutionAnchorsToExecutableRepo(t *testing.T, script string, args []string, executableRepo, cwdRepo string) {
+	t.Helper()
+	if script != expectedInstallerLauncher() {
+		t.Fatalf("expected installer launcher %q, got %q", expectedInstallerLauncher(), script)
 	}
-	actualPath := mustResolvePath(t, args[0], "actual installer path")
-	if len(args) == 0 || actualPath != mustResolvePath(t, filepath.Join(executableRepo, "share", "runecontext", "installers", "install-runectx.sh"), "expected installer path") {
+	actualPath := mustResolvePath(t, installerScriptArg(t, args), "actual installer path")
+	if actualPath != mustResolvePath(t, filepath.Join(executableRepo, "share", "runecontext", "installers", cliUpgradeInstallerScriptName()), "expected installer path") {
 		t.Fatalf("expected installer path from executable repo, got %#v", args)
 	}
-	if len(args) > 0 && actualPath == mustResolvePath(t, filepath.Join(cwdRepo, "share", "runecontext", "installers", "install-runectx.sh"), "cwd installer path") {
+	if actualPath == mustResolvePath(t, filepath.Join(cwdRepo, "share", "runecontext", "installers", cliUpgradeInstallerScriptName()), "cwd installer path") {
 		t.Fatalf("expected installer path not to come from cwd repo, got %#v", args)
 	}
+}
+
+func installerScriptArg(t *testing.T, args []string) string {
+	t.Helper()
+	if runtime.GOOS != "windows" {
+		if len(args) == 0 {
+			t.Fatalf("expected installer args to include script path")
+		}
+		return args[0]
+	}
+	for i := 0; i+1 < len(args); i++ {
+		if args[i] == "-File" {
+			return args[i+1]
+		}
+	}
+	t.Fatalf("expected PowerShell installer args to include -File <script>, got %#v", args)
+	return ""
 }
 
 func createExecutableAndCwdFixtureRepos(t *testing.T) (string, string, string) {
 	t.Helper()
 	executableRepo := createCLIUpgradeFixtureRepo(t)
-	if err := os.WriteFile(filepath.Join(executableRepo, "share", "runecontext", "installers", "install-runectx.sh"), []byte("#!/usr/bin/env bash\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(executableRepo, "share", "runecontext", "installers", cliUpgradeInstallerScriptName()), []byte(testInstallerScriptContent()), 0o755); err != nil {
 		t.Fatalf("write executable repo installer: %v", err)
 	}
 	cwdRepo := createCLIUpgradeFixtureRepo(t)
-	if err := os.WriteFile(filepath.Join(cwdRepo, "share", "runecontext", "installers", "install-runectx.sh"), []byte("#!/usr/bin/env bash\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(cwdRepo, "share", "runecontext", "installers", cliUpgradeInstallerScriptName()), []byte(testInstallerScriptContent()), 0o755); err != nil {
 		t.Fatalf("write cwd repo installer: %v", err)
 	}
 	subdir := filepath.Join(cwdRepo, "nested", "work")
@@ -271,7 +294,7 @@ func createExecutableAndCwdFixtureRepos(t *testing.T) (string, string, string) {
 
 func TestInstallerCommandForCurrentPlatformRejectsSymlinkedInstallerScript(t *testing.T) {
 	repoRoot := createCLIUpgradeFixtureRepo(t)
-	if err := os.Symlink(filepath.Join(repoRoot, "real-installer.sh"), filepath.Join(repoRoot, "share", "runecontext", "installers", "install-runectx.sh")); err != nil {
+	if err := os.Symlink(filepath.Join(repoRoot, "real-installer.sh"), filepath.Join(repoRoot, "share", "runecontext", "installers", cliUpgradeInstallerScriptName())); err != nil {
 		if os.IsPermission(err) {
 			t.Skipf("symlink creation not permitted: %v", err)
 		}
@@ -337,10 +360,24 @@ func mustResolvePath(t *testing.T, path, label string) string {
 	return resolved
 }
 
+func testInstallerScriptContent() string {
+	if runtime.GOOS == "windows" {
+		return "Write-Output 'installer'\n"
+	}
+	return "#!/usr/bin/env bash\n"
+}
+
+func expectedInstallerLauncher() string {
+	if runtime.GOOS == "windows" {
+		return "powershell"
+	}
+	return "bash"
+}
+
 func TestRunUpgradeCLIAndProjectUpgradeRemainDistinct(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 
-	root := repoFixtureRoot(t, "reference-projects", "embedded")
+	root := createEmbeddedProjectForUpgradeTests(t)
 	var upgradeStdout bytes.Buffer
 	var upgradeStderr bytes.Buffer
 	code := Run([]string{"upgrade", "--path", root, "--json"}, &upgradeStdout, &upgradeStderr)

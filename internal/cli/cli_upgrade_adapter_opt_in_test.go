@@ -75,14 +75,23 @@ func TestRunUpgradePreviewRefreshesOnlyPreviouslySyncedToolArtifacts(t *testing.
 	if got, want := fields["state"], "mixed_or_stale_tree"; got != want {
 		t.Fatalf("expected stale-tree state %q, got %q", want, got)
 	}
-	if got := fields["plan_action_1"]; got != "refresh host-native opencode artifact: created .opencode/commands/runecontext-change-new.md" {
-		t.Fatalf("expected synced opencode create action, got %q", got)
+	if !hasPlanActionValue(fields, "refresh host-native opencode artifact: created .opencode/commands/runecontext-change-new.md") {
+		t.Fatalf("expected synced opencode create action somewhere in plan actions, got %#v", fields)
 	}
-	for _, key := range []string{"plan_action_2", "plan_action_3", "plan_action_4", "plan_action_5"} {
-		if value := fields[key]; value != "" && (valueHasUnsyncedToolPrefix(value, "claude-code") || valueHasUnsyncedToolPrefix(value, "codex")) {
+	for key, value := range fields {
+		if len(key) >= len("plan_action_") && key[:len("plan_action_")] == "plan_action_" && (valueHasUnsyncedToolPrefix(value, "claude-code") || valueHasUnsyncedToolPrefix(value, "codex")) {
 			t.Fatalf("expected unsynced tools to stay untouched, got %q for %s", value, key)
 		}
 	}
+}
+
+func hasPlanActionValue(fields map[string]string, want string) bool {
+	for key, value := range fields {
+		if len(key) >= len("plan_action_") && key[:len("plan_action_")] == "plan_action_" && value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func valueHasUnsyncedToolPrefix(value, tool string) bool {
