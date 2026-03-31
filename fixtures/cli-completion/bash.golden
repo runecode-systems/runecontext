@@ -33,6 +33,8 @@ _runectx_has_command() {
     'status') return 0 ;;
     'upgrade') return 0 ;;
     'upgrade apply') return 0 ;;
+    'upgrade cli') return 0 ;;
+    'upgrade cli apply') return 0 ;;
     'validate') return 0 ;;
     'version') return 0 ;;
     *) return 1 ;;
@@ -72,8 +74,10 @@ _runectx_subcommands_for() {
     'standard') echo 'discover' ;;
     'standard discover') echo '' ;;
     'status') echo '' ;;
-    'upgrade') echo 'apply' ;;
+    'upgrade') echo 'apply cli' ;;
     'upgrade apply') echo '' ;;
+    'upgrade cli') echo 'apply' ;;
+    'upgrade cli apply') echo '' ;;
     'validate') echo '' ;;
     'version') echo '' ;;
     *) echo '' ;;
@@ -110,6 +114,8 @@ _runectx_flags_for() {
     'status') echo '--explain --json --non-interactive --path' ;;
     'upgrade') echo '--explain --json --non-interactive --path --target-version' ;;
     'upgrade apply') echo '--explain --json --non-interactive --path --target-version' ;;
+    'upgrade cli') echo '--explain --json --non-interactive --target-version' ;;
+    'upgrade cli apply') echo '--explain --json --non-interactive --target-version' ;;
     'validate') echo '--explain --json --non-interactive --path --ssh-allowed-signers' ;;
     'version') echo '--json --non-interactive' ;;
     *) echo '' ;;
@@ -161,6 +167,8 @@ _runectx_flag_takes_value() {
     'status|--path') return 0 ;;
     'upgrade apply|--path') return 0 ;;
     'upgrade apply|--target-version') return 0 ;;
+    'upgrade cli apply|--target-version') return 0 ;;
+    'upgrade cli|--target-version') return 0 ;;
     'upgrade|--path') return 0 ;;
     'upgrade|--target-version') return 0 ;;
     'validate|--path') return 0 ;;

@@ -14,24 +14,25 @@ import (
 
 func TestRunUpgradePreviewOnReferenceFixture(t *testing.T) {
 	root := repoFixtureRoot(t, "reference-projects", "embedded")
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "--path", root, "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
 	if stderr.String() != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if got, want := fields["phase"], "preview"; got != want {
 		t.Fatalf("expected phase %q, got %q", want, got)
 	}
-	if got, want := fields["state"], "upgradeable"; got != want {
+	if got, want := fields["state"], "current"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
-	if got, want := fields["apply_required"], "true"; got != want {
+	if got, want := fields["apply_required"], "false"; got != want {
 		t.Fatalf("expected apply_required %q, got %q", want, got)
 	}
 }
@@ -39,16 +40,16 @@ func TestRunUpgradePreviewOnReferenceFixture(t *testing.T) {
 func TestRunUpgradePreviewSupportsStateClassificationAndAliases(t *testing.T) {
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
-	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "--path", root, "--target-version", "latest"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "latest", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
-	if got, want := fields["state"], "upgradeable"; got != want {
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["state"], "current"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
 	if got, want := fields["network_access"], "true"; got != want {
@@ -57,13 +58,36 @@ func TestRunUpgradePreviewSupportsStateClassificationAndAliases(t *testing.T) {
 
 	stdout.Reset()
 	stderr.Reset()
-	code = Run([]string{"upgrade", "--path", root, "--target-version", "installed"}, &stdout, &stderr)
+	code = Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.10", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	fields = parseCLIKeyValueOutput(t, stdout.String())
+	fields = parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["state"], "current"; got != want {
+		t.Fatalf("expected explicit stable target state %q, got %q", want, got)
+	}
 	if got, want := fields["network_access"], "false"; got != want {
 		t.Fatalf("expected network_access %q, got %q", want, got)
+	}
+}
+
+func TestRunUpgradePreviewDefaultsTargetVersionToInstalledCLI(t *testing.T) {
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["target_version"], "0.1.0-alpha.10"; got != want {
+		t.Fatalf("expected target_version %q, got %q", want, got)
+	}
+	if got, want := fields["state"], "current"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
 	}
 }
 
@@ -83,11 +107,11 @@ func TestRunUpgradePreviewPathSourceIsExternallyManaged(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.9", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if got, want := fields["state"], "conflicted"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
@@ -121,11 +145,11 @@ func TestRunUpgradePreviewGitSourceOnlyMutatesConfigAndNotLinkedTree(t *testing.
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "apply", "--path", projectRoot, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "apply", "--path", projectRoot, "--target-version", "0.1.0-alpha.9", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected apply success, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if got := fields["changed_1"]; got != "updated runecontext.yaml" {
 		t.Fatalf("expected only root config mutation to be reported first, got %q", got)
 	}
@@ -141,6 +165,7 @@ func TestRunUpgradePreviewGitSourceOnlyMutatesConfigAndNotLinkedTree(t *testing.
 func TestRunUpgradeApplyFailsClosedOnHostNativeOwnershipConflict(t *testing.T) {
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 	conflictPath := filepath.Join(root, ".opencode", "skills", "runecontext-change-new.md")
 	if err := os.MkdirAll(filepath.Dir(conflictPath), 0o755); err != nil {
 		t.Fatalf("mkdir conflict dir: %v", err)
@@ -151,7 +176,7 @@ func TestRunUpgradeApplyFailsClosedOnHostNativeOwnershipConflict(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "apply", "--path", root}, &stdout, &stderr)
 	if code != exitInvalid {
 		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
 	}
@@ -179,11 +204,11 @@ func TestRunUpgradePreviewAndApplyDetectStaleManagedHostNativeTree(t *testing.T)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "--path", root, "--target-version", "current"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "current", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected upgrade preview success, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if got, want := fields["state"], "mixed_or_stale_tree"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
@@ -199,54 +224,25 @@ func TestRunUpgradePreviewAndApplyDetectStaleManagedHostNativeTree(t *testing.T)
 	}
 }
 
-func TestRunUpgradeApplyTransactionalRollbackOnFailure(t *testing.T) {
-	root := t.TempDir()
-	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
-	configPath := filepath.Join(root, "runecontext.yaml")
-	before, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("read config before apply: %v", err)
-	}
-
-	original := upgradeApplyAdapterSyncFn
-	t.Cleanup(func() { upgradeApplyAdapterSyncFn = original })
-	upgradeApplyAdapterSyncFn = func(state adapterSyncState) error {
-		return fmt.Errorf("forced upgrade transaction failure for %s", state.tool)
-	}
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
-	if code != exitInvalid {
-		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
-	}
-	after, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("read config after failed apply: %v", err)
-	}
-	if string(before) != string(after) {
-		t.Fatalf("expected config rollback to restore original content")
-	}
-}
-
 func TestRunUpgradeApplyIdempotentRerun(t *testing.T) {
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "apply", "--path", root, "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected first apply success, got %d (%s)", code, stderr.String())
 	}
 
 	stdout.Reset()
 	stderr.Reset()
-	code = Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	code = Run([]string{"upgrade", "apply", "--path", root, "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected second apply success, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if got, want := fields["changed"], "false"; got != want {
 		t.Fatalf("expected idempotent changed=%q, got %q", want, got)
 	}
@@ -265,11 +261,11 @@ func TestRunUpgradePreviewUnsupportedProjectVersion(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.9", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if got, want := fields["state"], "unsupported_project_version"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
@@ -278,24 +274,25 @@ func TestRunUpgradePreviewUnsupportedProjectVersion(t *testing.T) {
 func TestRunUpgradeApplyRewritesTargetVersion(t *testing.T) {
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.9"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "apply", "--path", root, "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if got, want := fields["phase"], "apply"; got != want {
 		t.Fatalf("expected phase %q, got %q", want, got)
 	}
-	if got, want := fields["previous_version"], "0.1.0-alpha.8"; got != want {
+	if got, want := fields["previous_version"], "0.1.0-alpha.10"; got != want {
 		t.Fatalf("expected previous_version %q, got %q", want, got)
 	}
-	if got, want := fields["current_version"], "0.1.0-alpha.9"; got != want {
+	if got, want := fields["current_version"], "0.1.0-alpha.10"; got != want {
 		t.Fatalf("expected current_version %q, got %q", want, got)
 	}
-	if got, want := fields["changed"], "true"; got != want {
+	if got, want := fields["changed"], "false"; got != want {
 		t.Fatalf("expected changed %q, got %q", want, got)
 	}
 
@@ -310,35 +307,47 @@ func TestRunUpgradeApplyRewritesTargetVersion(t *testing.T) {
 	}
 }
 
-func TestRunUpgradeApplyRequiresTargetVersion(t *testing.T) {
+func TestRunUpgradeApplyDefaultsTargetVersionToInstalledCLI(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 	root := repoFixtureRoot(t, "reference-projects", "embedded")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "apply", "--path", root}, &stdout, &stderr)
-	if code != exitUsage {
-		t.Fatalf("expected usage exit code, got %d", code)
+	code := Run([]string{"upgrade", "apply", "--path", root, "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "error_message=upgrade apply requires --target-version") {
-		t.Fatalf("expected missing target version error, got %q", stderr.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["previous_version"], "0.1.0-alpha.10"; got != want {
+		t.Fatalf("expected previous_version %q, got %q", want, got)
+	}
+	if got, want := fields["current_version"], "0.1.0-alpha.10"; got != want {
+		t.Fatalf("expected current_version %q, got %q", want, got)
+	}
+	if got, want := fields["target_version"], "0.1.0-alpha.10"; got != want {
+		t.Fatalf("expected target_version %q, got %q", want, got)
+	}
+	if got, want := fields["changed"], "false"; got != want {
+		t.Fatalf("expected changed %q, got %q", want, got)
 	}
 }
 
 func TestRunUpgradeApplyNoOpUsesStableOutputFields(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 	root := repoFixtureRoot(t, "reference-projects", "embedded")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.8"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "current", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
-	if got, want := fields["previous_version"], "0.1.0-alpha.8"; got != want {
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["previous_version"], "0.1.0-alpha.10"; got != want {
 		t.Fatalf("expected previous_version %q, got %q", want, got)
 	}
-	if got, want := fields["current_version"], "0.1.0-alpha.8"; got != want {
+	if got, want := fields["current_version"], "0.1.0-alpha.10"; got != want {
 		t.Fatalf("expected current_version %q, got %q", want, got)
 	}
-	if got, want := fields["target_version"], "0.1.0-alpha.8"; got != want {
+	if got, want := fields["target_version"], "0.1.0-alpha.10"; got != want {
 		t.Fatalf("expected target_version %q, got %q", want, got)
 	}
 	if got, want := fields["changed"], "false"; got != want {
@@ -486,7 +495,7 @@ func TestBuildUpgradeReadinessFromIndexIgnoresMissingOptionalAdapterPacks(t *tes
 
 	original := collectUpgradeAdapterPlansFn
 	t.Cleanup(func() { collectUpgradeAdapterPlansFn = original })
-	collectUpgradeAdapterPlansFn = func(absRoot string, includeCreate bool) (map[string]adapterSyncState, []string, []string, error) {
+	collectUpgradeAdapterPlansFn = func(absRoot string) (map[string]adapterSyncState, []string, []string, error) {
 		return nil, nil, nil, fmt.Errorf("could not locate installed adapter packs")
 	}
 

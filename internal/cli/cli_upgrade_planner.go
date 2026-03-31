@@ -9,13 +9,14 @@ import (
 )
 
 var collectUpgradeAdapterPlansFn = collectUpgradeAdapterPlans
+var upgradePlannerRegistryFn = defaultUpgradePlannerRegistry
 
 func buildUpgradePlan(project *cliProject, requestedTarget string) (upgradePlan, error) {
 	plan := basePlanFromProject(project, requestedTarget)
 	if done, err := classifyUpgradePlanCommon(&plan, "choose a supported --target-version for this runectx release", "resolve conflicts, then rerun `runectx upgrade`"); done || err != nil {
 		return plan, err
 	}
-	finalizeUpgradeVersionState(&plan, "run `runectx upgrade apply --target-version current` after reviewing stale-file plan")
+	finalizeUpgradeVersionState(&plan, "rerun `runectx upgrade apply` to refresh stale managed artifacts")
 	return plan, nil
 }
 
@@ -30,12 +31,12 @@ func buildUpgradeReadinessFromIndex(absRoot string, index *contracts.ProjectInde
 	}
 	if plan.TargetVersion == plan.CurrentVersion && hasAdapterMutations(plan.AdapterPlans) {
 		plan.State = upgradeStateMixedOrStaleTree
-		plan.NextActions = append(plan.NextActions, "rerun `runectx upgrade apply --target-version current` to refresh stale managed artifacts")
+		plan.NextActions = append(plan.NextActions, "rerun `runectx upgrade apply` to refresh stale managed artifacts")
 		return plan, nil
 	}
 	if plan.TargetVersion != plan.CurrentVersion {
 		plan.State = upgradeStateUpgradeable
-		plan.NextActions = append(plan.NextActions, fmt.Sprintf("run `runectx upgrade apply --target-version %s`", plan.TargetVersion))
+		plan.NextActions = append(plan.NextActions, "run `runectx upgrade apply`")
 	}
 	return plan, nil
 }
@@ -86,8 +87,8 @@ func basePlanFromIndex(absRoot string, index *contracts.ProjectIndex) upgradePla
 }
 
 func classifyUpgradePlanCommon(plan *upgradePlan, edgeAction, conflictAction string) (bool, error) {
-	registry := defaultUpgradePlannerRegistry()
-	if classifyProjectNewerThanInstalled(plan, "upgrade runectx to a version that supports this project runecontext_version") {
+	registry := upgradePlannerRegistryFn()
+	if classifyProjectNewerThanInstalled(plan, "run `runectx upgrade cli apply` to install a newer runectx version that supports this project runecontext_version") {
 		return true, nil
 	}
 	if classifyUnsupportedVersion(plan, registry, "install a compatible runectx release or manually align runecontext_version before retrying upgrade") {
@@ -99,7 +100,7 @@ func classifyUpgradePlanCommon(plan *upgradePlan, edgeAction, conflictAction str
 	if classifyMissingUpgradePath(plan, registry, edgeAction) {
 		return true, nil
 	}
-	if err := classifyAdapterState(plan, plan.TargetVersion != plan.CurrentVersion, conflictAction); err != nil {
+	if err := classifyAdapterState(plan, conflictAction); err != nil {
 		return false, err
 	}
 	if plan.State == upgradeStateConflicted {
@@ -209,8 +210,8 @@ func selectRequiredUpgradeHopTarget(current, target string, registry upgradePlan
 	return best, true
 }
 
-func classifyAdapterState(plan *upgradePlan, includeCreate bool, nextAction string) error {
-	adapterPlans, conflicts, warnings, err := collectUpgradeAdapterPlansFn(plan.ProjectRoot, includeCreate)
+func classifyAdapterState(plan *upgradePlan, nextAction string) error {
+	adapterPlans, conflicts, warnings, err := collectUpgradeAdapterPlansFn(plan.ProjectRoot)
 	if err != nil {
 		if isOptionalAdapterPackUnavailableError(err) {
 			plan.Warnings = append(plan.Warnings, err.Error())
@@ -255,6 +256,7 @@ func finalizeUpgradeVersionState(plan *upgradePlan, staleAction string) {
 	plan.State = upgradeStateUpgradeable
 	plan.PlanActions = append(plan.PlanActions, plan.HopActions...)
 	plan.PlanActions = append(plan.PlanActions, fmt.Sprintf("set runecontext_version to %s", plan.TargetVersion))
+	plan.NextActions = append(plan.NextActions, "run `runectx upgrade apply`")
 	plan.ApplyMutations = append(plan.ApplyMutations, fmt.Sprintf("updated %s", filepath.ToSlash(filepath.Base(plan.ConfigPath))))
 	if hasAdapterMutations(plan.AdapterPlans) {
 		plan.PlanActions = append(plan.PlanActions, collectAdapterPlanActions(plan.AdapterPlans)...)

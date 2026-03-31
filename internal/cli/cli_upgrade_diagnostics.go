@@ -20,7 +20,7 @@ func buildUpgradePlanDiagnostics(plan upgradePlan) []emittedDiagnostic {
 		return []emittedDiagnostic{{
 			Severity: contracts.DiagnosticSeverityError,
 			Code:     "project_newer_than_cli",
-			Message:  fmt.Sprintf("project runecontext_version %s is newer than installed runectx %s; upgrade the runectx binary", plan.CurrentVersion, normalizedRunecontextVersion()),
+			Message:  fmt.Sprintf("project runecontext_version %s is newer than installed runectx %s; run runectx upgrade cli apply to upgrade the runectx binary", plan.CurrentVersion, normalizedRunecontextVersion()),
 		}}
 	case upgradeStateMixedOrStaleTree:
 		return []emittedDiagnostic{{
@@ -44,7 +44,7 @@ func upgradeableDiagnostics(plan upgradePlan) []emittedDiagnostic {
 		return []emittedDiagnostic{{
 			Severity: contracts.DiagnosticSeverityWarning,
 			Code:     "upgrade_available",
-			Message:  fmt.Sprintf("project runecontext_version %s is compatible but older than target %s; run runectx upgrade apply --target-version %s to bump the pinned version", plan.CurrentVersion, plan.TargetVersion, plan.TargetVersion),
+			Message:  fmt.Sprintf("project runecontext_version %s is compatible but older than target %s; run runectx upgrade apply to bump the pinned version", plan.CurrentVersion, plan.TargetVersion),
 		}}
 	}
 	return []emittedDiagnostic{{

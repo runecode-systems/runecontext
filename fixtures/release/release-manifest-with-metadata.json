@@ -148,6 +148,14 @@
           "token": "upgrade_apply"
         },
         {
+          "path": "upgrade cli",
+          "token": "upgrade_cli"
+        },
+        {
+          "path": "upgrade cli apply",
+          "token": "upgrade_cli_apply"
+        },
+        {
           "path": "validate",
           "token": "validate"
         },
@@ -181,16 +189,8 @@
         "0.1.0-alpha.8",
         "0.1.0-alpha.12"
       ],
-      "explicit_upgrade_edges": [
-        {
-          "from": "0.1.0-alpha.8",
-          "to": "0.1.0-alpha.9"
-        }
-      ],
-      "upgradeable_from_project_versions": [
-        "0.1.0-alpha.8",
-        "0.1.0-alpha.9"
-      ]
+      "explicit_upgrade_edges": [],
+      "upgradeable_from_project_versions": []
     },
     "distribution_layouts": [
       {

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -108,7 +107,7 @@ func TestRunValidateReportsProjectNewerThanCLIDiagnostics(t *testing.T) {
 	if !strings.Contains(stdout.String(), "project_newer_than_cli") {
 		t.Fatalf("expected project_newer_than_cli diagnostic, got %q", stdout.String())
 	}
-	if !strings.Contains(stdout.String(), "upgrade the runectx binary") {
+	if !strings.Contains(stdout.String(), "runectx upgrade cli apply") {
 		t.Fatalf("expected CLI upgrade guidance, got %q", stdout.String())
 	}
 }
@@ -133,6 +132,32 @@ func TestRunValidateOlderCompatibleProjectIsNotUnsupported(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), "unsupported_project_version") {
 		t.Fatalf("did not expect unsupported_project_version diagnostic, got %q", stdout.String())
+	}
+}
+
+func TestRunValidateUpgradeAvailableOmitsExplicitTargetVersionFlag(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.12")
+
+	root := t.TempDir()
+	config := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.11\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	if err := os.WriteFile(filepath.Join(root, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir content root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", "--path", root}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected validate success, got %d (%s)", code, stderr.String())
+	}
+	if strings.Contains(stdout.String(), "--target-version") {
+		t.Fatalf("expected upgrade guidance to omit explicit target-version flag, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "runectx upgrade apply") {
+		t.Fatalf("expected upgrade apply guidance, got %q", stdout.String())
 	}
 }
 
@@ -441,74 +466,6 @@ func runCLIChangeNewForTest(t *testing.T, projectRoot, title string) string {
 		t.Fatalf("change new failed: %d (%s)", code, stderr.String())
 	}
 	return parseCLIKeyValueOutput(t, stdout.String())["change_id"]
-}
-
-func parseCLIKeyValueOutput(t *testing.T, output string) map[string]string {
-	t.Helper()
-	fields := map[string]string{}
-	foundKeyValue := false
-	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		if !strings.Contains(line, "=") {
-			t.Fatalf("expected key=value output, got %q", line)
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			t.Fatalf("malformed CLI output line: %q", line)
-		}
-		foundKeyValue = true
-		fields[parts[0]] = unsanitizeCLIValue(parts[1])
-	}
-	if !foundKeyValue {
-		t.Fatalf("expected at least one key=value line in output: %q", output)
-	}
-	return fields
-}
-
-func parseCLIJSONEnvelopeData(t *testing.T, payload []byte) map[string]string {
-	t.Helper()
-	var envelope struct {
-		Data map[string]string `json:"data"`
-	}
-	if err := json.Unmarshal(payload, &envelope); err != nil {
-		t.Fatalf("expected JSON output, got err=%v payload=%q", err, string(payload))
-	}
-	if envelope.Data == nil {
-		t.Fatalf("expected JSON envelope data, got payload=%q", string(payload))
-	}
-	return envelope.Data
-}
-
-func unsanitizeCLIValue(value string) string {
-	var builder strings.Builder
-	for i := 0; i < len(value); i++ {
-		if value[i] != '\\' || i+1 >= len(value) {
-			builder.WriteByte(value[i])
-			continue
-		}
-		i++
-		switch value[i] {
-		case '\\':
-			builder.WriteByte('\\')
-		case 'n':
-			builder.WriteByte('\n')
-		case 'r':
-			builder.WriteByte('\r')
-		case 't':
-			builder.WriteByte('\t')
-		case '0':
-			builder.WriteByte('\x00')
-		case '=':
-			builder.WriteByte('=')
-		default:
-			builder.WriteByte('\\')
-			builder.WriteByte(value[i])
-		}
-	}
-	return builder.String()
 }
 
 func TestSanitizeValueRoundTripsEscapedSequences(t *testing.T) {

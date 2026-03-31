@@ -187,11 +187,8 @@ func assertCompatibilityPopulation(t *testing.T, descriptor capabilityDescriptor
 	if descriptor.Compatibility.DefaultProjectVersion == "" {
 		t.Fatal("expected default project version to be populated")
 	}
-	if len(descriptor.Compatibility.UpgradeableFromProjectVersions) == 0 {
-		t.Fatal("expected upgradeable-from project versions to be populated")
-	}
-	if len(descriptor.Compatibility.ExplicitUpgradeEdges) == 0 {
-		t.Fatal("expected explicit upgrade edges to be populated")
+	if len(descriptor.Compatibility.ExplicitUpgradeEdges) != 0 {
+		t.Fatalf("expected explicit upgrade edges to be empty when no real migrations are registered: %#v", descriptor.Compatibility.ExplicitUpgradeEdges)
 	}
 }
 
@@ -206,29 +203,14 @@ func assertCompatibilityIncludesExpectedVersions(t *testing.T, descriptor capabi
 	if containsString(descriptor.Compatibility.DirectlySupportedProjectVersions, "0.1.0-alpha.9") {
 		t.Fatalf("expected alpha.9 to remain upgrade-only, got %#v", descriptor.Compatibility.DirectlySupportedProjectVersions)
 	}
-	if !containsString(descriptor.Compatibility.UpgradeableFromProjectVersions, "0.1.0-alpha.9") {
-		t.Fatalf("expected upgradeable-from project versions to include alpha.9 migration entrypoint: %#v", descriptor.Compatibility.UpgradeableFromProjectVersions)
-	}
-	if !containsUpgradeEdge(descriptor.Compatibility.ExplicitUpgradeEdges, "0.1.0-alpha.8", "0.1.0-alpha.9") {
-		t.Fatalf("expected explicit upgrade edges to include alpha.8->alpha.9 edge: %#v", descriptor.Compatibility.ExplicitUpgradeEdges)
-	}
-	if !containsString(descriptor.Compatibility.UpgradeableFromProjectVersions, "0.1.0-alpha.8") {
-		t.Fatalf("expected alpha.8 to appear in upgradeable-from set for overlap semantics: %#v", descriptor.Compatibility.UpgradeableFromProjectVersions)
+	if len(descriptor.Compatibility.UpgradeableFromProjectVersions) != 0 {
+		t.Fatalf("expected upgradeable-from project versions to be empty when no explicit migration edges remain: %#v", descriptor.Compatibility.UpgradeableFromProjectVersions)
 	}
 }
 
 func containsString(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {
-			return true
-		}
-	}
-	return false
-}
-
-func containsUpgradeEdge(edges []descriptorUpgradeEdge, from, to string) bool {
-	for _, edge := range edges {
-		if edge.From == from && edge.To == to {
 			return true
 		}
 	}

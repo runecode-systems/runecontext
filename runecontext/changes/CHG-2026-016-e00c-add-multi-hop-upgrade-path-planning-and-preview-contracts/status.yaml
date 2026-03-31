@@ -1,10 +1,10 @@
 schema_version: 1
 id: CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts
 title: Add multi-hop upgrade path planning and preview contracts
-status: proposed
+status: closed
 type: feature
 size: medium
-verification_status: pending
+verification_status: passed
 context_bundles: []
 related_specs: []
 related_decisions: []
@@ -17,7 +17,7 @@ informed_by: []
 supersedes: []
 superseded_by: []
 created_at: "2026-03-29"
-closed_at: null
+closed_at: "2026-03-31"
 promotion_assessment:
-  status: pending
+  status: none
   suggested_targets: []

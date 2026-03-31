@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-022-58d8-refine-project-upgrade-compatibility-and-version-bump-only-semantics",
+  "created_at": 1774915200,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-022-58d8-refine-project-upgrade-compatibility-and-version-bump-only-semantics",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-2c4ee2b5-1774915200-104da52d737f",
+  "receipt_hash": "29f0927304f190c11ab183450c207852915c4aea85ca62120e19ba910f357568",
+  "provenance": "captured_verified"
+}

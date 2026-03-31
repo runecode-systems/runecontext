@@ -69,7 +69,7 @@ func TestRunDoctorReportsProjectNewerThanCLI(t *testing.T) {
 	if got, want := fields["upgrade_state"], "project_newer_than_cli"; got != want {
 		t.Fatalf("expected upgrade_state %q, got %q", want, got)
 	}
-	if got := fields["diagnostic_1_message"]; !strings.Contains(got, "upgrade the runectx binary") {
+	if got := fields["diagnostic_1_message"]; !strings.Contains(got, "runectx upgrade cli apply") {
 		t.Fatalf("expected doctor diagnostic guidance for CLI upgrade, got %q", got)
 	}
 }
@@ -96,7 +96,7 @@ func TestRunDoctorReportsProjectNewerThanCLIStableVersions(t *testing.T) {
 	if got, want := fields["upgrade_state"], "project_newer_than_cli"; got != want {
 		t.Fatalf("expected upgrade_state %q, got %q", want, got)
 	}
-	if got := fields["diagnostic_1_message"]; !strings.Contains(got, "upgrade the runectx binary") {
+	if got := fields["diagnostic_1_message"]; !strings.Contains(got, "runectx upgrade cli apply") {
 		t.Fatalf("expected doctor diagnostic guidance for CLI upgrade, got %q", got)
 	}
 }
@@ -122,7 +122,7 @@ func TestRunValidateReportsProjectNewerThanCLIDiagnosticsStableVersions(t *testi
 	if !strings.Contains(stdout.String(), "project_newer_than_cli") {
 		t.Fatalf("expected project_newer_than_cli diagnostic, got %q", stdout.String())
 	}
-	if !strings.Contains(stdout.String(), "upgrade the runectx binary") {
+	if !strings.Contains(stdout.String(), "runectx upgrade cli apply") {
 		t.Fatalf("expected CLI upgrade guidance, got %q", stdout.String())
 	}
 }

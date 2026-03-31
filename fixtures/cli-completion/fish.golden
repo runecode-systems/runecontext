@@ -71,6 +71,8 @@ complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'suggest'
 complete -c runectx -f -n '__fish_seen_subcommand_from generate' -a 'indexes'
 complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'discover'
 complete -c runectx -f -n '__fish_seen_subcommand_from upgrade' -a 'apply'
+complete -c runectx -f -n '__fish_seen_subcommand_from upgrade' -a 'cli'
+complete -c runectx -f -n '__fish_seen_subcommand_from upgrade cli' -a 'apply'
 complete -c runectx -n '__fish_seen_subcommand_from --version' -l json
 complete -c runectx -n '__fish_seen_subcommand_from --version' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from -v' -l json
@@ -229,6 +231,14 @@ complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l json
 complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l path -r
 complete -c runectx -n '__fish_seen_subcommand_from upgrade apply' -l target-version -r
+complete -c runectx -n '__fish_seen_subcommand_from upgrade cli' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from upgrade cli' -l json
+complete -c runectx -n '__fish_seen_subcommand_from upgrade cli' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from upgrade cli' -l target-version -r
+complete -c runectx -n '__fish_seen_subcommand_from upgrade cli apply' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from upgrade cli apply' -l json
+complete -c runectx -n '__fish_seen_subcommand_from upgrade cli apply' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from upgrade cli apply' -l target-version -r
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l json
 complete -c runectx -n '__fish_seen_subcommand_from validate' -l non-interactive

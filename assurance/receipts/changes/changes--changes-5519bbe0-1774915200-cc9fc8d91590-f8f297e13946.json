@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-023-2423-add-explicit-cli-self-update-and-release-check-flows",
+  "created_at": 1774915200,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-023-2423-add-explicit-cli-self-update-and-release-check-flows",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-5519bbe0-1774915200-cc9fc8d91590",
+  "receipt_hash": "f8f297e13946dbac32e400ee2c0c4420d9242d1740de1f9d10d725cbc57853bd",
+  "provenance": "captured_verified"
+}

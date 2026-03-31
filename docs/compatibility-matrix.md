@@ -17,6 +17,8 @@ integration flows should fail closed and direct users to upgrade.
 
 - `runectx upgrade` is a read-only assessment/dry-run surface.
 - `runectx upgrade apply` remains the only mutating upgrade command.
+- `runectx upgrade cli` is the explicit CLI self-update preview/check surface.
+- `runectx upgrade cli apply` is the explicit mutating CLI self-update surface.
 - Upgrade planning follows explicit registered migration hops. Preview reports an
   ordered hop chain (`hop_count`, `hop_N_from`, `hop_N_to`) plus readable
   per-hop actions.

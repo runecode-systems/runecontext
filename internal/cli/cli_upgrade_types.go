@@ -53,9 +53,7 @@ type upgradePlannerRegistry struct {
 }
 
 func defaultUpgradePlannerRegistry() upgradePlannerRegistry {
-	registry := upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
-	registry.registerEdge("0.1.0-alpha.8", "0.1.0-alpha.9")
-	return registry
+	return upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
 }
 
 func (r *upgradePlannerRegistry) registerEdge(from, to string) {
@@ -149,7 +147,7 @@ func buildUpgradeHopActions(hops []upgradeHop) []string {
 func resolveUpgradeTargetVersion(current, requested string) (string, bool) {
 	target := strings.TrimSpace(requested)
 	if target == "" {
-		return current, false
+		return defaultUpgradeTargetVersion(current)
 	}
 	switch strings.ToLower(target) {
 	case "current":
@@ -165,16 +163,21 @@ func resolveUpgradeTargetVersion(current, requested string) (string, bool) {
 	}
 }
 
+func defaultUpgradeTargetVersion(current string) (string, bool) {
+	installed := normalizedRunecontextVersion()
+	if installed == "" || installed == "0.0.0-dev" {
+		return current, false
+	}
+	return installed, false
+}
+
 func isSupportedProjectVersion(version string, registry upgradePlannerRegistry) bool {
 	version = strings.TrimSpace(version)
 	if version == "" {
 		return false
 	}
 	installed := normalizedRunecontextVersion()
-	if installed == "0.0.0-dev" {
-		return true
-	}
-	if version == installed {
+	if supportsByInstalledVersion(version, installed) {
 		return true
 	}
 	if isCompatibleProjectVersionForInstalled(version, installed) {
@@ -186,6 +189,17 @@ func isSupportedProjectVersion(version string, registry upgradePlannerRegistry) 
 		}
 	}
 	return false
+}
+
+func supportsByInstalledVersion(version, installed string) bool {
+	if installed == "0.0.0-dev" || version == installed {
+		return true
+	}
+	if !isComparableVersionLine(version, installed) {
+		return false
+	}
+	comparison, comparable := compareKnownRunecontextVersions(version, installed)
+	return comparable && comparison <= 0
 }
 
 func isCompatibleProjectVersionForInstalled(projectVersion, installedVersion string) bool {

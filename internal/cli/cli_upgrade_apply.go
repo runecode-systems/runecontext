@@ -52,7 +52,8 @@ func (s stagedUpgradeTree) transactionPaths() []string {
 }
 
 func applyUpgradeStagedAndValidated(root, stageRoot string, plan upgradePlan) (stagedUpgradeTree, error) {
-	if err := copyUpgradeTree(root, stageRoot); err != nil {
+	policy := newUpgradeWalkPolicy(root, plan)
+	if err := copyUpgradeTree(root, stageRoot, policy); err != nil {
 		return stagedUpgradeTree{}, err
 	}
 	stageConfig, err := stagedConfigPath(root, stageRoot, plan.ConfigPath)
@@ -72,7 +73,7 @@ func applyUpgradeStagedAndValidated(root, stageRoot string, plan upgradePlan) (s
 	if err := validateUpgradeStage(stageRoot); err != nil {
 		return stagedUpgradeTree{}, fmt.Errorf("validate staged upgrade tree: %w", err)
 	}
-	changedRel, deletedRel, err := diffUpgradeTrees(root, stageRoot)
+	changedRel, deletedRel, err := diffUpgradeTrees(root, stageRoot, policy)
 	if err != nil {
 		return stagedUpgradeTree{}, err
 	}
@@ -108,13 +109,9 @@ func executeUpgradeHops(stageCtx upgradeMigrationContext, plan upgradePlan) erro
 }
 
 func applyUpgradeAdapterPlansInStage(stageRoot string, plan upgradePlan) error {
-	includeCreate := plan.TargetVersion != plan.CurrentVersion
-	states, conflicts, _, err := collectUpgradeAdapterPlansFn(stageRoot, includeCreate)
+	states, err := rebuildUpgradeAdapterStatesInStage(stageRoot, plan)
 	if err != nil {
 		return err
-	}
-	if len(conflicts) > 0 {
-		return fmt.Errorf("managed artifact conflicts detected in staged tree: %s", conflicts[0])
 	}
 	for _, tool := range sortedMapKeys(states) {
 		state := states[tool]
@@ -126,6 +123,59 @@ func applyUpgradeAdapterPlansInStage(stageRoot string, plan upgradePlan) error {
 		}
 	}
 	return nil
+}
+
+func rebuildUpgradeAdapterStatesInStage(stageRoot string, plan upgradePlan) (map[string]adapterSyncState, error) {
+	tools, err := collectStageAdapterTools(stageRoot, plan)
+	if err != nil {
+		return nil, err
+	}
+	staged := make(map[string]adapterSyncState, len(tools))
+	for _, tool := range tools {
+		includeCreate := includeCreateForTool(plan.AdapterPlans[tool])
+		nextState, conflicts, _, skip, err := collectSingleUpgradeAdapterPlan(stageRoot, tool, includeCreate, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		if len(conflicts) > 0 {
+			return nil, fmt.Errorf("staged upgrade adapter conflicts detected for %s", tool)
+		}
+		if skip || len(nextState.plan) == 0 {
+			continue
+		}
+		staged[tool] = nextState
+	}
+	return staged, nil
+}
+
+func includeCreateForTool(state adapterSyncState) bool {
+	for _, mutation := range state.plan {
+		if mutation.Action == "created" {
+			return true
+		}
+	}
+	return false
+}
+
+func collectStageAdapterTools(stageRoot string, plan upgradePlan) ([]string, error) {
+	tools := make([]string, 0, len(plan.AdapterPlans))
+	seen := map[string]struct{}{}
+	for _, tool := range []string{"opencode", "claude-code", "codex"} {
+		if _, ok := plan.AdapterPlans[tool]; ok {
+			seen[tool] = struct{}{}
+			tools = append(tools, tool)
+			continue
+		}
+		managed, err := hasManagedHostNativeArtifactsForTool(stageRoot, tool)
+		if err != nil {
+			return nil, err
+		}
+		if managed {
+			seen[tool] = struct{}{}
+			tools = append(tools, tool)
+		}
+	}
+	return tools, nil
 }
 
 func applyStageCommit(root string, stage stagedUpgradeTree) error {
@@ -175,22 +225,21 @@ func validateUpgradeStage(stageRoot string) error {
 	return nil
 }
 
-func copyUpgradeTree(src, dst string) error {
+func copyUpgradeTree(src, dst string, policy upgradeWalkPolicy) error {
 	return filepath.WalkDir(src, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(src, path)
+		rel, decision, err := classifyUpgradeWalkEntry(src, path, entry, walkErr, policy)
 		if err != nil {
 			return err
 		}
+		switch decision {
+		case upgradeWalkSkip:
+			return nil
+		case upgradeWalkSkipDir:
+			return filepath.SkipDir
+		case upgradeWalkDir:
+			return os.MkdirAll(filepath.Join(dst, rel), 0o755)
+		}
 		target := filepath.Join(dst, rel)
-		if entry.IsDir() {
-			return os.MkdirAll(target, 0o755)
-		}
-		if entry.Type()&os.ModeSymlink != 0 {
-			return fmt.Errorf("upgrade staging rejects symlinked path %s", filepath.ToSlash(rel))
-		}
 		return copyUpgradeFile(path, target)
 	})
 }

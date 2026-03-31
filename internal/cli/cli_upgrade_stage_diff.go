@@ -1,18 +1,17 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 )
 
-func diffUpgradeTrees(root, stageRoot string) ([]string, []string, error) {
-	liveFiles, err := collectRegularFilesByRel(root)
+func diffUpgradeTrees(root, stageRoot string, policy upgradeWalkPolicy) ([]string, []string, error) {
+	liveFiles, err := collectRegularFilesByRel(root, policy)
 	if err != nil {
 		return nil, nil, err
 	}
-	stageFiles, err := collectRegularFilesByRel(stageRoot)
+	stageFiles, err := collectRegularFilesByRel(stageRoot, upgradeWalkPolicy{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -56,21 +55,20 @@ func collectDeletedStageRelPaths(liveFiles, stageFiles map[string]string) []stri
 	return deleted
 }
 
-func collectRegularFilesByRel(root string) (map[string]string, error) {
+func collectRegularFilesByRel(root string, policy upgradeWalkPolicy) (map[string]string, error) {
 	files := map[string]string{}
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			return nil
-		}
-		rel, err := filepath.Rel(root, path)
+		rel, decision, err := classifyUpgradeWalkEntry(root, path, entry, walkErr, policy)
 		if err != nil {
 			return err
 		}
-		if entry.Type()&os.ModeSymlink != 0 {
-			return fmt.Errorf("upgrade staging rejects symlinked path %s", filepath.ToSlash(rel))
+		switch decision {
+		case upgradeWalkSkip:
+			return nil
+		case upgradeWalkSkipDir:
+			return filepath.SkipDir
+		case upgradeWalkDir:
+			return nil
 		}
 		files[rel] = path
 		return nil

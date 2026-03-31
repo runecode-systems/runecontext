@@ -13,14 +13,15 @@ func TestRunUpgradeApplyMultiHopSuccess(t *testing.T) {
 
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.8")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.10"}, &stdout, &stderr)
+	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.10", "--json"}, &stdout, &stderr)
 	if code != exitOK {
 		t.Fatalf("expected apply success, got %d (%s)", code, stderr.String())
 	}
-	fields := parseCLIKeyValueOutput(t, stdout.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
 	if got, want := fields["previous_version"], "0.1.0-alpha.8"; got != want {
 		t.Fatalf("expected previous_version %q, got %q", want, got)
 	}
@@ -37,24 +38,19 @@ func TestRunUpgradeApplyRollbackOnPerHopValidationFailure(t *testing.T) {
 
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.9")
 	configPath := filepath.Join(root, "runecontext.yaml")
 	before, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("read config before apply: %v", err)
 	}
 
-	originalRegistry := upgradeApplyMigrationRegistryFn
-	t.Cleanup(func() { upgradeApplyMigrationRegistryFn = originalRegistry })
-	upgradeApplyMigrationRegistryFn = func() upgradeApplyMigrationRegistry {
-		registry := defaultUpgradeApplyMigrationRegistry()
-		registry.hopSpecific[upgradeEdgeKey{From: "0.1.0-alpha.8", To: "0.1.0-alpha.9"}] = testUpgradeHopMigration{
-			applyFn: func(ctx upgradeMigrationContext, hop upgradeHop) error {
-				return os.WriteFile(ctx.ConfigPath, []byte("schema_version: [broken\n"), 0o644)
-			},
-			verifyFn: func(ctx upgradeMigrationContext, hop upgradeHop) error { return nil },
-		}
-		return registry
-	}
+	installTestOnlyUpgradeHop(t, upgradeEdgeKey{From: "0.1.0-alpha.9", To: "0.1.0-alpha.10"}, testUpgradeHopMigration{
+		applyFn: func(ctx upgradeMigrationContext, hop upgradeHop) error {
+			return os.WriteFile(ctx.ConfigPath, []byte("schema_version: [broken\n"), 0o644)
+		},
+		verifyFn: func(ctx upgradeMigrationContext, hop upgradeHop) error { return nil },
+	})
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -76,26 +72,17 @@ func TestRunUpgradeApplyRollbackOnPerHopVerifyFailure(t *testing.T) {
 
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
-	configPath := filepath.Join(root, "runecontext.yaml")
-	before, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("read config before apply: %v", err)
-	}
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.9")
+	configPath, before := readUpgradeConfigBeforeApply(t, root)
 
-	originalRegistry := upgradeApplyMigrationRegistryFn
-	t.Cleanup(func() { upgradeApplyMigrationRegistryFn = originalRegistry })
-	upgradeApplyMigrationRegistryFn = func() upgradeApplyMigrationRegistry {
-		registry := defaultUpgradeApplyMigrationRegistry()
-		registry.hopSpecific[upgradeEdgeKey{From: "0.1.0-alpha.8", To: "0.1.0-alpha.9"}] = testUpgradeHopMigration{
-			applyFn: func(ctx upgradeMigrationContext, hop upgradeHop) error {
-				return rewriteStageRunecontextVersion(ctx.ConfigPath, hop.To)
-			},
-			verifyFn: func(ctx upgradeMigrationContext, hop upgradeHop) error {
-				return fmt.Errorf("forced hop verify failure")
-			},
-		}
-		return registry
-	}
+	installTestOnlyUpgradeHop(t, upgradeEdgeKey{From: "0.1.0-alpha.9", To: "0.1.0-alpha.10"}, testUpgradeHopMigration{
+		applyFn: func(ctx upgradeMigrationContext, hop upgradeHop) error {
+			return rewriteStageRunecontextVersion(ctx.ConfigPath, hop.To)
+		},
+		verifyFn: func(ctx upgradeMigrationContext, hop upgradeHop) error {
+			return fmt.Errorf("forced hop verify failure")
+		},
+	})
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -103,12 +90,48 @@ func TestRunUpgradeApplyRollbackOnPerHopVerifyFailure(t *testing.T) {
 	if code != exitInvalid {
 		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
 	}
+	after := readUpgradeConfigAfterApply(t, configPath)
+	if string(before) != string(after) {
+		t.Fatalf("expected failed per-hop verify to leave live config unchanged")
+	}
+}
+
+func readUpgradeConfigBeforeApply(t *testing.T, root string) (string, []byte) {
+	t.Helper()
+	configPath := filepath.Join(root, "runecontext.yaml")
+	before, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config before apply: %v", err)
+	}
+	return configPath, before
+}
+
+func readUpgradeConfigAfterApply(t *testing.T, configPath string) []byte {
+	t.Helper()
 	after, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("read config after failed apply: %v", err)
 	}
-	if string(before) != string(after) {
-		t.Fatalf("expected failed per-hop verify to leave live config unchanged")
+	return after
+}
+
+func installTestOnlyUpgradeHop(t *testing.T, edge upgradeEdgeKey, migration testUpgradeHopMigration) {
+	t.Helper()
+	originalRegistry := upgradeApplyMigrationRegistryFn
+	originalPlannerRegistry := upgradePlannerRegistryFn
+	t.Cleanup(func() {
+		upgradeApplyMigrationRegistryFn = originalRegistry
+		upgradePlannerRegistryFn = originalPlannerRegistry
+	})
+	upgradePlannerRegistryFn = func() upgradePlannerRegistry {
+		registry := defaultUpgradePlannerRegistry()
+		registry.registerEdge(edge.From, edge.To)
+		return registry
+	}
+	upgradeApplyMigrationRegistryFn = func() upgradeApplyMigrationRegistry {
+		registry := defaultUpgradeApplyMigrationRegistry()
+		registry.hopSpecific[edge] = migration
+		return registry
 	}
 }
 
@@ -117,6 +140,7 @@ func TestRunUpgradeApplyRefreshesManagedArtifactsFromStagedFinalTree(t *testing.
 
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.8")
 
 	originalRegistry := upgradeApplyMigrationRegistryFn
 	t.Cleanup(func() { upgradeApplyMigrationRegistryFn = originalRegistry })
