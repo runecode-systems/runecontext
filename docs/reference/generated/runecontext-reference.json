@@ -4,8 +4,8 @@
   "binary": "runectx",
   "release": {
     "package_name": "runecontext",
-    "version": "0.1.0-alpha.12",
-    "tag": "v0.1.0-alpha.12"
+    "version": "0.1.0-alpha.13",
+    "tag": "v0.1.0-alpha.13"
   },
   "commands": {
     "items": [
@@ -201,13 +201,13 @@
     ]
   },
   "compatibility": {
-    "default_project_version": "0.1.0-alpha.12",
+    "default_project_version": "0.1.0-alpha.13",
     "directly_supported_project_versions": [
       "0.1.0-alpha.5",
       "0.1.0-alpha.6",
       "0.1.0-alpha.7",
       "0.1.0-alpha.8",
-      "0.1.0-alpha.12"
+      "0.1.0-alpha.13"
     ],
     "upgradeable_from_project_versions": [],
     "explicit_upgrade_edges": []

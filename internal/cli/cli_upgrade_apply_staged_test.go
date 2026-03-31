@@ -33,6 +33,66 @@ func TestRunUpgradeApplyMultiHopSuccess(t *testing.T) {
 	}
 }
 
+func TestRunUpgradeApplyAdvancesStageToIntervalHopFromBeforeMigration(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.13")
+
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.10")
+
+	installIntervalPlannerAndMigrationForAdvance(t)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.13", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected apply success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["current_version"], "0.1.0-alpha.13"; got != want {
+		t.Fatalf("expected current_version %q, got %q", want, got)
+	}
+}
+
+func installIntervalPlannerAndMigrationForAdvance(t *testing.T) {
+	t.Helper()
+	originalRegistry := upgradeApplyMigrationRegistryFn
+	originalPlannerRegistry := upgradePlannerRegistryFn
+	t.Cleanup(func() {
+		upgradeApplyMigrationRegistryFn = originalRegistry
+		upgradePlannerRegistryFn = originalPlannerRegistry
+	})
+
+	upgradePlannerRegistryFn = func() upgradePlannerRegistry {
+		registry := defaultUpgradePlannerRegistry()
+		registry.registerEdge("0.1.0-alpha.12", "0.1.0-alpha.13")
+		return registry
+	}
+
+	upgradeApplyMigrationRegistryFn = func() upgradeApplyMigrationRegistry {
+		registry := defaultUpgradeApplyMigrationRegistry()
+		registry.hopSpecific[upgradeEdgeKey{From: "0.1.0-alpha.12", To: "0.1.0-alpha.13"}] = testUpgradeHopMigration{
+			applyFn:  verifyAdvanceBeforeMigrationApply,
+			verifyFn: verifyMigrationResultVersion,
+		}
+		return registry
+	}
+}
+
+func verifyAdvanceBeforeMigrationApply(ctx upgradeMigrationContext, hop upgradeHop) error {
+	if got, want := readRunecontextVersionFromConfig(ctx.ConfigPath), "0.1.0-alpha.12"; got != want {
+		return fmt.Errorf("expected staged version %s before migration apply, got %s", want, got)
+	}
+	return rewriteStageRunecontextVersion(ctx.ConfigPath, hop.To)
+}
+
+func verifyMigrationResultVersion(ctx upgradeMigrationContext, hop upgradeHop) error {
+	if got, want := readRunecontextVersionFromConfig(ctx.ConfigPath), hop.To; got != want {
+		return fmt.Errorf("expected staged version %s after migration, got %s", want, got)
+	}
+	return nil
+}
+
 func TestRunUpgradeApplyRollbackOnPerHopValidationFailure(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 

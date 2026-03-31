@@ -235,6 +235,71 @@ func TestRunUpgradePreviewAlphaNineTargetAlphaTenVersionBumpOnly(t *testing.T) {
 	}
 }
 
+func TestRunUpgradePreviewCollectsRealMigrationEdgesWithinInterval(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.13")
+
+	originalPlannerRegistry := upgradePlannerRegistryFn
+	t.Cleanup(func() { upgradePlannerRegistryFn = originalPlannerRegistry })
+	upgradePlannerRegistryFn = func() upgradePlannerRegistry {
+		registry := defaultUpgradePlannerRegistry()
+		registry.registerEdge("0.1.0-alpha.12", "0.1.0-alpha.13")
+		return registry
+	}
+
+	root := t.TempDir()
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.10")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.13", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["state"], "upgradeable"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
+	}
+	if got, want := fields["hop_count"], "1"; got != want {
+		t.Fatalf("expected hop_count %q, got %q", want, got)
+	}
+	if got, want := fields["hop_1_from"], "0.1.0-alpha.12"; got != want {
+		t.Fatalf("expected hop_1_from %q, got %q", want, got)
+	}
+	if got, want := fields["hop_1_to"], "0.1.0-alpha.13"; got != want {
+		t.Fatalf("expected hop_1_to %q, got %q", want, got)
+	}
+}
+
+func TestRunUpgradePreviewForwardIntervalWithoutEdgesRemainsVersionBumpOnly(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.13")
+
+	originalPlannerRegistry := upgradePlannerRegistryFn
+	t.Cleanup(func() { upgradePlannerRegistryFn = originalPlannerRegistry })
+	upgradePlannerRegistryFn = func() upgradePlannerRegistry {
+		return upgradePlannerRegistry{}
+	}
+
+	root := t.TempDir()
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.10")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "0.1.0-alpha.13", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["state"], "upgradeable"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
+	}
+	if got, want := fields["hop_count"], "0"; got != want {
+		t.Fatalf("expected hop_count %q, got %q", want, got)
+	}
+	if got, want := fields["plan_action_1"], "set runecontext_version to 0.1.0-alpha.13"; got != want {
+		t.Fatalf("expected version-bump-only action %q, got %q", want, got)
+	}
+}
+
 func TestRunUpgradePreviewFailsClosedWhenProjectIsNewerThanCLI(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
 
