@@ -11,6 +11,7 @@ related_decisions: []
 related_changes:
   - CHG-2026-015-6da4-add-real-multi-hop-upgrade-planning-and-staged-migration-execution
   - CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts
+  - CHG-2026-022-58d8-refine-project-upgrade-compatibility-and-version-bump-only-semantics
 depends_on:
   - CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts
 informed_by: []
