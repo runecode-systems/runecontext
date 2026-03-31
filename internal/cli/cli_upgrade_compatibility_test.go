@@ -70,7 +70,7 @@ func TestRunUpgradePreviewSupportsAlphaFiveWithoutRegisteredEdge(t *testing.T) {
 	}
 }
 
-func TestRunUpgradePreviewAlphaFiveTargetAlphaNineStillRejected(t *testing.T) {
+func TestRunUpgradePreviewAlphaFiveTargetAlphaNineVersionBumpOnly(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
 
 	root := t.TempDir()
@@ -83,11 +83,14 @@ func TestRunUpgradePreviewAlphaFiveTargetAlphaNineStillRejected(t *testing.T) {
 		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
 	}
 	fields := parseCLIKeyValueOutput(t, stdout.String())
-	if got, want := fields["state"], "unsupported_project_version"; got != want {
+	if got, want := fields["state"], "upgradeable"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
-	if got := fields["plan_action_1"]; !strings.Contains(got, "no registered upgrader path") {
-		t.Fatalf("expected missing-path plan action, got %q", got)
+	if got, want := fields["hop_count"], "0"; got != want {
+		t.Fatalf("expected hop_count %q, got %q", want, got)
+	}
+	if got, want := fields["plan_action_1"], "set runecontext_version to 0.1.0-alpha.9"; got != want {
+		t.Fatalf("expected version-bump-only plan action %q, got %q", want, got)
 	}
 }
 
@@ -134,7 +137,7 @@ func TestRunUpgradePreviewMultiHopUsesDeterministicOrderedPath(t *testing.T) {
 	if got, want := fields["state"], "upgradeable"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
-	if got, want := fields["hop_count"], "2"; got != want {
+	if got, want := fields["hop_count"], "1"; got != want {
 		t.Fatalf("expected hop_count %q, got %q", want, got)
 	}
 	if got, want := fields["hop_1_from"], "0.1.0-alpha.8"; got != want {
@@ -143,11 +146,8 @@ func TestRunUpgradePreviewMultiHopUsesDeterministicOrderedPath(t *testing.T) {
 	if got, want := fields["hop_1_to"], "0.1.0-alpha.9"; got != want {
 		t.Fatalf("expected hop_1_to %q, got %q", want, got)
 	}
-	if got, want := fields["hop_2_from"], "0.1.0-alpha.9"; got != want {
-		t.Fatalf("expected hop_2_from %q, got %q", want, got)
-	}
-	if got, want := fields["hop_2_to"], "0.1.0-alpha.10"; got != want {
-		t.Fatalf("expected hop_2_to %q, got %q", want, got)
+	if got, want := fields["plan_action_2"], "set runecontext_version to 0.1.0-alpha.10"; got != want {
+		t.Fatalf("expected final version rewrite plan action %q, got %q", want, got)
 	}
 }
 
@@ -170,7 +170,7 @@ func TestRunUpgradePreviewAliasTargetLatestUsesPlannedHops(t *testing.T) {
 	if got, want := fields["network_access"], "true"; got != want {
 		t.Fatalf("expected network_access %q, got %q", want, got)
 	}
-	if got, want := fields["hop_count"], "2"; got != want {
+	if got, want := fields["hop_count"], "1"; got != want {
 		t.Fatalf("expected hop_count %q, got %q", want, got)
 	}
 }
@@ -199,7 +199,7 @@ func TestRunUpgradePreviewCurrentVersionNoOpReportsZeroHops(t *testing.T) {
 	}
 }
 
-func TestRunUpgradePreviewFailClosedWhenNoRegisteredPathExists(t *testing.T) {
+func TestRunUpgradePreviewAlphaFiveToAlphaTenAllowsVersionBumpWithRequiredHopsOnly(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 
 	root := t.TempDir()
@@ -212,18 +212,18 @@ func TestRunUpgradePreviewFailClosedWhenNoRegisteredPathExists(t *testing.T) {
 		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
 	}
 	fields := parseCLIKeyValueOutput(t, stdout.String())
-	if got, want := fields["state"], "unsupported_project_version"; got != want {
+	if got, want := fields["state"], "upgradeable"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
 	if got, want := fields["hop_count"], "0"; got != want {
 		t.Fatalf("expected hop_count %q, got %q", want, got)
 	}
-	if got := fields["plan_action_1"]; !strings.Contains(got, "no registered upgrader path") {
-		t.Fatalf("expected missing-path plan action, got %q", got)
+	if got, want := fields["plan_action_1"], "set runecontext_version to 0.1.0-alpha.10"; got != want {
+		t.Fatalf("expected version-bump-only plan action %q, got %q", want, got)
 	}
 }
 
-func TestRunUpgradePreviewAlphaNineTargetAlphaTenSupportedEdge(t *testing.T) {
+func TestRunUpgradePreviewAlphaNineTargetAlphaTenVersionBumpOnly(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
 
 	root := t.TempDir()
@@ -239,11 +239,71 @@ func TestRunUpgradePreviewAlphaNineTargetAlphaTenSupportedEdge(t *testing.T) {
 	if got, want := fields["state"], "upgradeable"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
-	if got, want := fields["plan_action_1"], "migrate runecontext_version 0.1.0-alpha.9 -> 0.1.0-alpha.10"; got != want {
-		t.Fatalf("expected transition hop action %q, got %q", want, got)
+	if got, want := fields["hop_count"], "0"; got != want {
+		t.Fatalf("expected hop_count %q, got %q", want, got)
 	}
-	if got, want := fields["plan_action_2"], "set runecontext_version to 0.1.0-alpha.10"; got != want {
+	if got, want := fields["plan_action_1"], "set runecontext_version to 0.1.0-alpha.10"; got != want {
 		t.Fatalf("expected version rewrite action %q, got %q", want, got)
+	}
+}
+
+func TestRunUpgradePreviewFailsClosedWhenProjectIsNewerThanCLI(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
+
+	root := t.TempDir()
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.10")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "current"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["state"], "project_newer_than_cli"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
+	}
+	if got := fields["next_action_1"]; !strings.Contains(got, "upgrade runectx") {
+		t.Fatalf("expected next action to guide CLI upgrade, got %q", got)
+	}
+}
+
+func TestRunUpgradePreviewStableProjectNewerThanCLI(t *testing.T) {
+	setRunecontextVersionForTests(t, "v1.2.3")
+
+	root := t.TempDir()
+	writeEmbeddedProjectVersion(t, root, "1.2.4")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "current"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["state"], "project_newer_than_cli"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
+	}
+	if got := fields["next_action_1"]; !strings.Contains(got, "upgrade runectx") {
+		t.Fatalf("expected CLI upgrade guidance, got %q", got)
+	}
+}
+
+func TestRunUpgradePreviewStableProjectFromDifferentMinorIsUnsupported(t *testing.T) {
+	setRunecontextVersionForTests(t, "v1.2.3")
+
+	root := t.TempDir()
+	writeEmbeddedProjectVersion(t, root, "1.3.0")
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "--path", root, "--target-version", "current"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["state"], "unsupported_project_version"; got != want {
+		t.Fatalf("expected state %q, got %q", want, got)
 	}
 }
 
@@ -260,35 +320,65 @@ func TestRunUpgradePreviewRejectsDowngradeTarget(t *testing.T) {
 		t.Fatalf("expected preview success, got %d (%s)", code, stderr.String())
 	}
 	fields := parseCLIKeyValueOutput(t, stdout.String())
-	if got, want := fields["state"], "unsupported_project_version"; got != want {
+	if got, want := fields["state"], "project_newer_than_cli"; got != want {
 		t.Fatalf("expected state %q, got %q", want, got)
 	}
-	if got := fields["plan_action_1"]; !strings.Contains(got, "no registered upgrader path") {
-		t.Fatalf("expected missing-path plan action, got %q", got)
+	if got := fields["next_action_1"]; !strings.Contains(got, "upgrade runectx") {
+		t.Fatalf("expected CLI upgrade guidance, got %q", got)
 	}
 }
 
-func TestShouldRegisterInstalledUpgradeEdge(t *testing.T) {
+func TestCompareKnownRunecontextVersions(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name      string
-		installed string
-		want      bool
+		name       string
+		left       string
+		right      string
+		wantCmp    int
+		wantParsed bool
 	}{
-		{name: "empty", installed: "", want: false},
-		{name: "dev", installed: "0.0.0-dev", want: false},
-		{name: "placeholder 0.0.0", installed: "0.0.0", want: false},
-		{name: "same as alpha9", installed: "0.1.0-alpha.9", want: false},
-		{name: "older alpha", installed: "0.1.0-alpha.8", want: false},
-		{name: "newer alpha", installed: "0.1.0-alpha.10", want: true},
-		{name: "stable", installed: "1.0.0", want: true},
+		{name: "equal", left: "0.1.0-alpha.9", right: "0.1.0-alpha.9", wantCmp: 0, wantParsed: true},
+		{name: "older", left: "0.1.0-alpha.8", right: "0.1.0-alpha.9", wantCmp: -1, wantParsed: true},
+		{name: "newer", left: "0.1.0-alpha.10", right: "0.1.0-alpha.9", wantCmp: 1, wantParsed: true},
+		{name: "stable newer", left: "1.2.4", right: "1.2.3", wantCmp: 1, wantParsed: true},
+		{name: "stable older", left: "1.2.3", right: "1.2.4", wantCmp: -1, wantParsed: true},
+		{name: "stable equal", left: "1.2.3", right: "1.2.3", wantCmp: 0, wantParsed: true},
+		{name: "pre-release lower than stable", left: "1.2.3-alpha.1", right: "1.2.3", wantCmp: -1, wantParsed: true},
+		{name: "pre-release numeric ordering", left: "1.2.3-alpha.2", right: "1.2.3-alpha.10", wantCmp: -1, wantParsed: true},
+		{name: "unknown", left: "not-a-version", right: "0.1.0-alpha.9", wantCmp: 0, wantParsed: false},
 	}
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if got := shouldRegisterInstalledUpgradeEdge(tc.installed); got != tc.want {
-				t.Fatalf("shouldRegisterInstalledUpgradeEdge(%q) = %t, want %t", tc.installed, got, tc.want)
+			gotCmp, gotParsed := compareKnownRunecontextVersions(tc.left, tc.right)
+			if gotCmp != tc.wantCmp || gotParsed != tc.wantParsed {
+				t.Fatalf("compareKnownRunecontextVersions(%q, %q) = (%d, %t), want (%d, %t)", tc.left, tc.right, gotCmp, gotParsed, tc.wantCmp, tc.wantParsed)
+			}
+		})
+	}
+}
+
+func TestIsComparableVersionLine(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		current   string
+		installed string
+		want      bool
+	}{
+		{name: "same alpha line", current: "0.1.0-alpha.11", installed: "0.1.0-alpha.10", want: true},
+		{name: "same stable line", current: "1.2.4", installed: "1.2.3", want: true},
+		{name: "different minor", current: "1.3.0", installed: "1.2.3", want: false},
+		{name: "different major", current: "2.0.0", installed: "1.2.3", want: false},
+		{name: "invalid current", current: "invalid", installed: "1.2.3", want: false},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := isComparableVersionLine(tc.current, tc.installed); got != tc.want {
+				t.Fatalf("isComparableVersionLine(%q, %q) = %t, want %t", tc.current, tc.installed, got, tc.want)
 			}
 		})
 	}

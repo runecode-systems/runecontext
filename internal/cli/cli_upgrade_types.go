@@ -5,8 +5,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/runecode-systems/runecontext/internal/contracts"
 )
 
 type upgradeState string
@@ -15,6 +13,7 @@ const (
 	upgradeStateCurrent                   upgradeState = "current"
 	upgradeStateUpgradeable               upgradeState = "upgradeable"
 	upgradeStateUnsupportedProjectVersion upgradeState = "unsupported_project_version"
+	upgradeStateProjectNewerThanCLI       upgradeState = "project_newer_than_cli"
 	upgradeStateMixedOrStaleTree          upgradeState = "mixed_or_stale_tree"
 	upgradeStateConflicted                upgradeState = "conflicted"
 )
@@ -56,22 +55,7 @@ type upgradePlannerRegistry struct {
 func defaultUpgradePlannerRegistry() upgradePlannerRegistry {
 	registry := upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
 	registry.registerEdge("0.1.0-alpha.8", "0.1.0-alpha.9")
-	installed := normalizedRunecontextVersion()
-	if shouldRegisterInstalledUpgradeEdge(installed) {
-		registry.registerEdge("0.1.0-alpha.9", installed)
-	}
 	return registry
-}
-
-func shouldRegisterInstalledUpgradeEdge(installed string) bool {
-	installed = strings.TrimSpace(installed)
-	if installed == "" || installed == "0.0.0" || installed == "0.0.0-dev" || installed == "0.1.0-alpha.9" {
-		return false
-	}
-	if ordinal, ok := alphaOrdinal(installed); ok {
-		return ordinal > 9
-	}
-	return true
 }
 
 func (r *upgradePlannerRegistry) registerEdge(from, to string) {
@@ -236,34 +220,5 @@ func alphaOrdinal(version string) (int, bool) {
 }
 
 func upgradePlanDiagnostics(plan upgradePlan) []emittedDiagnostic {
-	switch plan.State {
-	case upgradeStateUnsupportedProjectVersion:
-		return []emittedDiagnostic{{
-			Severity: contracts.DiagnosticSeverityError,
-			Code:     "unsupported_project_version",
-			Message:  fmt.Sprintf("project runecontext_version %s is not supported for upgrade to %s", plan.CurrentVersion, plan.TargetVersion),
-		}}
-	case upgradeStateMixedOrStaleTree:
-		return []emittedDiagnostic{{
-			Severity: contracts.DiagnosticSeverityWarning,
-			Code:     "mixed_or_stale_tree",
-			Message:  "stale RuneContext-managed artifacts detected; rerun runectx upgrade apply",
-		}}
-	case upgradeStateConflicted:
-		return []emittedDiagnostic{{
-			Severity: contracts.DiagnosticSeverityError,
-			Code:     "conflicted",
-			Message:  "managed artifact conflicts detected; resolve ownership conflicts before upgrade apply",
-		}}
-	default:
-		diagnostics := make([]emittedDiagnostic, 0, len(plan.Warnings))
-		for _, warning := range plan.Warnings {
-			diagnostics = append(diagnostics, emittedDiagnostic{
-				Severity: contracts.DiagnosticSeverityWarning,
-				Code:     "optional_adapter_pack_unavailable",
-				Message:  warning,
-			})
-		}
-		return diagnostics
-	}
+	return buildUpgradePlanDiagnostics(plan)
 }

@@ -87,6 +87,9 @@ func basePlanFromIndex(absRoot string, index *contracts.ProjectIndex) upgradePla
 
 func classifyUpgradePlanCommon(plan *upgradePlan, edgeAction, conflictAction string) (bool, error) {
 	registry := defaultUpgradePlannerRegistry()
+	if classifyProjectNewerThanInstalled(plan, "upgrade runectx to a version that supports this project runecontext_version") {
+		return true, nil
+	}
 	if classifyUnsupportedVersion(plan, registry, "install a compatible runectx release or manually align runecontext_version before retrying upgrade") {
 		return true, nil
 	}
@@ -103,6 +106,24 @@ func classifyUpgradePlanCommon(plan *upgradePlan, edgeAction, conflictAction str
 		return true, nil
 	}
 	return false, nil
+}
+
+func classifyProjectNewerThanInstalled(plan *upgradePlan, nextAction string) bool {
+	installed := normalizedRunecontextVersion()
+	if installed == "0.0.0-dev" {
+		return false
+	}
+	comparison, comparable := compareKnownRunecontextVersions(plan.CurrentVersion, installed)
+	if !comparable || comparison <= 0 {
+		return false
+	}
+	if !isComparableVersionLine(plan.CurrentVersion, installed) {
+		return false
+	}
+	plan.State = upgradeStateProjectNewerThanCLI
+	plan.PlanActions = append(plan.PlanActions, fmt.Sprintf("project runecontext_version %s is newer than installed runectx %s", plan.CurrentVersion, installed))
+	plan.NextActions = append(plan.NextActions, nextAction)
+	return true
 }
 
 func classifyUnsupportedVersion(plan *upgradePlan, registry upgradePlannerRegistry, nextAction string) bool {
@@ -130,6 +151,17 @@ func classifyExternallyManagedPath(plan *upgradePlan, sourcePath, fallbackAction
 }
 
 func classifyMissingUpgradePath(plan *upgradePlan, registry upgradePlannerRegistry, nextAction string) bool {
+	if plan.CurrentVersion != plan.TargetVersion {
+		if comparison, comparable := compareKnownRunecontextVersions(plan.CurrentVersion, plan.TargetVersion); comparable && comparison < 0 && isComparableVersionLine(plan.CurrentVersion, plan.TargetVersion) {
+			hops, ok := registry.planPath(plan.CurrentVersion, plan.TargetVersion)
+			if !ok {
+				hops = planRequiredUpgradeHops(plan.CurrentVersion, plan.TargetVersion, registry)
+			}
+			plan.UpgradeHops = hops
+			plan.HopActions = buildUpgradeHopActions(hops)
+			return false
+		}
+	}
 	hops, ok := registry.planPath(plan.CurrentVersion, plan.TargetVersion)
 	if !ok {
 		plan.State = upgradeStateUnsupportedProjectVersion
@@ -140,6 +172,41 @@ func classifyMissingUpgradePath(plan *upgradePlan, registry upgradePlannerRegist
 	plan.UpgradeHops = hops
 	plan.HopActions = buildUpgradeHopActions(hops)
 	return false
+}
+
+func planRequiredUpgradeHops(current, target string, registry upgradePlannerRegistry) []upgradeHop {
+	hops := make([]upgradeHop, 0)
+	cursor := current
+	for {
+		nextVersion, ok := selectRequiredUpgradeHopTarget(cursor, target, registry)
+		if !ok {
+			break
+		}
+		hops = append(hops, upgradeHop{From: cursor, To: nextVersion})
+		cursor = nextVersion
+	}
+	return hops
+}
+
+func selectRequiredUpgradeHopTarget(current, target string, registry upgradePlannerRegistry) (string, bool) {
+	candidates := registry.next[current]
+	best := ""
+	for _, candidate := range candidates {
+		if comparison, comparable := compareKnownRunecontextVersions(candidate, target); !comparable || comparison > 0 {
+			continue
+		}
+		if best == "" {
+			best = candidate
+			continue
+		}
+		if comparison, comparable := compareKnownRunecontextVersions(candidate, best); comparable && comparison > 0 {
+			best = candidate
+		}
+	}
+	if best == "" {
+		return "", false
+	}
+	return best, true
 }
 
 func classifyAdapterState(plan *upgradePlan, includeCreate bool, nextAction string) error {
@@ -193,65 +260,4 @@ func finalizeUpgradeVersionState(plan *upgradePlan, staleAction string) {
 		plan.PlanActions = append(plan.PlanActions, collectAdapterPlanActions(plan.AdapterPlans)...)
 		plan.ApplyMutations = append(plan.ApplyMutations, collectAdapterMutationLines(plan.AdapterPlans)...)
 	}
-}
-
-func collectUpgradeAdapterPlans(absRoot string, includeCreate bool) (map[string]adapterSyncState, []string, []string, error) {
-	states := map[string]adapterSyncState{}
-	conflicts := make([]string, 0)
-	warnings := make([]string, 0)
-	for _, tool := range []string{"opencode", "claude-code", "codex"} {
-		nextState, nextConflicts, nextWarnings, skip, err := collectSingleUpgradeAdapterPlan(absRoot, tool, includeCreate, conflicts, warnings)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		conflicts = nextConflicts
-		warnings = nextWarnings
-		if skip {
-			continue
-		}
-		if len(nextState.plan) > 0 {
-			states[tool] = nextState
-		}
-	}
-	return states, conflicts, warnings, nil
-}
-
-func filterAdapterMutations(mutations []contracts.FileMutation, includeCreate bool) []contracts.FileMutation {
-	result := make([]contracts.FileMutation, 0, len(mutations))
-	for _, mutation := range mutations {
-		if mutation.Action == "created" && !includeCreate {
-			continue
-		}
-		result = append(result, mutation)
-	}
-	return result
-}
-
-func hasAdapterMutations(states map[string]adapterSyncState) bool {
-	for _, state := range states {
-		if len(state.plan) > 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func collectAdapterPlanActions(states map[string]adapterSyncState) []string {
-	actions := make([]string, 0)
-	for _, tool := range sortedMapKeys(states) {
-		for _, mutation := range states[tool].plan {
-			actions = append(actions, fmt.Sprintf("refresh host-native %s artifact: %s %s", tool, mutation.Action, mutation.Path))
-		}
-	}
-	return actions
-}
-
-func collectAdapterMutationLines(states map[string]adapterSyncState) []string {
-	changes := make([]string, 0)
-	for _, tool := range sortedMapKeys(states) {
-		for _, mutation := range states[tool].plan {
-			changes = append(changes, fmt.Sprintf("%s %s", mutation.Action, mutation.Path))
-		}
-	}
-	return changes
 }

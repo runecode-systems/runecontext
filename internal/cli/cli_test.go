@@ -87,6 +87,55 @@ func TestRunValidateReportsUnsupportedProjectVersionDiagnostics(t *testing.T) {
 	}
 }
 
+func TestRunValidateReportsProjectNewerThanCLIDiagnostics(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.9")
+
+	root := t.TempDir()
+	config := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.10\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	if err := os.WriteFile(filepath.Join(root, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir content root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", "--path", root}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected validate success with diagnostics, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "project_newer_than_cli") {
+		t.Fatalf("expected project_newer_than_cli diagnostic, got %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "upgrade the runectx binary") {
+		t.Fatalf("expected CLI upgrade guidance, got %q", stdout.String())
+	}
+}
+
+func TestRunValidateOlderCompatibleProjectIsNotUnsupported(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
+
+	root := t.TempDir()
+	config := "schema_version: 1\nrunecontext_version: 0.1.0-alpha.8\nassurance_tier: plain\nsource:\n  type: embedded\n  path: runecontext\n"
+	if err := os.WriteFile(filepath.Join(root, "runecontext.yaml"), []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "runecontext"), 0o755); err != nil {
+		t.Fatalf("mkdir content root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"validate", "--path", root}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected validate success, got %d (%s)", code, stderr.String())
+	}
+	if strings.Contains(stdout.String(), "unsupported_project_version") {
+		t.Fatalf("did not expect unsupported_project_version diagnostic, got %q", stdout.String())
+	}
+}
+
 func TestRunValidateReportsStaleTreeWithoutMutating(t *testing.T) {
 	root := t.TempDir()
 	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)

@@ -185,10 +185,6 @@
         {
           "from": "0.1.0-alpha.8",
           "to": "0.1.0-alpha.9"
-        },
-        {
-          "from": "0.1.0-alpha.9",
-          "to": "0.1.0-alpha.12"
         }
       ],
       "upgradeable_from_project_versions": [

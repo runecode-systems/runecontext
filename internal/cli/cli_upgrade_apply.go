@@ -63,6 +63,9 @@ func applyUpgradeStagedAndValidated(root, stageRoot string, plan upgradePlan) (s
 	if err := executeUpgradeHops(stageCtx, plan); err != nil {
 		return stagedUpgradeTree{}, err
 	}
+	if err := finalizeUpgradeTargetVersion(stageCtx, plan); err != nil {
+		return stagedUpgradeTree{}, err
+	}
 	if err := applyUpgradeAdapterPlansInStage(stageRoot, plan); err != nil {
 		return stagedUpgradeTree{}, err
 	}
@@ -78,6 +81,13 @@ func applyUpgradeStagedAndValidated(root, stageRoot string, plan upgradePlan) (s
 		changedFiles: toAbsoluteUpgradePaths(root, changedRel),
 		deletedFiles: toAbsoluteUpgradePaths(root, deletedRel),
 	}, nil
+}
+
+func finalizeUpgradeTargetVersion(stageCtx upgradeMigrationContext, plan upgradePlan) error {
+	if plan.TargetVersion == plan.CurrentVersion {
+		return nil
+	}
+	return rewriteStageRunecontextVersion(stageCtx.ConfigPath, plan.TargetVersion)
 }
 
 func executeUpgradeHops(stageCtx upgradeMigrationContext, plan upgradePlan) error {

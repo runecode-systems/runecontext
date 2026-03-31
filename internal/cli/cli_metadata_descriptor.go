@@ -164,13 +164,15 @@ func deriveDirectlySupportedProjectVersions(installedVersion string) []string {
 
 func deriveUpgradeableFromProjectVersions(planner upgradePlannerRegistry) []string {
 	seen := map[string]struct{}{}
-	versions := make([]string, 0, len(planner.edges))
+	versions := make([]string, 0, len(planner.edges)*2)
 	for edge := range planner.edges {
-		if _, ok := seen[edge.From]; ok {
-			continue
+		for _, candidate := range []string{edge.From, edge.To} {
+			if _, ok := seen[candidate]; ok {
+				continue
+			}
+			seen[candidate] = struct{}{}
+			versions = append(versions, candidate)
 		}
-		seen[edge.From] = struct{}{}
-		versions = append(versions, edge.From)
 	}
 	sortVersions(versions)
 	return versions
