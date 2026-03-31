@@ -126,11 +126,18 @@ func appendUpgradeSection(builder *strings.Builder, title string, lines []string
 }
 
 func appendUpgradePlanLines(lines []string, plan upgradePlan) []string {
-	lines = append(lines, sanitizeUpgradeLines(plan.PlanActions)...)
+	setVersionActions := make([]string, 0, 1)
+	for _, action := range sanitizeUpgradeLines(plan.PlanActions) {
+		if strings.HasPrefix(strings.TrimSpace(action), "set runecontext_version to ") {
+			setVersionActions = append(setVersionActions, action)
+			continue
+		}
+		lines = append(lines, action)
+	}
 	for _, hop := range plan.UpgradeHops {
 		lines = append(lines, sanitizeStatusText(fmt.Sprintf("hop %s -> %s", hop.From, hop.To)))
 	}
-	lines = append(lines, sanitizeUpgradeLines(plan.HopActions)...)
+	lines = append(lines, setVersionActions...)
 	return lines
 }
 
