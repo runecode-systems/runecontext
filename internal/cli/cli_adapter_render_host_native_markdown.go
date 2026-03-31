@@ -49,7 +49,7 @@ func renderHostNativeIndexMarkdown(request adapterRenderRequest) (string, error)
 		"- operation_identifier: `runecontext:index`",
 	}
 	for _, flow := range flows {
-		commandPath := strings.ReplaceAll(flow.id, "-", " ")
+		commandPath := commandPathFromFlowID(flow.id)
 		command, ok := commandByPath(commandPath)
 		if !ok {
 			continue
@@ -74,7 +74,7 @@ type hostNativeRenderMeta struct {
 }
 
 func hostNativeRenderMetadata(request adapterRenderRequest, flow hostNativeFlow) (hostNativeRenderMeta, error) {
-	path := strings.ReplaceAll(flow.id, "-", " ")
+	path := commandPathFromFlowID(flow.id)
 	command, ok := commandByPath(path)
 	if !ok {
 		return hostNativeRenderMeta{}, fmt.Errorf("adapter render-host-native metadata missing command path %q", path)
@@ -92,6 +92,14 @@ func hostNativeRenderMetadata(request adapterRenderRequest, flow hostNativeFlow)
 		requiredFlags:       requiredFlagsFromMetadata(command.Flags),
 		requiredPositionals: requiredPositionalsFromUsage(command.Usage, command.Positionals),
 	}, nil
+}
+
+func commandPathFromFlowID(flowID string) string {
+	if strings.HasPrefix(flowID, "change-assess-") {
+		suffix := strings.TrimPrefix(flowID, "change-assess-")
+		return "change assess-" + suffix
+	}
+	return strings.ReplaceAll(flowID, "-", " ")
 }
 
 func commandByPath(path string) (CommandMetadata, bool) {

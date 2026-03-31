@@ -61,6 +61,8 @@ complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'backfill'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'capture'
 complete -c runectx -f -n '__fish_seen_subcommand_from assurance' -a 'enable'
 complete -c runectx -f -n '__fish_seen_subcommand_from bundle' -a 'resolve'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'assess-decomposition'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'assess-intake'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'close'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'new'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'reallocate'
@@ -122,6 +124,22 @@ complete -c runectx -n '__fish_seen_subcommand_from change' -l dry-run
 complete -c runectx -n '__fish_seen_subcommand_from change' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from change' -l json
 complete -c runectx -n '__fish_seen_subcommand_from change' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change assess-decomposition' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change assess-decomposition' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change assess-decomposition' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change assess-decomposition' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l bundle -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change assess-intake); and __runectx_prev_token_is --bundle' -a '(__runectx_dynamic_suggest bundle-ids)'
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l description -r
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l size -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change assess-intake); and __runectx_prev_token_is --size' -a 'large medium small'
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l title -r
+complete -c runectx -n '__fish_seen_subcommand_from change assess-intake' -l type -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change assess-intake); and __runectx_prev_token_is --type' -a 'bug chore feature project standard'
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l closed-at -r
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l dry-run
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l explain
@@ -368,6 +386,7 @@ complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'bash fish
 complete -c runectx -f -n '__fish_seen_subcommand_from completion suggest' -a 'adapter-names adapter-names-shell-injection bundle-ids change-ids promotion-targets'
 complete -c runectx -f -n '__fish_seen_subcommand_from adapter render-host-native' -a '(__runectx_dynamic_suggest adapter-names-shell-injection)'
 complete -c runectx -f -n '__fish_seen_subcommand_from adapter sync' -a '(__runectx_dynamic_suggest adapter-names)'
+complete -c runectx -f -n '__fish_seen_subcommand_from change assess-decomposition' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change close' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change reallocate' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change shape' -a '(__runectx_dynamic_suggest change-ids)'

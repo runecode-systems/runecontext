@@ -267,6 +267,9 @@ func TestCompletionMetadataIncludesSuggestionProviders(t *testing.T) {
 	if got := flagProviders["change new|--bundle"]; got != suggestionProviderBundleIDs {
 		t.Fatalf("expected change new bundle suggestion provider, got %q", got)
 	}
+	if got := flagProviders["change assess-intake|--bundle"]; got != suggestionProviderBundleIDs {
+		t.Fatalf("expected change assess-intake bundle suggestion provider, got %q", got)
+	}
 	if got := flagProviders["init|--seed-bundle"]; got != suggestionProviderBundleIDs {
 		t.Fatalf("expected init seed-bundle suggestion provider, got %q", got)
 	}

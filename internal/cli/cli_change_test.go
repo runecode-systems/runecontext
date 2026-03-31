@@ -221,6 +221,108 @@ func TestRunChangeUpdateUsageErrors(t *testing.T) {
 	}
 }
 
+func TestRunChangeAssessIntakeOutputsAdvisoryContract(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := Run([]string{"change", "assess-intake", "--title", "Launch payments platform", "--type", "project", "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["command"], "change_assess_intake"; got != want {
+		t.Fatalf("expected command %q, got %q", want, got)
+	}
+	if got, want := fields["mutation_performed"], "false"; got != want {
+		t.Fatalf("expected mutation_performed %q, got %q", want, got)
+	}
+	if got, want := fields["recommended_mode"], "full"; got != want {
+		t.Fatalf("expected recommended_mode %q, got %q", want, got)
+	}
+	if got, want := fields["intake_readiness"], "needs_clarification"; got != want {
+		t.Fatalf("expected intake_readiness %q, got %q", want, got)
+	}
+	if got, want := fields["decomposition_signal"], "consider_decomposition"; got != want {
+		t.Fatalf("expected decomposition_signal %q, got %q", want, got)
+	}
+	if got, want := fields["clarification_needed"], "true"; got != want {
+		t.Fatalf("expected clarification_needed %q, got %q", want, got)
+	}
+}
+
+func TestRunChangeAssessIntakeUsageErrors(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "assess-intake", "--type", "feature"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for missing title, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "--title is required") {
+		t.Fatalf("expected missing-title usage output, got %q", stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"change", "assess-intake", "--title", "x", "--type", "feature", "--dry-run"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for dry-run on assess-intake, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "--dry-run is not supported") {
+		t.Fatalf("expected dry-run usage output, got %q", stderr.String())
+	}
+}
+
+func TestRunChangeAssessDecompositionOutputsAdvisoryContract(t *testing.T) {
+	projectRoot := prepareCLIWorkflowProject(t)
+	umbrellaID := runCLIProjectChangeNewForTest(t, projectRoot, "Umbrella project")
+	featureID := runCLIChangeNewForTest(t, projectRoot, "Feature sub-change")
+	writeCLIBidirectionalRelatedLink(t, projectRoot, umbrellaID, featureID)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "assess-decomposition", umbrellaID, "--path", projectRoot}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	fields := parseCLIKeyValueOutput(t, stdout.String())
+	if got, want := fields["command"], "change_assess_decomposition"; got != want {
+		t.Fatalf("expected command %q, got %q", want, got)
+	}
+	if got, want := fields["change_id"], umbrellaID; got != want {
+		t.Fatalf("expected change_id %q, got %q", want, got)
+	}
+	if got, want := fields["decomposition_signal"], "umbrella_graph_detected"; got != want {
+		t.Fatalf("expected decomposition_signal %q, got %q", want, got)
+	}
+	if got, want := fields["eligible_sub_change_count"], "1"; got != want {
+		t.Fatalf("expected eligible_sub_change_count %q, got %q", want, got)
+	}
+	if got, want := fields["eligible_sub_change_1"], featureID; got != want {
+		t.Fatalf("expected eligible_sub_change_1 %q, got %q", want, got)
+	}
+}
+
+func TestRunChangeAssessDecompositionUsageErrors(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"change", "assess-decomposition"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for missing ID, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "requires exactly one change ID") {
+		t.Fatalf("expected missing-ID usage output, got %q", stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = Run([]string{"change", "assess-decomposition", "CHG-2026-001-a3f2-auth-gateway", "--dry-run"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("expected usage exit code for dry-run on assess-decomposition, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "--dry-run is not supported") {
+		t.Fatalf("expected dry-run usage output, got %q", stderr.String())
+	}
+}
+
 func TestRunPromoteOutputsAcceptedAndCompletedStatus(t *testing.T) {
 	projectRoot := prepareCLIWorkflowProject(t)
 	changeID := runCLIStandardChangeNewForTest(t, projectRoot, "Refresh security baseline")

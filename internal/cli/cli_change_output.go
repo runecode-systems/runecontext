@@ -102,6 +102,56 @@ func buildChangeUpdateOutput(absRoot string, loaded *contracts.LoadedProject, re
 	return appendChangedFiles(output, result.ChangedFiles)
 }
 
+func buildChangeAssessIntakeOutput(absRoot string, loaded *contracts.LoadedProject, result *contracts.ChangeAssessIntakeResult) []line {
+	output := []line{
+		{"result", "ok"},
+		{"command", "change_assess_intake"},
+		{"root", absRoot},
+		{"selected_config_path", selectedConfigPath(loaded)},
+		{"mutation_performed", "false"},
+		{"change_type", result.Type},
+		{"change_size", result.Size},
+		{"recommended_mode", string(result.RecommendedMode)},
+		{"intake_readiness", result.IntakeReadiness},
+		{"clarification_needed", boolString(result.ClarificationNeeded)},
+		{"decomposition_signal", result.DecompositionSignal},
+		{"context_bundle_count", fmt.Sprintf("%d", len(result.ContextBundles))},
+	}
+	output = appendStringItems(output, "context_bundle", result.ContextBundles)
+	output = append(output, line{"applicable_standard_count", fmt.Sprintf("%d", len(result.ApplicableStandards))})
+	output = appendStringItems(output, "applicable_standard", result.ApplicableStandards)
+	output = append(output, line{"clarification_prompt_count", fmt.Sprintf("%d", len(result.ClarificationPrompts))})
+	output = appendStringItems(output, "clarification_prompt", result.ClarificationPrompts)
+	return appendReasonsAndAssumptions(output, result.Reasons, result.Assumptions)
+}
+
+func buildChangeAssessDecompositionOutput(absRoot string, loaded *contracts.LoadedProject, result *contracts.ChangeAssessDecompositionResult) []line {
+	output := []line{
+		{"result", "ok"},
+		{"command", "change_assess_decomposition"},
+		{"root", absRoot},
+		{"selected_config_path", selectedConfigPath(loaded)},
+		{"mutation_performed", "false"},
+		{"change_id", result.ID},
+		{"change_status", result.Status},
+		{"change_type", result.Type},
+		{"change_size", result.Size},
+		{"recommended_mode", string(result.RecommendedMode)},
+		{"decomposition_signal", result.DecompositionSignal},
+		{"clarification_needed", boolString(result.ClarificationNeeded)},
+		{"related_change_count", fmt.Sprintf("%d", len(result.RelatedChanges))},
+	}
+	output = appendStringItems(output, "related_change", result.RelatedChanges)
+	output = append(output, line{"eligible_sub_change_count", fmt.Sprintf("%d", len(result.EligibleSubChangeIDs))})
+	output = appendStringItems(output, "eligible_sub_change", result.EligibleSubChangeIDs)
+	output = append(output, line{"prerequisite_change_count", fmt.Sprintf("%d", len(result.PrerequisiteChangeIDs))})
+	output = appendStringItems(output, "prerequisite_change", result.PrerequisiteChangeIDs)
+	output = append(output, line{"clarification_prompt_count", fmt.Sprintf("%d", len(result.ClarificationPrompts))})
+	output = appendStringItems(output, "clarification_prompt", result.ClarificationPrompts)
+	output = append(output, line{"reason_count", fmt.Sprintf("%d", len(result.Reasons))})
+	return appendStringItems(output, "reason", result.Reasons)
+}
+
 func selectedConfigPath(loaded *contracts.LoadedProject) string {
 	if loaded == nil || loaded.Resolution == nil {
 		return ""

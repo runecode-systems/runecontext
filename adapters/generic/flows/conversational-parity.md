@@ -10,6 +10,8 @@ CLI inputs. No adapter-only lifecycle or mutation semantics are allowed.
 ## Flow Mappings
 
 - `change new` conversation -> `runectx change new --title --type [--size] [--shape] [--bundle] [--description] [--path]`
+- `change assess-intake` conversation -> `runectx change assess-intake --title --type [--size] [--bundle] [--description] [--path]`
+- `change assess-decomposition` conversation -> `runectx change assess-decomposition CHANGE_ID [--path]`
 - `change shape` conversation -> `runectx change shape CHANGE_ID [--design] [--verification] [--task] [--reference] [--path]`
 - `standard discover` conversation -> `runectx standard discover [--path] [--change CHANGE_ID] [--scope-path PATH] [--focus TEXT] [--confirm-handoff] [--target TYPE:PATH]`
 - `promote` conversation -> `runectx promote CHANGE_ID [--accept|--complete] [--target TYPE:PATH] [--path]`

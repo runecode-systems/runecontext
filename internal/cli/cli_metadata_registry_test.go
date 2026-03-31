@@ -73,6 +73,34 @@ func TestCommandMetadataRegistryIncludesChangeUpdate(t *testing.T) {
 	validateChangeUpdateFlags(t, update)
 }
 
+func TestCommandMetadataRegistryIncludesChangeAssessCommands(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	change := commandMetadataByPath(registry.Commands, "change")
+	if change == nil {
+		t.Fatalf("expected change command in registry")
+	}
+	assessIntake := commandMetadataByPath(change.Subcommands, "change assess-intake")
+	if assessIntake == nil {
+		t.Fatalf("expected change assess-intake subcommand in registry")
+	}
+	if assessIntake.Usage != changeAssessIntakeUsage {
+		t.Fatalf("expected change assess-intake usage %q, got %q", changeAssessIntakeUsage, assessIntake.Usage)
+	}
+	if len(assessIntake.Positionals) != 0 {
+		t.Fatalf("expected no positionals for assess-intake, got %#v", assessIntake.Positionals)
+	}
+	assessDecomp := commandMetadataByPath(change.Subcommands, "change assess-decomposition")
+	if assessDecomp == nil {
+		t.Fatalf("expected change assess-decomposition subcommand in registry")
+	}
+	if assessDecomp.Usage != changeAssessDecompUsage {
+		t.Fatalf("expected change assess-decomposition usage %q, got %q", changeAssessDecompUsage, assessDecomp.Usage)
+	}
+	if len(assessDecomp.Positionals) != 1 || assessDecomp.Positionals[0].Name != "CHANGE_ID" {
+		t.Fatalf("expected one CHANGE_ID positional for assess-decomposition, got %#v", assessDecomp.Positionals)
+	}
+}
+
 func validateChangeUpdateFlags(t *testing.T, update *CommandMetadata) {
 	status := flagMetadataByName(update.Flags, "--status")
 	if status == nil {

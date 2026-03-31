@@ -15,7 +15,7 @@ const (
 const (
 	validateUsage           = "runectx validate [--json] [--non-interactive] [--explain] [--ssh-allowed-signers PATH] [--path PATH] [path]"
 	statusUsage             = "runectx status [--json] [--non-interactive] [--explain] [--path PATH] [path] (human output only: --history recent|all|none --history-limit N --verbose)"
-	changeUsage             = "runectx change [--json] [--non-interactive] [--dry-run] [--explain] <new|shape|close|reallocate|update> ..."
+	changeUsage             = "runectx change [--json] [--non-interactive] [--dry-run] [--explain] <new|shape|close|reallocate|update|assess-intake|assess-decomposition> ..."
 	generateUsage           = "runectx generate [--json] [--non-interactive] [--explain] <indexes>"
 	generateIndexesUsage    = "runectx generate indexes [--json] [--non-interactive] [--explain] [--path PATH] [path]"
 	bundleUsage             = "runectx bundle [--json] [--non-interactive] [--explain] <resolve>"
@@ -26,6 +26,8 @@ const (
 	changeCloseUsage        = "runectx change close [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--verification-status STATUS] [--superseded-by ID] [--closed-at YYYY-MM-DD] [--recursive] [--path PATH]"
 	changeReallocateUsage   = "runectx change reallocate [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--path PATH]"
 	changeUpdateUsage       = "runectx change update [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID --status planned|implemented|verified [--verification-status passed|failed|skipped] [--recursive] [--path PATH]"
+	changeAssessIntakeUsage = "runectx change assess-intake [--json] [--non-interactive] [--explain] --title TITLE --type TYPE [--size SIZE] [--bundle ID] [--description TEXT] [--path PATH]"
+	changeAssessDecompUsage = "runectx change assess-decomposition [--json] [--non-interactive] [--explain] CHANGE_ID [--path PATH]"
 	initUsage               = "runectx init [--json] [--non-interactive] [--dry-run] [--explain] [--mode embedded|linked] [--seed-bundle NAME] [--path PATH]"
 	promoteUsage            = "runectx promote [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--accept | --complete] [--target TYPE:PATH (summary auto-filled per target type)] [--path PATH]"
 	standardUsage           = "runectx standard [--json] [--non-interactive] [--explain] <discover>"
@@ -160,7 +162,7 @@ func rootHelpCommandGroups() []rootHelpGroup {
 		{
 			title: "Change Workflow",
 			commands: []rootHelpCommand{
-				{name: "change", description: "Create, shape, update, close, and reallocate changes"},
+				{name: "change", description: "Create, shape, assess, update, close, and reallocate changes"},
 				{name: "promote", description: "Advance promotion assessment state"},
 				{name: "standard", description: "Discover advisory standards candidates"},
 			},

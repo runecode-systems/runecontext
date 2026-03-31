@@ -119,20 +119,26 @@ func TestRunAdapterSyncWritesHostNativeArtifactsByTool(t *testing.T) {
 	projectRoot := t.TempDir()
 
 	opencode := runAdapterSyncAndParse(t, projectRoot, "opencode")
-	if got, want := opencode["host_native_file_count"], "8"; got != want {
+	if got, want := opencode["host_native_file_count"], "12"; got != want {
 		t.Fatalf("expected opencode host_native_file_count %q, got %q", want, got)
 	}
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md"), "runectx adapter render-host-native --role flow_asset opencode change-new")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-assess-intake.md"), "runectx adapter render-host-native --role flow_asset opencode change-assess-intake")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-assess-intake.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-assess-intake")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-assess-decomposition.md"), "runectx adapter render-host-native --role flow_asset opencode change-assess-decomposition")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-assess-decomposition.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-assess-decomposition")
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-new")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"), "description: Create a new RuneContext change")
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md"))
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"))
 
 	claude := runAdapterSyncAndParse(t, projectRoot, "claude-code")
-	if got, want := claude["host_native_file_count"], "5"; got != want {
+	if got, want := claude["host_native_file_count"], "7"; got != want {
 		t.Fatalf("expected claude host_native_file_count %q, got %q", want, got)
 	}
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "runectx adapter render-host-native --role flow_asset claude-code change-new")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-assess-intake.md"), "runectx adapter render-host-native --role flow_asset claude-code change-assess-intake")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-assess-decomposition.md"), "runectx adapter render-host-native --role flow_asset claude-code change-assess-decomposition")
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"), "runectx adapter render-host-native --role discoverability_shim claude-code index")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "name: runecontext-change-new")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "description: Create a new RuneContext change")
@@ -141,10 +147,12 @@ func TestRunAdapterSyncWritesHostNativeArtifactsByTool(t *testing.T) {
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"))
 
 	codex := runAdapterSyncAndParse(t, projectRoot, "codex")
-	if got, want := codex["host_native_file_count"], "4"; got != want {
+	if got, want := codex["host_native_file_count"], "6"; got != want {
 		t.Fatalf("expected codex host_native_file_count %q, got %q", want, got)
 	}
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"), "name: runecontext-change-new")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-assess-intake.md"), "name: runecontext-change-assess-intake")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-assess-decomposition.md"), "name: runecontext-change-assess-decomposition")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"), "description: Create a new RuneContext change")
 	assertNoShellInjectionCall(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))

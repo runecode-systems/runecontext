@@ -178,6 +178,43 @@ func appendChangeUpdateExplainLines(lines []line, result *contracts.ChangeOperat
 	return lines
 }
 
+func appendChangeAssessIntakeExplainLines(lines []line, result *contracts.ChangeAssessIntakeResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "change-intake-advisory"},
+		line{"explain_advisory_only", "true"},
+		line{"explain_recommended_mode", string(result.RecommendedMode)},
+		line{"explain_intake_readiness", result.IntakeReadiness},
+		line{"explain_decomposition_signal", result.DecompositionSignal},
+		line{"explain_clarification_needed", boolString(result.ClarificationNeeded)},
+	)
+	for i, prompt := range result.ClarificationPrompts {
+		lines = append(lines, line{fmt.Sprintf("explain_clarification_prompt_%d", i+1), prompt})
+	}
+	return lines
+}
+
+func appendChangeAssessDecompositionExplainLines(lines []line, result *contracts.ChangeAssessDecompositionResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "change-decomposition-advisory"},
+		line{"explain_advisory_only", "true"},
+		line{"explain_decomposition_signal", result.DecompositionSignal},
+		line{"explain_recommended_mode", string(result.RecommendedMode)},
+		line{"explain_clarification_needed", boolString(result.ClarificationNeeded)},
+		line{"explain_eligible_sub_change_count", fmt.Sprintf("%d", len(result.EligibleSubChangeIDs))},
+		line{"explain_prerequisite_change_count", fmt.Sprintf("%d", len(result.PrerequisiteChangeIDs))},
+	)
+	for i, prompt := range result.ClarificationPrompts {
+		lines = append(lines, line{fmt.Sprintf("explain_clarification_prompt_%d", i+1), prompt})
+	}
+	return lines
+}
+
 func appendAssuranceEnableExplainLines(lines []line, root string, plans []string) []line {
 	lines = append(lines,
 		line{"explain_scope", "assurance-enable"},

@@ -41,6 +41,17 @@ func changeUpdateFlags() []FlagMetadata {
 	}
 }
 
+func changeAssessIntakeFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--title", Value: textValueSpec(), Required: true},
+		{Name: "--type", Value: enumValueSpec("project", "feature", "bug", "standard", "chore"), Required: true},
+		{Name: "--size", Value: enumValueSpec("small", "medium", "large")},
+		{Name: "--bundle", Value: textValueWithSuggestionSpec(suggestionProviderBundleIDs), Repeatable: true},
+		{Name: "--description", Value: textValueSpec()},
+		{Name: "--path", Value: textValueSpec()},
+	}
+}
+
 func validateFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--ssh-allowed-signers", Value: textValueSpec()},

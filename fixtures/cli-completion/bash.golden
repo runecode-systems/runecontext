@@ -13,6 +13,8 @@ _runectx_has_command() {
     'bundle') return 0 ;;
     'bundle resolve') return 0 ;;
     'change') return 0 ;;
+    'change assess-decomposition') return 0 ;;
+    'change assess-intake') return 0 ;;
     'change close') return 0 ;;
     'change new') return 0 ;;
     'change reallocate') return 0 ;;
@@ -55,7 +57,9 @@ _runectx_subcommands_for() {
     'assurance enable') echo '' ;;
     'bundle') echo 'resolve' ;;
     'bundle resolve') echo '' ;;
-    'change') echo 'close new reallocate shape update' ;;
+    'change') echo 'assess-decomposition assess-intake close new reallocate shape update' ;;
+    'change assess-decomposition') echo '' ;;
+    'change assess-intake') echo '' ;;
     'change close') echo '' ;;
     'change new') echo '' ;;
     'change reallocate') echo '' ;;
@@ -98,6 +102,8 @@ _runectx_flags_for() {
     'bundle') echo '--explain --json --non-interactive' ;;
     'bundle resolve') echo '--explain --json --non-interactive --path' ;;
     'change') echo '--dry-run --explain --json --non-interactive' ;;
+    'change assess-decomposition') echo '--explain --json --non-interactive --path' ;;
+    'change assess-intake') echo '--bundle --description --explain --json --non-interactive --path --size --title --type' ;;
     'change close') echo '--closed-at --dry-run --explain --json --non-interactive --path --recursive --superseded-by --verification-status' ;;
     'change new') echo '--bundle --description --dry-run --explain --json --non-interactive --path --shape --size --title --type' ;;
     'change reallocate') echo '--dry-run --explain --json --non-interactive --path' ;;
@@ -130,6 +136,13 @@ _runectx_flag_takes_value() {
     'assurance capture|--path') return 0 ;;
     'assurance enable|--path') return 0 ;;
     'bundle resolve|--path') return 0 ;;
+    'change assess-decomposition|--path') return 0 ;;
+    'change assess-intake|--bundle') return 0 ;;
+    'change assess-intake|--description') return 0 ;;
+    'change assess-intake|--path') return 0 ;;
+    'change assess-intake|--size') return 0 ;;
+    'change assess-intake|--title') return 0 ;;
+    'change assess-intake|--type') return 0 ;;
     'change close|--closed-at') return 0 ;;
     'change close|--path') return 0 ;;
     'change close|--superseded-by') return 0 ;;
@@ -180,6 +193,8 @@ _runectx_flag_takes_value() {
 _runectx_enum_for_flag() {
   case "$1" in
     'adapter render-host-native|--role') echo 'discoverability_shim flow_asset' ;;
+    'change assess-intake|--size') echo 'large medium small' ;;
+    'change assess-intake|--type') echo 'bug chore feature project standard' ;;
     'change close|--verification-status') echo 'failed passed skipped' ;;
     'change new|--shape') echo 'full minimum' ;;
     'change new|--size') echo 'large medium small' ;;
@@ -193,6 +208,7 @@ _runectx_enum_for_flag() {
 
 _runectx_suggest_provider_for_flag() {
   case "$1" in
+    'change assess-intake|--bundle') echo 'bundle-ids' ;;
     'change close|--superseded-by') echo 'change-ids' ;;
     'change new|--bundle') echo 'bundle-ids' ;;
     'init|--seed-bundle') echo 'bundle-ids' ;;
@@ -205,7 +221,7 @@ _runectx_suggest_provider_for_flag() {
 
 _runectx_positional_enum() {
   case "$1" in
-    'adapter render-host-native|2') echo 'change-new change-shape index promote standard-discover' ;;
+    'adapter render-host-native|2') echo 'change-assess-decomposition change-assess-intake change-new change-shape index promote standard-discover' ;;
     'assurance capture|1') echo 'context-pack' ;;
     'assurance enable|1') echo 'verified' ;;
     'completion suggest|1') echo 'adapter-names adapter-names-shell-injection bundle-ids change-ids promotion-targets' ;;
@@ -220,6 +236,7 @@ _runectx_suggest_provider_for_positional() {
     'adapter sync|1') echo 'adapter-names' ;;
     'assurance capture|2') echo 'bundle-ids' ;;
     'bundle resolve|1') echo 'bundle-ids' ;;
+    'change assess-decomposition|1') echo 'change-ids' ;;
     'change close|1') echo 'change-ids' ;;
     'change reallocate|1') echo 'change-ids' ;;
     'change shape|1') echo 'change-ids' ;;

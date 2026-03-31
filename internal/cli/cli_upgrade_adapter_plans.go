@@ -100,7 +100,7 @@ func markManagedHostNativeFile(path, tool string, managed *bool) error {
 		return nil
 	}
 	*managed = true
-	return filepath.SkipAll
+	return nil
 }
 
 func existingHostNativeDir(root string) (bool, error) {

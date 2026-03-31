@@ -125,6 +125,18 @@ func toolFlowMappings(tool string) []hostNativeFlow {
 			source:      "adapters/" + tool + "/flows/change-new.md",
 		},
 		{
+			id:          "change-assess-intake",
+			name:        "change assess-intake",
+			description: "Assess intake readiness and advisory shaping signals",
+			source:      "adapters/" + tool + "/flows/change-assess-intake.md",
+		},
+		{
+			id:          "change-assess-decomposition",
+			name:        "change assess-decomposition",
+			description: "Assess decomposition and umbrella/sub-change signals",
+			source:      "adapters/" + tool + "/flows/change-assess-decomposition.md",
+		},
+		{
 			id:          "change-shape",
 			name:        "change shape",
 			description: "Shape an existing RuneContext change",
@@ -188,7 +200,7 @@ func buildClaudeCommandIndexShimContent(flows []hostNativeFlow) []byte {
 		"## Commands",
 	}...)
 	for _, flow := range flows {
-		commandPath := strings.ReplaceAll(flow.id, "-", " ")
+		commandPath := commandPathFromFlowID(flow.id)
 		lines = append(lines,
 			"",
 			"- `runecontext:"+flow.id+"`",

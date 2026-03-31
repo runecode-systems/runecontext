@@ -31,6 +31,14 @@ type ChangeCreateOptions struct {
 	References     []string
 }
 
+type ChangeAssessIntakeOptions struct {
+	Title          string
+	Type           string
+	Size           string
+	Description    string
+	ContextBundles []string
+}
+
 type ChangeShapeOptions struct {
 	Design       string
 	Verification string
@@ -86,6 +94,35 @@ type ChangeOperationResult struct {
 	Recursive                 bool
 	RecursiveTargetCount      int
 	RecursiveTargetIDs        []string
+}
+
+type ChangeAssessIntakeResult struct {
+	Type                 string
+	Size                 string
+	RecommendedMode      ChangeMode
+	IntakeReadiness      string
+	ClarificationNeeded  bool
+	ClarificationPrompts []string
+	DecompositionSignal  string
+	ContextBundles       []string
+	ApplicableStandards  []string
+	Reasons              []string
+	Assumptions          []string
+}
+
+type ChangeAssessDecompositionResult struct {
+	ID                    string
+	Status                string
+	Type                  string
+	Size                  string
+	RecommendedMode       ChangeMode
+	DecompositionSignal   string
+	ClarificationNeeded   bool
+	ClarificationPrompts  []string
+	RelatedChanges        []string
+	EligibleSubChangeIDs  []string
+	PrerequisiteChangeIDs []string
+	Reasons               []string
 }
 
 type ChangeReallocationResult struct {

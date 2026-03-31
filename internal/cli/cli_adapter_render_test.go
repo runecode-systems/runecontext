@@ -42,6 +42,27 @@ func TestRunAdapterRenderHostNativeOutputsMinimalMarkdown(t *testing.T) {
 	}
 }
 
+func TestRunAdapterRenderHostNativeSupportsAssessmentOperations(t *testing.T) {
+	for _, operation := range []string{"change-assess-intake", "change-assess-decomposition"} {
+		t.Run(operation, func(t *testing.T) {
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+			code := Run([]string{"adapter", "render-host-native", "opencode", operation}, &stdout, &stderr)
+			if code != exitOK {
+				t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+			}
+			text := stdout.String()
+			if !strings.Contains(text, "operation_identifier: `runecontext:"+operation+"`") {
+				t.Fatalf("expected operation identifier for %s, got %q", operation, text)
+			}
+			expectedPath := "change assess-" + strings.TrimPrefix(operation, "change-assess-")
+			if !strings.Contains(text, "command_path: `"+expectedPath+"`") {
+				t.Fatalf("expected command path for %s, got %q", operation, text)
+			}
+		})
+	}
+}
+
 func TestRunAdapterRenderHostNativeIndexForClaude(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -55,6 +76,12 @@ func TestRunAdapterRenderHostNativeIndexForClaude(t *testing.T) {
 	}
 	if !strings.Contains(text, "operation: `runecontext:change-new`") {
 		t.Fatalf("expected indexed change-new operation, got %q", text)
+	}
+	if !strings.Contains(text, "operation: `runecontext:change-assess-intake`") {
+		t.Fatalf("expected indexed change-assess-intake operation, got %q", text)
+	}
+	if !strings.Contains(text, "operation: `runecontext:change-assess-decomposition`") {
+		t.Fatalf("expected indexed change-assess-decomposition operation, got %q", text)
 	}
 }
 
