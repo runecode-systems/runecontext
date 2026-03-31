@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-025-7854-migrate-assurance-artifacts-under-runecontext-for-alpha13-upgrades
 title: Migrate assurance artifacts under runecontext for alpha.13 upgrades
-status: proposed
+status: implemented
 type: feature
 size: medium
 verification_status: pending

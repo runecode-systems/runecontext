@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-024-3756-plan-interval-based-real-migration-edge-discovery-for-project-upgrades
 title: Plan interval-based real migration-edge discovery for project upgrades
-status: proposed
+status: implemented
 type: feature
 size: medium
 verification_status: pending

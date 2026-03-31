@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces",
+  "created_at": 1774987750,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-007-dd10-add-machine-readable-runecontext-metadata-and-capability-descriptor-surfaces",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-3743bab2-1774987750-7ce2de26d733",
+  "receipt_hash": "4a87f45dab8dbd5efeebdbd146613988700aaa9ec80342c0c5d8a0f2ce859403",
+  "provenance": "captured_verified"
+}
