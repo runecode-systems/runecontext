@@ -55,9 +55,8 @@ func TestRunUpgradeApplyDoesNotCreateUnsyncedHostNativeArtifacts(t *testing.T) {
 }
 
 func TestRunUpgradePreviewRefreshesOnlyPreviouslySyncedToolArtifacts(t *testing.T) {
-	root := t.TempDir()
-	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.10")
+	root := createEmbeddedProjectForUpgradeTests(t)
 	if code := Run([]string{"adapter", "sync", "--path", root, "opencode"}, &bytes.Buffer{}, &bytes.Buffer{}); code != exitOK {
 		t.Fatalf("expected adapter sync success")
 	}

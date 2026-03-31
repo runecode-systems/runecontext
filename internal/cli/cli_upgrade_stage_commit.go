@@ -20,13 +20,13 @@ func stagedConfigPath(root, stageRoot, configPath string) (string, error) {
 	return filepath.Join(stageRoot, configRel), nil
 }
 
-func applyStageDeletes(root string, deletedFiles []string) error {
+func applyStageDeletes(root string, deletedFiles, changedFiles []string) error {
 	for _, path := range deletedFiles {
 		if err := deleteOneUpgradePath(path); err != nil {
 			return err
 		}
 	}
-	return pruneEmptyUpgradeParentDirs(root, deletedFiles)
+	return pruneEmptyUpgradeParentDirs(root, deletedFiles, changedFiles)
 }
 
 func deleteOneUpgradePath(path string) error {
@@ -84,25 +84,25 @@ func removeUpgradeDirectoryAtPath(path string) error {
 	return os.RemoveAll(path)
 }
 
-func pruneEmptyUpgradeParentDirs(root string, deletedFiles []string) error {
+func pruneEmptyUpgradeParentDirs(root string, deletedFiles, changedFiles []string) error {
 	for _, path := range deletedFiles {
-		if err := pruneOneUpgradeParentChain(root, filepath.Dir(path)); err != nil {
+		if err := pruneOneUpgradeParentChain(root, filepath.Dir(path), changedFiles); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func pruneOneUpgradeParentChain(root, startDir string) error {
+func pruneOneUpgradeParentChain(root, startDir string, changedFiles []string) error {
 	for dir := startDir; ; dir = filepath.Dir(dir) {
-		inRoot, err := isUpgradePathUnderRoot(root, dir)
+		stop, err := shouldStopUpgradePrune(root, dir, changedFiles)
 		if err != nil {
 			return err
 		}
-		if !inRoot {
+		if stop {
 			return nil
 		}
-		stop, err := removeUpgradeEmptyDir(dir)
+		stop, err = removeUpgradeEmptyDir(dir)
 		if err != nil {
 			return err
 		}
@@ -110,6 +110,29 @@ func pruneOneUpgradeParentChain(root, startDir string) error {
 			return nil
 		}
 	}
+}
+
+func shouldStopUpgradePrune(root, dir string, changedFiles []string) (bool, error) {
+	inRoot, err := isUpgradePathUnderRoot(root, dir)
+	if err != nil {
+		return false, err
+	}
+	if !inRoot {
+		return true, nil
+	}
+	return hasUpgradeChangeDescendant(dir, changedFiles), nil
+}
+
+func hasUpgradeChangeDescendant(dir string, changedFiles []string) bool {
+	for _, path := range changedFiles {
+		if path == dir {
+			return true
+		}
+		if strings.HasPrefix(path, dir+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }
 
 func removeUpgradeEmptyDir(dir string) (bool, error) {

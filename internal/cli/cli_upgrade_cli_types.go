@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -50,7 +51,6 @@ type cliUpgradeInstaller interface {
 var resolveLatestCLIReleaseFn cliUpgradeResolver = staticLatestCLIReleaseResolver{}
 var applyCLIUpgradePlanFn cliUpgradeInstaller = defaultCLIUpgradeInstaller{}
 var cliUpgradeExecutablePathFn = os.Executable
-var cliUpgradeGetwdFn = os.Getwd
 
 type staticLatestCLIReleaseResolver struct{}
 
@@ -59,7 +59,7 @@ func (staticLatestCLIReleaseResolver) ResolveLatestRelease(currentVersion string
 	if err != nil {
 		return "", fmt.Errorf("resolve latest release metadata root: %w", err)
 	}
-	version, err := ReadReleaseMetadataVersion(root)
+	version, err := readLatestCLIReleaseFromRuntimeRoot(root)
 	if err != nil {
 		return "", err
 	}
@@ -88,11 +88,10 @@ func findRepoRootForReleaseMetadata(start string) (string, error) {
 }
 
 func cliUpgradeRuntimeRoot() (string, error) {
-	return locateCLIUpgradeRuntimeRoot(cliUpgradeRuntimeDeps{getwd: cliUpgradeGetwdFn, executable: cliUpgradeExecutablePathFn})
+	return locateCLIUpgradeRuntimeRoot(cliUpgradeRuntimeDeps{executable: cliUpgradeExecutablePathFn})
 }
 
 type cliUpgradeRuntimeDeps struct {
-	getwd      func() (string, error)
 	executable func() (string, error)
 }
 
@@ -113,27 +112,21 @@ func locateCLIUpgradeRuntimeRoot(deps cliUpgradeRuntimeDeps) (string, error) {
 			return root, nil
 		}
 	}
-	return "", fmt.Errorf("could not locate CLI upgrade runtime assets from the current working directory or executable location")
+	return "", fmt.Errorf("could not locate CLI upgrade runtime assets from the runectx executable location")
 }
 
 func cliUpgradeRuntimeStartPaths(deps cliUpgradeRuntimeDeps) []string {
-	starts := make([]string, 0, 4)
+	starts := make([]string, 0, 3)
 	if exe, err := deps.executable(); err == nil {
 		exeDir := filepath.Dir(exe)
 		starts = append(starts, exeDir)
 		starts = append(starts, filepath.Join(exeDir, ".."))
 		starts = append(starts, filepath.Join(exeDir, "..", "share", "runecontext"))
 	}
-	if wd, err := deps.getwd(); err == nil {
-		starts = append(starts, wd)
-	}
 	return starts
 }
 
 func normalizeCLIUpgradeRuntimeDeps(deps cliUpgradeRuntimeDeps) cliUpgradeRuntimeDeps {
-	if deps.getwd == nil {
-		deps.getwd = os.Getwd
-	}
 	if deps.executable == nil {
 		deps.executable = os.Executable
 	}
@@ -188,4 +181,35 @@ func repoRootForBundledReleaseAssets() (string, error) {
 		return "", fmt.Errorf("resolve runectx executable path: %w", err)
 	}
 	return findRepoRootForReleaseMetadata(filepath.Dir(resolvedExecutable))
+}
+
+func readLatestCLIReleaseFromRuntimeRoot(root string) (string, error) {
+	manifestPath := filepath.Join(root, "release-manifest.json")
+	if isCLIUpgradeInstalledShareRoot(root) {
+		manifestPath = filepath.Join(root, "share", "runecontext", "release-manifest.json")
+	}
+	raw, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return "", fmt.Errorf("read release manifest: %w", err)
+	}
+	if err := json.Unmarshal(raw, new(map[string]any)); err != nil {
+		return "", fmt.Errorf("parse release manifest: %w", err)
+	}
+	descriptor, err := releaseManifestDescriptorFromJSON(raw)
+	if err != nil {
+		return "", err
+	}
+	releaseValue, ok := descriptor["release"].(map[string]any)
+	if !ok {
+		return "", fmt.Errorf("release manifest metadata_descriptor.release must be an object")
+	}
+	version, ok := releaseValue["version"].(string)
+	if !ok || strings.TrimSpace(version) == "" {
+		return "", fmt.Errorf("release manifest metadata_descriptor.release.version must be a non-empty string")
+	}
+	return version, nil
+}
+
+func isCLIUpgradeInstalledShareRoot(root string) bool {
+	return isSchemaDir(filepath.Join(root, "share", "runecontext", "schemas"))
 }

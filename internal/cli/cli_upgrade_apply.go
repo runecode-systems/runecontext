@@ -179,7 +179,7 @@ func collectStageAdapterTools(stageRoot string, plan upgradePlan) ([]string, err
 }
 
 func applyStageCommit(root string, stage stagedUpgradeTree) error {
-	if err := applyStageDeletes(root, stage.deletedFiles); err != nil {
+	if err := applyStageDeletes(root, stage.deletedFiles, stage.changedFiles); err != nil {
 		return err
 	}
 	if err := applyStageChanges(root, stage); err != nil {

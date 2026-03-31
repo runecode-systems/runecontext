@@ -50,7 +50,7 @@ func upgradeableDiagnostics(plan upgradePlan) []emittedDiagnostic {
 	return []emittedDiagnostic{{
 		Severity: contracts.DiagnosticSeverityWarning,
 		Code:     "upgrade_available",
-		Message:  fmt.Sprintf("project runecontext_version %s can upgrade to %s with %d required migration hop(s); review runectx upgrade preview and then run runectx upgrade apply", plan.CurrentVersion, plan.TargetVersion, len(plan.UpgradeHops)),
+		Message:  fmt.Sprintf("project runecontext_version %s can upgrade to %s with %d required migration hop(s); review runectx upgrade and then run runectx upgrade apply", plan.CurrentVersion, plan.TargetVersion, len(plan.UpgradeHops)),
 	}}
 }
 

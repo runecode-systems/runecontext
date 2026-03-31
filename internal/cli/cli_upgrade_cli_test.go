@@ -119,6 +119,65 @@ func TestRunUpgradeCLIPreviewLatestRejectsInvalidResolvedVersion(t *testing.T) {
 	}
 }
 
+func TestCLIUpgradeRuntimeRootDoesNotSearchCwd(t *testing.T) {
+	executableRepo := createCLIUpgradeFixtureRepo(t)
+	if err := os.WriteFile(filepath.Join(executableRepo, "share", "runecontext", "installers", cliUpgradeInstallerScriptName()), []byte(testInstallerScriptContent()), 0o755); err != nil {
+		t.Fatalf("write executable installer: %v", err)
+	}
+	cwdRepo := createCLIUpgradeFixtureRepo(t)
+	subdir := filepath.Join(cwdRepo, "nested", "work")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatalf("mkdir cwd subdir: %v", err)
+	}
+	originalExecutable := cliUpgradeExecutablePathFn
+	originalWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	t.Cleanup(func() {
+		cliUpgradeExecutablePathFn = originalExecutable
+		_ = os.Chdir(originalWD)
+	})
+	cliUpgradeExecutablePathFn = func() (string, error) {
+		return filepath.Join(executableRepo, "bin", "runectx"), nil
+	}
+	if err := os.Chdir(subdir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+
+	root, err := cliUpgradeRuntimeRoot()
+	if err != nil {
+		t.Fatalf("expected runtime root resolution success, got %v", err)
+	}
+	if mustResolvePath(t, root, "runtime root") != mustResolvePath(t, executableRepo, "executable repo") {
+		t.Fatalf("expected runtime root from executable repo, got %q", root)
+	}
+}
+
+func TestResolveLatestCLIReleaseUsesShippedRuntimeManifest(t *testing.T) {
+	repoRoot := createCLIUpgradeFixtureRepo(t)
+	if err := os.WriteFile(filepath.Join(repoRoot, "share", "runecontext", "installers", cliUpgradeInstallerScriptName()), []byte(testInstallerScriptContent()), 0o755); err != nil {
+		t.Fatalf("write installer: %v", err)
+	}
+	manifest := `{"metadata_descriptor":{"release":{"version":"0.1.0-alpha.99"}}}`
+	if err := os.WriteFile(filepath.Join(repoRoot, "share", "runecontext", "release-manifest.json"), []byte(manifest), 0o644); err != nil {
+		t.Fatalf("write release manifest: %v", err)
+	}
+	originalExecutable := cliUpgradeExecutablePathFn
+	t.Cleanup(func() { cliUpgradeExecutablePathFn = originalExecutable })
+	cliUpgradeExecutablePathFn = func() (string, error) {
+		return filepath.Join(repoRoot, "bin", "runectx"), nil
+	}
+
+	version, err := staticLatestCLIReleaseResolver{}.ResolveLatestRelease("0.1.0-alpha.12")
+	if err != nil {
+		t.Fatalf("expected latest release resolution success, got %v", err)
+	}
+	if version != "0.1.0-alpha.99" {
+		t.Fatalf("expected latest release from shipped runtime manifest, got %q", version)
+	}
+}
+
 func TestRunUpgradeCLIApplyUsesInstallerBoundary(t *testing.T) {
 	setRunecontextVersionForTests(t, "v0.1.0-alpha.8")
 
@@ -338,6 +397,9 @@ func createCLIUpgradeFixtureRepo(t *testing.T) string {
 		if err := os.WriteFile(filepath.Join(repoRoot, "share", "runecontext", "schemas", name), []byte("{}\n"), 0o644); err != nil {
 			t.Fatalf("write schema %s: %v", name, err)
 		}
+	}
+	if err := os.WriteFile(filepath.Join(repoRoot, "share", "runecontext", "release-manifest.json"), []byte(`{"metadata_descriptor":{"release":{"version":"0.1.0-alpha.12"}}}`), 0o644); err != nil {
+		t.Fatalf("write release manifest: %v", err)
 	}
 	return repoRoot
 }
