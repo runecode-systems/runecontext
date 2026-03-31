@@ -13,6 +13,8 @@ related_changes:
   - CHG-2026-017-d68f-add-staged-per-hop-upgrade-execution-and-validation
   - CHG-2026-022-58d8-refine-project-upgrade-compatibility-and-version-bump-only-semantics
   - CHG-2026-023-2423-add-explicit-cli-self-update-and-release-check-flows
+  - CHG-2026-024-3756-plan-interval-based-real-migration-edge-discovery-for-project-upgrades
+  - CHG-2026-025-7854-migrate-assurance-artifacts-under-runecontext-for-alpha13-upgrades
 depends_on: []
 informed_by: []
 supersedes: []
