@@ -14,11 +14,7 @@ func executeUpgradeHops(stageCtx upgradeMigrationContext, plan upgradePlan) erro
 			return err
 		}
 		stagedVersion = nextVersion
-		if advanced {
-			if err := validateUpgradeStage(stageCtx.Root); err != nil {
-				return fmt.Errorf("validate staged upgrade tree after version advance to %s: %w", hop.From, err)
-			}
-		}
+		_ = advanced
 		if err := applyAndValidateUpgradeHop(stageCtx, registry, hop); err != nil {
 			return err
 		}

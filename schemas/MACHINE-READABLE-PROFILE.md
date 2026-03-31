@@ -8,7 +8,7 @@ This profile applies to:
 - `runecontext.yaml` (root configuration)
 - `bundles/*.yaml` (context selectors)
 - `changes/*/status.yaml` (change lifecycle)
-- All generated artifacts: `context-pack.yaml`, `assurance/baseline.yaml`, receipt files
+- All generated artifacts: `context-pack.yaml`, `runecontext/assurance/baseline.yaml`, receipt files
 
 ## JSON Schema Dialect
 

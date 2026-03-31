@@ -25,7 +25,7 @@ func TestCloseChangeVerifiedTierWritesAssuranceReceipt(t *testing.T) {
 	v, created := mustCreateDefaultFeatureChange(t, root)
 	closed := mustCloseChange(t, v, root, created.ID, ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC)})
 
-	assertCreatedMutationWithPrefix(t, closed.ChangedFiles, "assurance/receipts/changes/")
+	assertCreatedMutationWithPrefix(t, closed.ChangedFiles, "runecontext/assurance/receipts/changes/")
 	receipt := readSingleFamilyReceipt(t, root, "changes")
 	assertReceiptEnvelopeFields(t, receipt, "changes/"+created.ID)
 	value := receiptValueMap(t, receipt)

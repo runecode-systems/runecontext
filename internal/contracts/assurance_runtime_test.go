@@ -74,7 +74,7 @@ func setAssuranceTierVerified(t *testing.T, root string, loaded *LoadedProject) 
 func writeAssuranceBaselineFixture(t *testing.T, root string) {
 	t.Helper()
 
-	baselinePath := filepath.Join(root, "assurance", "baseline.yaml")
+	baselinePath := filepath.Join(root, "runecontext", "assurance", "baseline.yaml")
 	if err := os.MkdirAll(filepath.Dir(baselinePath), 0o755); err != nil {
 		t.Fatalf("mkdir baseline dir: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestCaptureContextPackAssuranceRequiresVerifiedTier(t *testing.T) {
 
 func TestValidateProjectRejectsReceiptsWhenTierPlain(t *testing.T) {
 	root := copyChangeWorkflowTemplate(t)
-	receiptPath := filepath.Join(root, "assurance", "receipts", "changes", "changes--rid-abcdef12-1710000000-0123456789ab-badbadbadbad.json")
+	receiptPath := filepath.Join(root, "runecontext", "assurance", "receipts", "changes", "changes--rid-abcdef12-1710000000-0123456789ab-badbadbadbad.json")
 	if err := os.MkdirAll(filepath.Dir(receiptPath), 0o755); err != nil {
 		t.Fatalf("mkdir receipt dir: %v", err)
 	}

@@ -46,7 +46,7 @@ func runReferenceFixtureMatrixVerified(t *testing.T, v *Validator) {
 	if got, want := fmt.Sprint(loaded.RootConfig["assurance_tier"]), AssuranceTierVerified; got != want {
 		t.Fatalf("expected assurance tier %q, got %q", want, got)
 	}
-	if _, err := os.Stat(filepath.Join(root, "assurance", "baseline.yaml")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, "runecontext", "assurance", "baseline.yaml")); err != nil {
 		t.Fatalf("expected verified baseline fixture: %v", err)
 	}
 }

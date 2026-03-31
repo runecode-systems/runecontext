@@ -53,7 +53,9 @@ type upgradePlannerRegistry struct {
 }
 
 func defaultUpgradePlannerRegistry() upgradePlannerRegistry {
-	return upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
+	registry := upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
+	registry.registerEdge("0.1.0-alpha.12", "0.1.0-alpha.13")
+	return registry
 }
 
 func (r *upgradePlannerRegistry) registerEdge(from, to string) {

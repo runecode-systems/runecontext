@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -234,6 +235,123 @@ func TestRunUpgradeApplyRefreshesManagedArtifactsFromStagedFinalTree(t *testing.
 	if _, err := os.Stat(staleAbs); !os.IsNotExist(err) {
 		t.Fatalf("expected staged-only stale managed host-native file to be removed during final refresh, err=%v", err)
 	}
+}
+
+func TestRunUpgradeApplyMigratesAssuranceLayoutToCanonicalPath(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.13")
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.12")
+	setVerifiedTierForUpgradeTest(t, root)
+	legacyBackfill := "imported-git-history-abcdef1234567890abcdef1234567890abcdef12.json"
+	writeLegacyAssuranceFixtureForMigration(t, root, legacyBackfill)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.13", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected apply success, got %d (%s)", code, stderr.String())
+	}
+	if _, err := os.Stat(filepath.Join(root, "assurance")); !os.IsNotExist(err) {
+		t.Fatalf("expected legacy assurance root removed after migration, err=%v", err)
+	}
+	baselineData, err := os.ReadFile(filepath.Join(root, "runecontext", "assurance", "baseline.yaml"))
+	if err != nil {
+		t.Fatalf("read migrated baseline: %v", err)
+	}
+	if !strings.Contains(string(baselineData), "runecontext/assurance/backfill/") {
+		t.Fatalf("expected imported_evidence path rewritten, got %q", string(baselineData))
+	}
+}
+
+func TestRunUpgradeApplyRollsBackOnAssuranceLayoutConflict(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.13")
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	writeEmbeddedProjectVersion(t, root, "0.1.0-alpha.12")
+	setVerifiedTierForUpgradeTest(t, root)
+	writeLegacyAssuranceFixtureForMigration(t, root, "imported-git-history-abcdef1234567890abcdef1234567890abcdef12.json")
+	canonicalBaseline := filepath.Join(root, "runecontext", "assurance", "baseline.yaml")
+	if err := os.MkdirAll(filepath.Dir(canonicalBaseline), 0o755); err != nil {
+		t.Fatalf("mkdir canonical assurance dir: %v", err)
+	}
+	if err := os.WriteFile(canonicalBaseline, []byte("conflict\n"), 0o644); err != nil {
+		t.Fatalf("write canonical baseline conflict: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "apply", "--path", root, "--target-version", "0.1.0-alpha.13"}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected invalid exit for migration conflict, got %d (%s)", code, stderr.String())
+	}
+	if _, err := os.Stat(filepath.Join(root, "assurance", "baseline.yaml")); err != nil {
+		t.Fatalf("expected live legacy baseline preserved after conflict, err=%v", err)
+	}
+}
+
+func setVerifiedTierForUpgradeTest(t *testing.T, root string) {
+	t.Helper()
+	configPath := filepath.Join(root, "runecontext.yaml")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	updated := strings.Replace(string(data), "assurance_tier: plain", "assurance_tier: verified", 1)
+	if err := os.WriteFile(configPath, []byte(updated), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+}
+
+func writeLegacyAssuranceFixtureForMigration(t *testing.T, root, historyFile string) {
+	t.Helper()
+	legacyBaseline := filepath.Join(root, "assurance", "baseline.yaml")
+	if err := os.MkdirAll(filepath.Join(root, "assurance", "backfill"), 0o755); err != nil {
+		t.Fatalf("mkdir legacy assurance backfill: %v", err)
+	}
+	historyJSON := legacyImportedHistoryFixtureJSON()
+	if err := os.WriteFile(filepath.Join(root, "assurance", "backfill", historyFile), []byte(historyJSON), 0o644); err != nil {
+		t.Fatalf("write legacy backfill file: %v", err)
+	}
+	baseline := strings.Join([]string{
+		"schema_version: 1",
+		"kind: baseline",
+		"subject_id: project-root",
+		"created_at: 1710000000",
+		"canonicalization: runecontext-canonical-json-v1",
+		"value:",
+		"  adoption_commit: abcdef1234567890abcdef1234567890abcdef12",
+		"  source_posture: embedded",
+		"  imported_evidence:",
+		"    - path: assurance/backfill/" + historyFile,
+		"      provenance: imported_git_history",
+		"",
+	}, "\n")
+	if err := os.WriteFile(legacyBaseline, []byte(baseline), 0o644); err != nil {
+		t.Fatalf("write legacy baseline: %v", err)
+	}
+}
+
+func legacyImportedHistoryFixtureJSON() string {
+	return strings.Join([]string{
+		"{",
+		"  \"schema_version\": 1,",
+		"  \"kind\": \"history\",",
+		"  \"provenance\": \"imported_git_history\",",
+		"  \"generated_at\": 1710000000,",
+		"  \"adoption_commit\": \"abcdef1234567890abcdef1234567890abcdef12\",",
+		"  \"commits\": [",
+		"    {",
+		"      \"commit\": \"abcdef1234567890abcdef1234567890abcdef12\",",
+		"      \"committed_at\": 1710000000,",
+		"      \"author_name\": \"RuneContext\",",
+		"      \"author_email\": \"tests@example.com\",",
+		"      \"subject\": \"seed\"",
+		"    }",
+		"  ]",
+		"}",
+		"",
+	}, "\n")
 }
 
 func TestStagedConfigPathRejectsOutsideRoot(t *testing.T) {

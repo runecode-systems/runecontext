@@ -50,7 +50,7 @@ func newAssuranceEnableContext(root string, loaded *contracts.LoadedProject) (*a
 	if err := yaml.Unmarshal(configData, &rootCfg); err != nil {
 		return nil, err
 	}
-	baselinePath := filepath.Join(root, "assurance", "baseline.yaml")
+	baselinePath := assuranceBaselinePath(root)
 	var priorBaseline []byte
 	if prev, err := os.ReadFile(baselinePath); err == nil {
 		priorBaseline = prev

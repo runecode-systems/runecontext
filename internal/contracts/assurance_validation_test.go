@@ -66,7 +66,7 @@ func writeBaselineForAssuranceValidation(t *testing.T, root string) {
 		"  source_posture: embedded",
 		"",
 	}, "\n")
-	baselinePath := filepath.Join(root, "assurance", "baseline.yaml")
+	baselinePath := filepath.Join(root, "runecontext", "assurance", "baseline.yaml")
 	if err := os.MkdirAll(filepath.Dir(baselinePath), 0o755); err != nil {
 		t.Fatalf("mkdir baseline dir: %v", err)
 	}
@@ -78,7 +78,7 @@ func writeBaselineForAssuranceValidation(t *testing.T, root string) {
 func writeInvalidHashAssuranceReceipt(t *testing.T, root string) {
 	t.Helper()
 
-	receiptPath := filepath.Join(root, "assurance", "receipts", "changes", "changes--rid-abcdef12-1710000000-0123456789ab-badbadbadbad.json")
+	receiptPath := filepath.Join(root, "runecontext", "assurance", "receipts", "changes", "changes--rid-abcdef12-1710000000-0123456789ab-badbadbadbad.json")
 	if err := os.MkdirAll(filepath.Dir(receiptPath), 0o755); err != nil {
 		t.Fatalf("mkdir receipt dir: %v", err)
 	}

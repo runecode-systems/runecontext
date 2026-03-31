@@ -167,7 +167,7 @@ func TestRunAssuranceEnablePreservesConfig(t *testing.T) {
 		t.Fatalf("expected success, got %d (%s)", code, stderr.String())
 	}
 	assertVerifiedConfigPreserved(t, configPath)
-	assertBaselineEnvelope(t, filepath.Join(root, "assurance", "baseline.yaml"))
+	assertBaselineEnvelope(t, assuranceBaselinePath(root))
 }
 
 func writeAssuranceConfigFixture(t *testing.T, root string) string {
@@ -202,7 +202,7 @@ func TestRunAssuranceEnableUsesNearestAncestorDiscovery(t *testing.T) {
 	if !strings.Contains(string(data), "assurance_tier: verified") {
 		t.Fatalf("tier not updated: %s", string(data))
 	}
-	if _, err := os.Stat(filepath.Join(root, "assurance", "baseline.yaml")); err != nil {
+	if _, err := os.Stat(assuranceBaselinePath(root)); err != nil {
 		t.Fatalf("expected baseline at discovered project root: %v", err)
 	}
 }
@@ -235,7 +235,7 @@ func writeDiscoveryFixtureProject(t *testing.T) string {
 func TestRunAssuranceEnableFailsWhenExistingBaselineUnreadable(t *testing.T) {
 	root := t.TempDir()
 	_ = writeAssuranceConfigFixture(t, root)
-	baselinePath := filepath.Join(root, "assurance", "baseline.yaml")
+	baselinePath := assuranceBaselinePath(root)
 	if err := os.MkdirAll(baselinePath, 0o755); err != nil {
 		t.Fatalf("make unreadable baseline path: %v", err)
 	}

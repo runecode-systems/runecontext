@@ -19,8 +19,10 @@ type upgradeApplyMigrationRegistry struct {
 
 func defaultUpgradeApplyMigrationRegistry() upgradeApplyMigrationRegistry {
 	defaultMigration := defaultVersionRewriteUpgradeMigration{}
+	hopSpecific := map[upgradeEdgeKey]upgradeHopMigration{}
+	hopSpecific[upgradeEdgeKey{From: "0.1.0-alpha.12", To: "0.1.0-alpha.13"}] = assuranceLayoutAlpha13Migration{}
 	return upgradeApplyMigrationRegistry{
-		hopSpecific: map[upgradeEdgeKey]upgradeHopMigration{},
+		hopSpecific: hopSpecific,
 		defaultHop:  defaultMigration,
 	}
 }

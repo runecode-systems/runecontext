@@ -27,7 +27,7 @@ func TestPlanMigrationEdgesWithinIntervalSelectsSparseRealEdges(t *testing.T) {
 
 func TestPlanMigrationEdgesWithinIntervalReturnsZeroHopsWhenNonePresent(t *testing.T) {
 	t.Parallel()
-	registry := defaultUpgradePlannerRegistry()
+	registry := upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
 	hops, planned, err := registry.planMigrationEdgesWithinInterval("0.1.0-alpha.10", "0.1.0-alpha.13")
 	if err != nil {
 		t.Fatalf("planMigrationEdgesWithinInterval returned error: %v", err)
