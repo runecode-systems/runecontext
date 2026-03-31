@@ -194,8 +194,8 @@ func assertCompatibilityPopulation(t *testing.T, descriptor capabilityDescriptor
 
 func assertCompatibilityIncludesExpectedVersions(t *testing.T, descriptor capabilityDescriptor) {
 	t.Helper()
-	if !containsString(descriptor.Compatibility.DirectlySupportedProjectVersions, "0.1.0-alpha.5") {
-		t.Fatalf("expected directly supported project versions to include alpha.5 compatibility range: %#v", descriptor.Compatibility.DirectlySupportedProjectVersions)
+	if !containsString(descriptor.Compatibility.DirectlySupportedProjectVersions, "0.1.0-alpha.8") {
+		t.Fatalf("expected directly supported project versions to include the documented alpha compatibility floor, got %#v", descriptor.Compatibility.DirectlySupportedProjectVersions)
 	}
 	if !containsString(descriptor.Compatibility.DirectlySupportedProjectVersions, descriptor.Compatibility.DefaultProjectVersion) {
 		t.Fatalf("expected default project version %q to be directly supported: %#v", descriptor.Compatibility.DefaultProjectVersion, descriptor.Compatibility.DirectlySupportedProjectVersions)

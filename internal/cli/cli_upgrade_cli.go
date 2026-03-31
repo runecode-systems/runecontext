@@ -156,7 +156,7 @@ func parseUpgradeCLIApplyArgs(args []string) (cliUpgradeRequest, error) {
 		return cliUpgradeRequest{}, fmt.Errorf("upgrade cli apply does not accept positional arguments")
 	}
 	if strings.TrimSpace(request.targetVersion) == "" {
-		return cliUpgradeRequest{}, fmt.Errorf("upgrade cli apply requires --target-version")
+		request.targetVersion = "current"
 	}
 	if err := validateUpgradeTargetVersion(request.targetVersion); err != nil {
 		return cliUpgradeRequest{}, err

@@ -195,11 +195,23 @@ func supportsByInstalledVersion(version, installed string) bool {
 	if installed == "0.0.0-dev" || version == installed {
 		return true
 	}
+	if isPreAlphaFiveProjectVersion(version, installed) {
+		return false
+	}
 	if !isComparableVersionLine(version, installed) {
 		return false
 	}
 	comparison, comparable := compareKnownRunecontextVersions(version, installed)
 	return comparable && comparison <= 0
+}
+
+func isPreAlphaFiveProjectVersion(projectVersion, installedVersion string) bool {
+	installedOrdinal, ok := alphaOrdinal(installedVersion)
+	if !ok || installedOrdinal < 8 {
+		return false
+	}
+	projectOrdinal, ok := alphaOrdinal(projectVersion)
+	return ok && projectOrdinal < 5
 }
 
 func isCompatibleProjectVersionForInstalled(projectVersion, installedVersion string) bool {

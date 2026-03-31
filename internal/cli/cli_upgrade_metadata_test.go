@@ -11,8 +11,8 @@ func TestUpgradeCommandMetadataMatchesParserRequiredFlags(t *testing.T) {
 	if flag := flagMetadataByName(apply.Flags, "--target-version"); flag == nil || flag.Required {
 		t.Fatalf("expected upgrade apply --target-version to be optional in metadata")
 	}
-	if flag := flagMetadataByName(cliApply.Flags, "--target-version"); flag == nil || !flag.Required {
-		t.Fatalf("expected upgrade cli apply --target-version to be required in metadata")
+	if flag := flagMetadataByName(cliApply.Flags, "--target-version"); flag == nil || flag.Required {
+		t.Fatalf("expected upgrade cli apply --target-version to be optional in metadata")
 	}
 	if apply.Usage != upgradeApplyUsage {
 		t.Fatalf("expected upgrade apply usage parity, got %q want %q", apply.Usage, upgradeApplyUsage)

@@ -137,7 +137,7 @@ func hasUpgradeChangeDescendant(dir string, changedFiles []string) bool {
 
 func removeUpgradeEmptyDir(dir string) (bool, error) {
 	if err := os.Remove(dir); err != nil {
-		if os.IsNotExist(err) || isUpgradeDirNotEmpty(err) {
+		if os.IsNotExist(err) || isUpgradeDirNotEmpty(dir, err) {
 			return true, nil
 		}
 		return false, err
@@ -198,12 +198,13 @@ func ensureUpgradePathIsDirectory(path string) error {
 	return os.Mkdir(path, 0o755)
 }
 
-func isUpgradeDirNotEmpty(err error) bool {
+func isUpgradeDirNotEmpty(dir string, err error) bool {
 	pathErr, ok := err.(*os.PathError)
-	if !ok {
-		return false
+	if ok && errors.Is(pathErr.Err, syscall.ENOTEMPTY) {
+		return true
 	}
-	return errors.Is(pathErr.Err, syscall.ENOTEMPTY)
+	entries, readErr := os.ReadDir(dir)
+	return readErr == nil && len(entries) > 0
 }
 
 func isPathWithinUpgradeRoot(rel string) bool {

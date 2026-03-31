@@ -241,15 +241,18 @@ func TestRunUpgradeCLIApplyReportsInstallerFailure(t *testing.T) {
 	}
 }
 
-func TestRunUpgradeCLIApplyRequiresTargetVersion(t *testing.T) {
+func TestRunUpgradeCLIApplyDefaultsTargetVersionToCurrent(t *testing.T) {
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.8")
+
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := Run([]string{"upgrade", "cli", "apply"}, &stdout, &stderr)
-	if code != exitUsage {
-		t.Fatalf("expected usage exit code, got %d (%s)", code, stderr.String())
+	code := Run([]string{"upgrade", "cli", "apply", "--json"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "upgrade cli apply requires --target-version") {
-		t.Fatalf("expected missing target-version error, got %q", stderr.String())
+	fields := parseCLIJSONEnvelopeData(t, stdout.Bytes())
+	if got, want := fields["target_release"], "0.1.0-alpha.8"; got != want {
+		t.Fatalf("expected default target_release %q, got %q", want, got)
 	}
 }
 
