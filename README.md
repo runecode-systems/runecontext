@@ -1,12 +1,12 @@
 # RuneContext - Portable, markdown-first project knowledge, standards, and context bundles
 
-[![CI](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml/badge.svg)](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml) [![Status: alpha.12](https://img.shields.io/badge/status-alpha.12-orange)](docs/implementation-plan/README.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![CI](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml/badge.svg)](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml) [![Status: alpha.13](https://img.shields.io/badge/status-alpha.13-orange)](docs/implementation-plan/README.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 RuneContext is a portable, markdown-first, git-native system for project knowledge, standards, changes, and reusable context bundles. It is AI-tooling-agnostic by design, so teams can use the same source artifacts with different tools or manual workflows without turning the format into a product-specific silo.
 
 ## Status
 
-RuneContext is still pre-MVP and not production-ready. The current repository now includes the alpha.1 through alpha.12 slices: frozen core contracts and versioned schemas, embedded/git/path source resolution with monorepo discovery, signed-tag verification with explicit trusted-signer input, deterministic bundle semantics, standards linkage and traceability, stable change IDs, deterministic context-pack generation and hashing, generated indexes/manifests, reviewable promotion assessment, local-first `init`, `bundle resolve`, `doctor`, explicit `promote`, advisory `standard discover`, verified assurance enable/backfill/capture flows, canonical completion metadata and dynamic suggestions, thin generic/tool adapters, repo-local host-native adapter sync, preview-first `runectx upgrade` / `runectx upgrade apply`, explicit `runectx upgrade cli` / `runectx upgrade cli apply` self-update flows, human-friendly grouped upgrade rendering, version-bump-only alpha upgrade semantics where no migration logic is required, synced-tool-only host-native refresh behavior during upgrade, richer human-friendly `runectx status` output, checked-in standards under `runecontext/standards/`, canonical release artifacts and verification docs, compatibility guidance, and MVP readiness/reference-fixture coverage. Remaining work toward `v0.1.0` is final stabilization and sign-off.
+RuneContext is still pre-MVP and not production-ready. The current repository now includes the alpha.1 through alpha.13 slices: frozen core contracts and versioned schemas, embedded/git/path source resolution with monorepo discovery, signed-tag verification with explicit trusted-signer input, deterministic bundle semantics, standards linkage and traceability, stable change IDs, deterministic context-pack generation and hashing, generated indexes/manifests, reviewable promotion assessment, local-first `init`, `bundle resolve`, `doctor`, explicit `promote`, advisory `standard discover`, verified assurance enable/backfill/capture flows, canonical completion metadata and dynamic suggestions, thin generic/tool adapters, repo-local host-native adapter sync, preview-first `runectx upgrade` / `runectx upgrade apply`, explicit `runectx upgrade cli` / `runectx upgrade cli apply` self-update flows, human-friendly grouped upgrade rendering, version-bump-only alpha upgrade semantics where no migration logic is required, real staged migration-edge execution for on-disk layout updates, synced-tool-only host-native refresh behavior during upgrade, richer human-friendly `runectx status` output, checked-in standards under `runecontext/standards/`, canonical release artifacts and verification docs, compatibility guidance, and MVP readiness/reference-fixture coverage. Remaining work toward `v0.1.0` is final stabilization and sign-off.
 
 ## Quick Start
 
@@ -26,7 +26,7 @@ bin/runectx doctor --path /path/to/project
 
 ## Install / Try The CLI
 
-With alpha.12 upgrade UX, CLI self-update, release/runtime metadata alignment, and portability hardening now implemented, `runectx` is the primary supported interface for installing, initializing, validating, diagnosing, upgrading, and syncing RuneContext-managed project assets.
+With alpha.13 upgrade UX, CLI self-update, release/runtime metadata alignment, portability hardening, and assurance-layout migration support now implemented, `runectx` is the primary supported interface for installing, initializing, validating, diagnosing, upgrading, and syncing RuneContext-managed project assets.
 
 RuneContext is distributed as reviewable repo bundles from GitHub Releases, and those bundles remain the canonical release contents. The standalone `runectx` binary archive is only an optional delivery format; once RuneContext is installed or vendored, the CLI is the normal way to manage it inside projects. In day-to-day use, project setup and maintenance are centered on `runectx init`, `runectx validate`, `runectx doctor`, `runectx adapter sync`, and `runectx upgrade` / `runectx upgrade apply`.
 
@@ -49,7 +49,7 @@ bash install-runectx.sh
 Pinned version example:
 
 ```sh
-TAG="v0.1.0-alpha.12"
+TAG="v0.1.0-alpha.13"
 curl -fsSLO "https://github.com/runecode-systems/runecontext/releases/download/${TAG}/install-runectx.sh"
 bash install-runectx.sh --version "$TAG"
 ```
@@ -66,7 +66,7 @@ powershell -ExecutionPolicy Bypass -File .\install-runectx.ps1
 Pinned version example:
 
 ```powershell
-$Tag = "v0.1.0-alpha.12"
+$Tag = "v0.1.0-alpha.13"
 Invoke-WebRequest -Uri "https://github.com/runecode-systems/runecontext/releases/download/$Tag/install-runectx.ps1" -OutFile install-runectx.ps1
 powershell -ExecutionPolicy Bypass -File .\install-runectx.ps1 -Version $Tag
 ```

@@ -9,12 +9,11 @@ func executeUpgradeHops(stageCtx upgradeMigrationContext, plan upgradePlan) erro
 	registry := upgradeApplyMigrationRegistryFn()
 	stagedVersion := stageVersionForHopExecution(stageCtx, plan)
 	for _, hop := range plan.UpgradeHops {
-		nextVersion, advanced, err := advanceStagedVersionToHopFrom(stageCtx, stagedVersion, hop)
+		nextVersion, _, err := advanceStagedVersionToHopFrom(stageCtx, stagedVersion, hop)
 		if err != nil {
 			return err
 		}
 		stagedVersion = nextVersion
-		_ = advanced
 		if err := applyAndValidateUpgradeHop(stageCtx, registry, hop); err != nil {
 			return err
 		}
