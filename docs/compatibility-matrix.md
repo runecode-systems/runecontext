@@ -22,9 +22,12 @@ integration flows should fail closed and direct users to upgrade.
 - Upgrade planning follows explicit registered migration hops. Preview reports an
   ordered hop chain (`hop_count`, `hop_N_from`, `hop_N_to`) plus readable
   per-hop actions.
-- If no registered path exists from the current `runecontext_version` to the
-  requested target, planning fails closed with an unsupported-project-version
-  state instead of auto-bumping the version.
+- If no registered migration path exists but the selected target only requires a
+  compatible version bump with no migration logic, planning may still produce a
+  zero-hop version-bump-only upgrade.
+- If the requested target requires migrations and no registered path exists,
+  planning fails closed with an unsupported-project-version state instead of
+  auto-bumping the version.
 
 ## Release distribution semantics
 

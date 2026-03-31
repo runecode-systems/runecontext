@@ -101,6 +101,8 @@ func TestCompatibilityMatrixDocumentsCanonicalAndOptionalReleasePaths(t *testing
 	requireSubstrings(t, matrix,
 		"canonical release path",
 		"optional binary convenience path",
+		"zero-hop version-bump-only upgrade",
+		"If the requested target requires migrations and no registered path exists",
 		"`nix build --no-link .#release-artifacts`",
 		"`runecontext_<tag>.tar.gz`",
 		"`runecontext_<tag>_<os>_<arch>.tar.gz`",

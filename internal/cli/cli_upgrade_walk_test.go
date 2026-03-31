@@ -160,6 +160,43 @@ func TestRunUpgradeApplyRejectsNonIgnoredSymlinkWhenGitDirIsOverridden(t *testin
 	}
 }
 
+func TestRunUpgradeApplyRejectsNonIgnoredSymlinkWhenGlobalIgnoreWouldMatch(t *testing.T) {
+	root := t.TempDir()
+	copyDirForCLI(t, repoFixtureRoot(t, "reference-projects", "embedded"), root)
+	setRunecontextVersionForTests(t, "v0.1.0-alpha.12")
+	runGitForCLI(t, root, "init", "--initial-branch=main")
+	homeDir := t.TempDir()
+	configDir := filepath.Join(homeDir, ".config", "git")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("mkdir git config dir: %v", err)
+	}
+	ignorePath := filepath.Join(configDir, "ignore")
+	if err := os.WriteFile(ignorePath, []byte("local-symlink\n"), 0o644); err != nil {
+		t.Fatalf("write global ignore file: %v", err)
+	}
+	t.Setenv("HOME", homeDir)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(homeDir, ".config"))
+	if err := os.WriteFile(filepath.Join(root, "target.txt"), []byte("target\n"), 0o644); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	if err := os.Symlink("target.txt", filepath.Join(root, "local-symlink")); err != nil {
+		if runtime.GOOS == "windows" || os.IsPermission(err) {
+			t.Skipf("symlink creation not permitted: %v", err)
+		}
+		t.Fatalf("create symlink: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"upgrade", "apply", "--path", root, "--json"}, &stdout, &stderr)
+	if code != exitInvalid {
+		t.Fatalf("expected global-ignore-neutralized symlink rejection, got %d (%s)", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "upgrade staging rejects symlinked path local-symlink") {
+		t.Fatalf("expected local symlink rejection message, got %q", stderr.String())
+	}
+}
+
 func TestCollectUpgradeProtectedRelPathsIgnoresSourcePathOutsideRoot(t *testing.T) {
 	root := t.TempDir()
 	configPath := filepath.Join(root, "runecontext.yaml")

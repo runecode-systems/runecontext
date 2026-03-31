@@ -189,11 +189,13 @@ func sanitizedUpgradeGitCheckIgnoreEnv() []string {
 	env := []string{
 		"GIT_CONFIG_GLOBAL=" + os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
+		"HOME=/nonexistent",
+		"XDG_CONFIG_HOME=/nonexistent",
 		"GIT_DISCOVERY_ACROSS_FILESYSTEM=0",
 		"LANG=C",
 		"LC_ALL=C",
 	}
-	for _, key := range []string{"PATH", "HOME", "XDG_CONFIG_HOME", "SYSTEMROOT", "TMPDIR", "TMP", "TEMP"} {
+	for _, key := range []string{"PATH", "SYSTEMROOT", "TMPDIR", "TMP", "TEMP"} {
 		if value, ok := os.LookupEnv(key); ok && value != "" {
 			env = append(env, key+"="+value)
 		}

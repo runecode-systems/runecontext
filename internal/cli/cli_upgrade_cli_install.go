@@ -43,22 +43,30 @@ func installerCommandForCurrentPlatform(version string) (string, []string, error
 	if !semverLikePattern.MatchString(version) {
 		return "", nil, fmt.Errorf("target release %q must look like a semantic version", version)
 	}
-	repoRoot, err := repoRootForBundledReleaseAssets()
+	runtimeRoot, err := cliUpgradeRuntimeRoot()
 	if err != nil {
 		return "", nil, err
 	}
 	if runtime.GOOS == "windows" {
-		script := filepath.Join(repoRoot, "scripts", "install-runectx.ps1")
+		script := cliUpgradeInstallerPath(runtimeRoot, "install-runectx.ps1")
 		if statErr := ensureTrustedInstallerScript(script); statErr != nil {
 			return "", nil, fmt.Errorf("locate installer script: %w", statErr)
 		}
 		return "powershell", []string{"-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-Version", "v" + version, "-Yes"}, nil
 	}
-	script := filepath.Join(repoRoot, "scripts", "install-runectx.sh")
+	script := cliUpgradeInstallerPath(runtimeRoot, "install-runectx.sh")
 	if statErr := ensureTrustedInstallerScript(script); statErr != nil {
 		return "", nil, fmt.Errorf("locate installer script: %w", statErr)
 	}
 	return "bash", []string{script, "--version", "v" + version, "--yes"}, nil
+}
+
+func cliUpgradeInstallerPath(root, scriptName string) string {
+	installed := filepath.Join(root, "share", "runecontext", "installers", scriptName)
+	if _, err := os.Stat(installed); err == nil {
+		return installed
+	}
+	return filepath.Join(root, "scripts", scriptName)
 }
 
 func ensureTrustedInstallerScript(path string) error {

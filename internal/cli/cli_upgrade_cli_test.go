@@ -243,10 +243,11 @@ func TestInstallerCommandForCurrentPlatformAnchorsToExecutableRepoNotCwd(t *test
 	if script != "bash" {
 		t.Fatalf("expected bash launcher, got %q", script)
 	}
-	if len(args) == 0 || args[0] != filepath.Join(executableRepo, "scripts", "install-runectx.sh") {
+	actualPath := mustResolvePath(t, args[0], "actual installer path")
+	if len(args) == 0 || actualPath != mustResolvePath(t, filepath.Join(executableRepo, "share", "runecontext", "installers", "install-runectx.sh"), "expected installer path") {
 		t.Fatalf("expected installer path from executable repo, got %#v", args)
 	}
-	if len(args) > 0 && args[0] == filepath.Join(cwdRepo, "scripts", "install-runectx.sh") {
+	if len(args) > 0 && actualPath == mustResolvePath(t, filepath.Join(cwdRepo, "share", "runecontext", "installers", "install-runectx.sh"), "cwd installer path") {
 		t.Fatalf("expected installer path not to come from cwd repo, got %#v", args)
 	}
 }
@@ -254,11 +255,11 @@ func TestInstallerCommandForCurrentPlatformAnchorsToExecutableRepoNotCwd(t *test
 func createExecutableAndCwdFixtureRepos(t *testing.T) (string, string, string) {
 	t.Helper()
 	executableRepo := createCLIUpgradeFixtureRepo(t)
-	if err := os.WriteFile(filepath.Join(executableRepo, "scripts", "install-runectx.sh"), []byte("#!/usr/bin/env bash\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(executableRepo, "share", "runecontext", "installers", "install-runectx.sh"), []byte("#!/usr/bin/env bash\n"), 0o755); err != nil {
 		t.Fatalf("write executable repo installer: %v", err)
 	}
 	cwdRepo := createCLIUpgradeFixtureRepo(t)
-	if err := os.WriteFile(filepath.Join(cwdRepo, "scripts", "install-runectx.sh"), []byte("#!/usr/bin/env bash\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(cwdRepo, "share", "runecontext", "installers", "install-runectx.sh"), []byte("#!/usr/bin/env bash\n"), 0o755); err != nil {
 		t.Fatalf("write cwd repo installer: %v", err)
 	}
 	subdir := filepath.Join(cwdRepo, "nested", "work")
@@ -270,7 +271,7 @@ func createExecutableAndCwdFixtureRepos(t *testing.T) (string, string, string) {
 
 func TestInstallerCommandForCurrentPlatformRejectsSymlinkedInstallerScript(t *testing.T) {
 	repoRoot := createCLIUpgradeFixtureRepo(t)
-	if err := os.Symlink(filepath.Join(repoRoot, "real-installer.sh"), filepath.Join(repoRoot, "scripts", "install-runectx.sh")); err != nil {
+	if err := os.Symlink(filepath.Join(repoRoot, "real-installer.sh"), filepath.Join(repoRoot, "share", "runecontext", "installers", "install-runectx.sh")); err != nil {
 		if os.IsPermission(err) {
 			t.Skipf("symlink creation not permitted: %v", err)
 		}
@@ -297,12 +298,7 @@ func TestInstallerCommandForCurrentPlatformRejectsSymlinkedInstallerScript(t *te
 func createCLIUpgradeFixtureRepo(t *testing.T) string {
 	t.Helper()
 	repoRoot := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repoRoot, "nix", "release"), 0o755); err != nil {
-		t.Fatalf("mkdir metadata dir: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(repoRoot, "scripts"), 0o755); err != nil {
-		t.Fatalf("mkdir scripts dir: %v", err)
-	}
+	makeCLIUpgradeFixtureDirs(t, repoRoot)
 	if err := os.WriteFile(filepath.Join(repoRoot, "nix", "release", "metadata.nix"), []byte("{}\n"), 0o644); err != nil {
 		t.Fatalf("write metadata: %v", err)
 	}
@@ -315,7 +311,30 @@ func createCLIUpgradeFixtureRepo(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(repoRoot, "bin", "runectx"), []byte("binary\n"), 0o755); err != nil {
 		t.Fatalf("write fake executable: %v", err)
 	}
+	for _, name := range requiredSchemaNames() {
+		if err := os.WriteFile(filepath.Join(repoRoot, "share", "runecontext", "schemas", name), []byte("{}\n"), 0o644); err != nil {
+			t.Fatalf("write schema %s: %v", name, err)
+		}
+	}
 	return repoRoot
+}
+
+func makeCLIUpgradeFixtureDirs(t *testing.T, repoRoot string) {
+	t.Helper()
+	for _, dir := range []string{"nix/release", "scripts", "share/runecontext/installers", "share/runecontext/schemas", "bin"} {
+		if err := os.MkdirAll(filepath.Join(repoRoot, filepath.FromSlash(dir)), 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", dir, err)
+		}
+	}
+}
+
+func mustResolvePath(t *testing.T, path, label string) string {
+	t.Helper()
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		t.Fatalf("resolve %s: %v", label, err)
+	}
+	return resolved
 }
 
 func TestRunUpgradeCLIAndProjectUpgradeRemainDistinct(t *testing.T) {

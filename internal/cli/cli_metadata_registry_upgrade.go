@@ -31,7 +31,7 @@ func upgradeFlags() []FlagMetadata {
 func upgradeApplyFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--path", Value: textValueSpec()},
-		{Name: "--target-version", Value: textValueSpec(), Required: true},
+		{Name: "--target-version", Value: textValueSpec()},
 	}
 }
 
@@ -43,6 +43,6 @@ func upgradeCLIFlags() []FlagMetadata {
 
 func upgradeCLIApplyFlags() []FlagMetadata {
 	return []FlagMetadata{
-		{Name: "--target-version", Value: textValueSpec()},
+		{Name: "--target-version", Value: textValueSpec(), Required: true},
 	}
 }
