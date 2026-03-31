@@ -94,7 +94,9 @@ func buildChangeUpdateOutput(absRoot string, loaded *contracts.LoadedProject, re
 		{"change_path", result.ChangePath},
 		{"change_mode", string(result.Mode)},
 		{"change_status", result.Status},
+		{"related_change_count", fmt.Sprintf("%d", len(result.RelatedChanges))},
 	}
+	output = appendStringItems(output, "related_change", result.RelatedChanges)
 	if result.Recursive {
 		output = append(output, line{"recursive", "true"}, line{"recursive_target_count", fmt.Sprintf("%d", result.RecursiveTargetCount)})
 		output = appendStringItems(output, "recursive_target", result.RecursiveTargetIDs)

@@ -108,7 +108,7 @@ _runectx_flags_for() {
     'change new') echo '--bundle --description --dry-run --explain --json --non-interactive --path --shape --size --title --type' ;;
     'change reallocate') echo '--dry-run --explain --json --non-interactive --path' ;;
     'change shape') echo '--design --dry-run --explain --json --non-interactive --path --reference --task --verification' ;;
-    'change update') echo '--dry-run --explain --json --non-interactive --path --recursive --status --verification-status' ;;
+    'change update') echo '--add-related-change --dry-run --explain --json --non-interactive --path --recursive --remove-related-change --status --verification-status' ;;
     'completion suggest') echo '--path --prefix' ;;
     'doctor') echo '--explain --json --non-interactive --path' ;;
     'generate') echo '--explain --json --non-interactive' ;;
@@ -160,7 +160,9 @@ _runectx_flag_takes_value() {
     'change shape|--reference') return 0 ;;
     'change shape|--task') return 0 ;;
     'change shape|--verification') return 0 ;;
+    'change update|--add-related-change') return 0 ;;
     'change update|--path') return 0 ;;
+    'change update|--remove-related-change') return 0 ;;
     'change update|--status') return 0 ;;
     'change update|--verification-status') return 0 ;;
     'completion suggest|--path') return 0 ;;
@@ -211,6 +213,8 @@ _runectx_suggest_provider_for_flag() {
     'change assess-intake|--bundle') echo 'bundle-ids' ;;
     'change close|--superseded-by') echo 'change-ids' ;;
     'change new|--bundle') echo 'bundle-ids' ;;
+    'change update|--add-related-change') echo 'change-ids' ;;
+    'change update|--remove-related-change') echo 'change-ids' ;;
     'init|--seed-bundle') echo 'bundle-ids' ;;
     'promote|--target') echo 'promotion-targets' ;;
     'standard discover|--change') echo 'change-ids' ;;

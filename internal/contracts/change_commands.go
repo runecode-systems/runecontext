@@ -54,9 +54,11 @@ type ChangeCloseOptions struct {
 }
 
 type ChangeUpdateOptions struct {
-	Status             string
-	VerificationStatus string
-	Recursive          bool
+	Status               string
+	VerificationStatus   string
+	AddRelatedChanges    []string
+	RemoveRelatedChanges []string
+	Recursive            bool
 }
 
 type ChangeReallocateOptions struct {
@@ -80,6 +82,7 @@ type ChangeOperationResult struct {
 	Mode                      ChangeMode
 	RecommendedMode           ChangeMode
 	Status                    string
+	RelatedChanges            []string
 	ClosedAt                  string
 	ContextBundles            []string
 	ApplicableStandards       []string

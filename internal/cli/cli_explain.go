@@ -165,7 +165,11 @@ func appendChangeUpdateExplainLines(lines []line, result *contracts.ChangeOperat
 	lines = append(lines,
 		line{"explain_scope", "lifecycle-transition"},
 		line{"explain_lifecycle_status", result.Status},
+		line{"explain_related_change_count", fmt.Sprintf("%d", len(result.RelatedChanges))},
 	)
+	for i, relatedID := range result.RelatedChanges {
+		lines = append(lines, line{fmt.Sprintf("explain_related_change_%d", i+1), relatedID})
+	}
 	if result.Recursive {
 		lines = append(lines,
 			line{"explain_scope_2", "recursive-lifecycle-cascade"},

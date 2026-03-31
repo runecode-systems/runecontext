@@ -36,6 +36,8 @@ func changeUpdateFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--status", Value: enumValueSpec("planned", "implemented", "verified"), Required: true},
 		{Name: "--verification-status", Value: enumValueSpec("passed", "failed", "skipped")},
+		{Name: "--add-related-change", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs), Repeatable: true},
+		{Name: "--remove-related-change", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs), Repeatable: true},
 		{Name: "--recursive", Value: noValueSpec()},
 		{Name: "--path", Value: textValueSpec()},
 	}

@@ -25,7 +25,7 @@ const (
 	changeShapeUsage        = "runectx change shape [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--design TEXT] [--verification TEXT] [--task TEXT] [--reference TEXT] [--path PATH]"
 	changeCloseUsage        = "runectx change close [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--verification-status STATUS] [--superseded-by ID] [--closed-at YYYY-MM-DD] [--recursive] [--path PATH]"
 	changeReallocateUsage   = "runectx change reallocate [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--path PATH]"
-	changeUpdateUsage       = "runectx change update [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID --status planned|implemented|verified [--verification-status passed|failed|skipped] [--recursive] [--path PATH]"
+	changeUpdateUsage       = "runectx change update [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID --status planned|implemented|verified [--verification-status passed|failed|skipped] [--add-related-change ID] [--remove-related-change ID] [--recursive] [--path PATH]"
 	changeAssessIntakeUsage = "runectx change assess-intake [--json] [--non-interactive] [--explain] --title TITLE --type TYPE [--size SIZE] [--bundle ID] [--description TEXT] [--path PATH]"
 	changeAssessDecompUsage = "runectx change assess-decomposition [--json] [--non-interactive] [--explain] CHANGE_ID [--path PATH]"
 	initUsage               = "runectx init [--json] [--non-interactive] [--dry-run] [--explain] [--mode embedded|linked] [--seed-bundle NAME] [--path PATH]"

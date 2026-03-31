@@ -109,6 +109,86 @@ func TestUpdateChangeRejectsVerificationStatusOnNonVerifiedTransition(t *testing
 	}
 }
 
+func TestUpdateChangeAddsReciprocalRelatedChanges(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, first := mustCreateDefaultFeatureChange(t, root)
+	_, second := mustCreateChange(t, root, defaultFeatureChangeOptions("Second feature", []byte{0x51, 0x52}))
+
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	result, err := UpdateChange(v, loaded, first.ID, ChangeUpdateOptions{Status: "planned", AddRelatedChanges: []string{second.ID}})
+	if err != nil {
+		t.Fatalf("update change with related addition: %v", err)
+	}
+	if len(result.RelatedChanges) != 1 || result.RelatedChanges[0] != second.ID {
+		t.Fatalf("expected updated related_changes [%s], got %#v", second.ID, result.RelatedChanges)
+	}
+
+	firstStatusPath := filepath.Join(root, "runecontext", "changes", first.ID, "status.yaml")
+	firstText := strings.ReplaceAll(string(mustReadBytes(t, firstStatusPath)), "\r\n", "\n")
+	if !strings.Contains(firstText, "related_changes:\n  - "+second.ID) {
+		t.Fatalf("expected first status related_changes to include %s, got:\n%s", second.ID, firstText)
+	}
+	secondStatusPath := filepath.Join(root, "runecontext", "changes", second.ID, "status.yaml")
+	secondText := strings.ReplaceAll(string(mustReadBytes(t, secondStatusPath)), "\r\n", "\n")
+	if !strings.Contains(secondText, "related_changes:\n  - "+first.ID) {
+		t.Fatalf("expected reciprocal related_changes to include %s, got:\n%s", first.ID, secondText)
+	}
+}
+
+func TestUpdateChangeRemovesReciprocalRelatedChanges(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, first := mustCreateDefaultFeatureChange(t, root)
+	_, second := mustCreateChange(t, root, defaultFeatureChangeOptions("Second feature", []byte{0x61, 0x62}))
+	wireBidirectionalRelatedChangeLink(t, root, first.ID, second.ID)
+
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	result, err := UpdateChange(v, loaded, first.ID, ChangeUpdateOptions{Status: "planned", RemoveRelatedChanges: []string{second.ID}})
+	if err != nil {
+		t.Fatalf("update change with related removal: %v", err)
+	}
+	if len(result.RelatedChanges) != 0 {
+		t.Fatalf("expected updated related_changes to be empty, got %#v", result.RelatedChanges)
+	}
+
+	firstStatusPath := filepath.Join(root, "runecontext", "changes", first.ID, "status.yaml")
+	firstText := strings.ReplaceAll(string(mustReadBytes(t, firstStatusPath)), "\r\n", "\n")
+	if !strings.Contains(firstText, "related_changes: []") {
+		t.Fatalf("expected first status related_changes to be empty, got:\n%s", firstText)
+	}
+	secondStatusPath := filepath.Join(root, "runecontext", "changes", second.ID, "status.yaml")
+	secondText := strings.ReplaceAll(string(mustReadBytes(t, secondStatusPath)), "\r\n", "\n")
+	if !strings.Contains(secondText, "related_changes: []") {
+		t.Fatalf("expected reciprocal related_changes to be empty, got:\n%s", secondText)
+	}
+}
+
+func TestUpdateChangeRejectsConflictingRelationshipEdits(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, first := mustCreateDefaultFeatureChange(t, root)
+	_, second := mustCreateChange(t, root, defaultFeatureChangeOptions("Second feature", []byte{0x71, 0x72}))
+
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	_, err := UpdateChange(v, loaded, first.ID, ChangeUpdateOptions{Status: "planned", AddRelatedChanges: []string{second.ID}, RemoveRelatedChanges: []string{second.ID}})
+	if err == nil || !strings.Contains(err.Error(), "relationship edit lists conflict") {
+		t.Fatalf("expected relationship conflict rejection, got %v", err)
+	}
+}
+
+func TestUpdateChangeRejectsSelfRelationshipEdit(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, created := mustCreateDefaultFeatureChange(t, root)
+
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	_, err := UpdateChange(v, loaded, created.ID, ChangeUpdateOptions{Status: "planned", AddRelatedChanges: []string{created.ID}})
+	if err == nil || !strings.Contains(err.Error(), "must not relate a change to itself") {
+		t.Fatalf("expected self-related-change rejection, got %v", err)
+	}
+}
+
 func rewriteUpdatePromotionAssessmentFixture(t *testing.T, statusPath string) {
 	t.Helper()
 	rewriteFile(t, statusPath, func(text string) string {

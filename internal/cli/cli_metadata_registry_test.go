@@ -122,12 +122,28 @@ func validateChangeUpdateFlags(t *testing.T, update *CommandMetadata) {
 	if got := verification.Value.EnumValues; !slices.Equal(got, []string{"failed", "passed", "skipped"}) {
 		t.Fatalf("expected verification_status enums [failed passed skipped], got %#v", got)
 	}
+	validateChangeUpdateRelationshipFlag(t, update, "--add-related-change")
+	validateChangeUpdateRelationshipFlag(t, update, "--remove-related-change")
 	recursive := flagMetadataByName(update.Flags, "--recursive")
 	if recursive == nil {
 		t.Fatalf("expected --recursive flag for change update")
 	}
 	if recursive.Value.Kind != ValueKindNone {
 		t.Fatalf("expected --recursive to be a no-value flag")
+	}
+}
+
+func validateChangeUpdateRelationshipFlag(t *testing.T, update *CommandMetadata, name string) {
+	t.Helper()
+	flag := flagMetadataByName(update.Flags, name)
+	if flag == nil {
+		t.Fatalf("expected %s flag for change update", name)
+	}
+	if flag.Required {
+		t.Fatalf("expected %s to be optional", name)
+	}
+	if !flag.Repeatable {
+		t.Fatalf("expected %s to be repeatable", name)
 	}
 }
 
