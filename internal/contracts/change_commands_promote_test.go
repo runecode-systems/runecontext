@@ -55,7 +55,7 @@ func TestPromoteChangeVerifiedTierWritesAssuranceReceipt(t *testing.T) {
 	mustCloseChange(t, v, root, created.ID, ChangeCloseOptions{VerificationStatus: "passed", ClosedAt: time.Date(2026, time.March, 20, 0, 0, 0, 0, time.UTC)})
 
 	result := mustPromoteChange(t, v, root, created.ID, PromoteOptions{})
-	assertCreatedMutationWithPrefix(t, result.ChangedFiles, "assurance/receipts/promotions/")
+	assertCreatedMutationWithPrefix(t, result.ChangedFiles, "runecontext/assurance/receipts/promotions/")
 	receipt := readSingleFamilyReceipt(t, root, "promotions")
 	assertReceiptEnvelopeFields(t, receipt, "changes/"+created.ID)
 	value := receiptValueMap(t, receipt)

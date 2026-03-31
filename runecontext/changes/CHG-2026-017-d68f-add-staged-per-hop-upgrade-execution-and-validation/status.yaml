@@ -12,6 +12,8 @@ related_changes:
   - CHG-2026-015-6da4-add-real-multi-hop-upgrade-planning-and-staged-migration-execution
   - CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts
   - CHG-2026-022-58d8-refine-project-upgrade-compatibility-and-version-bump-only-semantics
+  - CHG-2026-024-3756-plan-interval-based-real-migration-edge-discovery-for-project-upgrades
+  - CHG-2026-025-7854-migrate-assurance-artifacts-under-runecontext-for-alpha13-upgrades
 depends_on:
   - CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts
 informed_by: []

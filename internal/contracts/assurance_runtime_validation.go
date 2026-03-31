@@ -9,7 +9,7 @@ import (
 
 func loadProjectAssuranceArtifacts(v *Validator, index *ProjectIndex, projectRoot string, rootConfig map[string]any) error {
 	tier := strings.TrimSpace(fmt.Sprint(rootConfig["assurance_tier"]))
-	baselinePath := filepath.Join(projectRoot, "assurance", "baseline.yaml")
+	baselinePath := filepath.Join(projectRoot, "runecontext", "assurance", "baseline.yaml")
 	if err := loadAssuranceBaselineForTier(v, index, projectRoot, baselinePath, tier); err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func ensureAssuranceReceiptsAllowed(projectRoot, tier string) error {
 		return nil
 	}
 	for _, family := range assuranceReceiptFamilies {
-		receiptsRoot := filepath.Join(projectRoot, "assurance", "receipts", family)
+		receiptsRoot := filepath.Join(projectRoot, "runecontext", "assurance", "receipts", family)
 		exists, err := assuranceFileExists(receiptsRoot)
 		if err != nil {
 			return err
@@ -95,7 +95,7 @@ func loadAssuranceReceipts(v *Validator, index *ProjectIndex, projectRoot string
 }
 
 func loadAssuranceReceiptFamily(v *Validator, index *ProjectIndex, projectRoot, family string) error {
-	receiptsRoot := filepath.Join(projectRoot, "assurance", "receipts", family)
+	receiptsRoot := filepath.Join(projectRoot, "runecontext", "assurance", "receipts", family)
 	exists, err := assuranceFileExists(receiptsRoot)
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func validateAssuranceBackfill(v *Validator, index *ProjectIndex, projectRoot st
 }
 
 func validateAssuranceBackfillArtifacts(v *Validator, projectRoot string) error {
-	backfillDir := filepath.Join(projectRoot, "assurance", "backfill")
+	backfillDir := filepath.Join(projectRoot, "runecontext", "assurance", "backfill")
 	exists, err := assuranceFileExists(backfillDir)
 	if err != nil {
 		return err

@@ -232,7 +232,7 @@ func writeAssuranceBaselineEnvelope(t *testing.T, root string, envelope Assuranc
 	if err != nil {
 		t.Fatalf("marshal baseline: %v", err)
 	}
-	baselinePath := filepath.Join(root, "assurance", "baseline.yaml")
+	baselinePath := filepath.Join(root, "runecontext", "assurance", "baseline.yaml")
 	if err := os.MkdirAll(filepath.Dir(baselinePath), 0o755); err != nil {
 		t.Fatalf("mkdir baseline dir: %v", err)
 	}
@@ -243,7 +243,7 @@ func writeAssuranceBaselineEnvelope(t *testing.T, root string, envelope Assuranc
 
 func requireSingleAssuranceReceiptPath(t *testing.T, root, family string) string {
 	t.Helper()
-	receiptsDir := filepath.Join(root, "assurance", "receipts", family)
+	receiptsDir := filepath.Join(root, "runecontext", "assurance", "receipts", family)
 	entries, err := os.ReadDir(receiptsDir)
 	if err != nil {
 		t.Fatalf("read receipts dir %s: %v", receiptsDir, err)

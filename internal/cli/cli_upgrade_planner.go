@@ -154,9 +154,12 @@ func classifyExternallyManagedPath(plan *upgradePlan, sourcePath, fallbackAction
 func classifyMissingUpgradePath(plan *upgradePlan, registry upgradePlannerRegistry, nextAction string) bool {
 	if plan.CurrentVersion != plan.TargetVersion {
 		if comparison, comparable := compareKnownRunecontextVersions(plan.CurrentVersion, plan.TargetVersion); comparable && comparison < 0 && isComparableVersionLine(plan.CurrentVersion, plan.TargetVersion) {
-			hops, ok := registry.planPath(plan.CurrentVersion, plan.TargetVersion)
-			if !ok {
-				hops = planRequiredUpgradeHops(plan.CurrentVersion, plan.TargetVersion, registry)
+			hops, blocked, message := planIntervalMigrationHops(plan, registry)
+			if blocked {
+				plan.State = upgradeStateUnsupportedProjectVersion
+				plan.PlanActions = append(plan.PlanActions, message)
+				plan.NextActions = append(plan.NextActions, nextAction)
+				return true
 			}
 			plan.UpgradeHops = hops
 			plan.HopActions = buildUpgradeHopActions(hops)
@@ -175,39 +178,19 @@ func classifyMissingUpgradePath(plan *upgradePlan, registry upgradePlannerRegist
 	return false
 }
 
-func planRequiredUpgradeHops(current, target string, registry upgradePlannerRegistry) []upgradeHop {
-	hops := make([]upgradeHop, 0)
-	cursor := current
-	for {
-		nextVersion, ok := selectRequiredUpgradeHopTarget(cursor, target, registry)
-		if !ok {
-			break
-		}
-		hops = append(hops, upgradeHop{From: cursor, To: nextVersion})
-		cursor = nextVersion
+func planIntervalMigrationHops(plan *upgradePlan, registry upgradePlannerRegistry) ([]upgradeHop, bool, string) {
+	hops, planned, err := registry.planMigrationEdgesWithinInterval(plan.CurrentVersion, plan.TargetVersion)
+	if !planned {
+		return nil, true, noUpgradePathMessage(plan)
 	}
-	return hops
+	if err != nil {
+		return nil, true, err.Error()
+	}
+	return hops, false, ""
 }
 
-func selectRequiredUpgradeHopTarget(current, target string, registry upgradePlannerRegistry) (string, bool) {
-	candidates := registry.next[current]
-	best := ""
-	for _, candidate := range candidates {
-		if comparison, comparable := compareKnownRunecontextVersions(candidate, target); !comparable || comparison > 0 {
-			continue
-		}
-		if best == "" {
-			best = candidate
-			continue
-		}
-		if comparison, comparable := compareKnownRunecontextVersions(candidate, best); comparable && comparison > 0 {
-			best = candidate
-		}
-	}
-	if best == "" {
-		return "", false
-	}
-	return best, true
+func noUpgradePathMessage(plan *upgradePlan) string {
+	return fmt.Sprintf("no registered upgrader path for runecontext_version transition %s -> %s", plan.CurrentVersion, plan.TargetVersion)
 }
 
 func classifyAdapterState(plan *upgradePlan, nextAction string) error {

@@ -91,7 +91,7 @@ func TestRunAssuranceBackfillDryRun(t *testing.T) {
 	if !strings.Contains(stderr.String(), "Dry run: would run assurance backfill validation") {
 		t.Fatalf("expected dry-run stderr message, got %q", stderr.String())
 	}
-	if _, err := os.Stat(filepath.Join(repoRoot, "assurance", "backfill")); !os.IsNotExist(err) {
+	if _, err := os.Stat(assuranceBackfillRootPath(repoRoot)); !os.IsNotExist(err) {
 		t.Fatalf("expected no backfill artifacts created during dry-run")
 	}
 }
@@ -183,7 +183,7 @@ func createAssuranceBackfillRepo(t *testing.T) (string, []string) {
 
 func writeAssuranceBackfillBaselineFixture(t *testing.T, root, adoptionCommit string) {
 	t.Helper()
-	baselinePath := filepath.Join(root, "assurance", "baseline.yaml")
+	baselinePath := assuranceBaselinePath(root)
 	if err := os.MkdirAll(filepath.Dir(baselinePath), 0o755); err != nil {
 		t.Fatalf("mkdir baseline directory: %v", err)
 	}
@@ -206,7 +206,7 @@ func writeBackfillConfigFixture(t *testing.T, root, tier string) {
 
 func writeBackfillReceiptFixture(t *testing.T, root string) (string, string) {
 	t.Helper()
-	receiptPath := filepath.Join(root, "assurance", "receipts", "changes", "receipt.json")
+	receiptPath := filepath.Join(root, "runecontext", "assurance", "receipts", "changes", "receipt.json")
 	if err := os.MkdirAll(filepath.Dir(receiptPath), 0o755); err != nil {
 		t.Fatalf("mkdir receipts dir: %v", err)
 	}
@@ -280,7 +280,7 @@ func assertBackfillFirstRunHistoryRecord(t *testing.T, commits []string, history
 
 func assertBackfillImportedEvidenceAdded(t *testing.T, repoRoot string) {
 	t.Helper()
-	baselinePath := filepath.Join(repoRoot, "assurance", "baseline.yaml")
+	baselinePath := assuranceBaselinePath(repoRoot)
 	importedEvidence := readImportedEvidence(t, readBaselineMapForBackfill(t, baselinePath))
 	if len(importedEvidence) != 1 {
 		t.Fatalf("expected one imported evidence entry, got %d", len(importedEvidence))
@@ -295,7 +295,7 @@ func assertBackfillSecondRunState(t *testing.T, repoRoot string, fields map[stri
 	if got := fields["imported_evidence_added"]; got != "false" {
 		t.Fatalf("expected second run to avoid duplicate imported evidence, got %q", got)
 	}
-	baselinePath := filepath.Join(repoRoot, "assurance", "baseline.yaml")
+	baselinePath := assuranceBaselinePath(repoRoot)
 	if len(readImportedEvidence(t, readBaselineMapForBackfill(t, baselinePath))) != 1 {
 		t.Fatalf("expected imported evidence to remain de-duplicated")
 	}
@@ -306,8 +306,8 @@ func TestEmitAssuranceBackfillSuccessNoChangesMessage(t *testing.T) {
 	var stderr bytes.Buffer
 	machine := machineOptions{}
 	result := assuranceBackfillResult{
-		baselinePath:   "/tmp/project/assurance/baseline.yaml",
-		historyPath:    "/tmp/project/assurance/backfill/imported-git-history-abc.json",
+		baselinePath:   "/tmp/project/runecontext/assurance/baseline.yaml",
+		historyPath:    "/tmp/project/runecontext/assurance/backfill/imported-git-history-abc.json",
 		adoptionCommit: "1234567890abcdef1234567890abcdef12345678",
 		commitCount:    0,
 		importedAdded:  false,

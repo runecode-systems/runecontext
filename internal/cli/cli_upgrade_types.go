@@ -53,7 +53,9 @@ type upgradePlannerRegistry struct {
 }
 
 func defaultUpgradePlannerRegistry() upgradePlannerRegistry {
-	return upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
+	registry := upgradePlannerRegistry{edges: map[upgradeEdgeKey]struct{}{}, next: map[string][]string{}}
+	registry.registerEdge("0.1.0-alpha.12", "0.1.0-alpha.13")
+	return registry
 }
 
 func (r *upgradePlannerRegistry) registerEdge(from, to string) {
@@ -88,6 +90,24 @@ func (r *upgradePlannerRegistry) planPath(from, to string) ([]upgradeHop, bool) 
 		return nil, false
 	}
 	return buildUpgradeHops(parents, from, to), true
+}
+
+func (r *upgradePlannerRegistry) planMigrationEdgesWithinInterval(current, target string) ([]upgradeHop, bool, error) {
+	current, target, ok := normalizeMigrationIntervalBounds(current, target)
+	if r == nil || !ok {
+		return nil, false, nil
+	}
+	if !isForwardMigrationInterval(current, target) {
+		return nil, false, nil
+	}
+	hops, err := selectMigrationEdgesWithinInterval(r.edges, current, target)
+	if err != nil {
+		return nil, true, err
+	}
+	if err := ensureMigrationEdgesNonOverlapping(hops, current, target); err != nil {
+		return nil, true, err
+	}
+	return hops, true, nil
 }
 
 func (r *upgradePlannerRegistry) searchPathParents(from, to string) (map[string]string, bool) {

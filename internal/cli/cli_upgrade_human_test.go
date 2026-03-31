@@ -70,3 +70,23 @@ func TestRunUpgradeCLIApplyHumanOutputShowsAlreadyCurrentSummary(t *testing.T) {
 		t.Fatalf("expected changed summary, got %q", out)
 	}
 }
+
+func TestRunUpgradePreviewHumanOutputDoesNotDuplicateHopActions(t *testing.T) {
+	plan := upgradePlan{
+		State:          upgradeStateUpgradeable,
+		CurrentVersion: "0.1.0-alpha.12",
+		TargetVersion:  "0.1.0-alpha.13",
+		UpgradeHops:    []upgradeHop{{From: "0.1.0-alpha.12", To: "0.1.0-alpha.13"}},
+		PlanActions: []string{
+			"migrate runecontext_version 0.1.0-alpha.12 -> 0.1.0-alpha.13",
+			"set runecontext_version to 0.1.0-alpha.13",
+		},
+	}
+	out := renderHumanUpgradePreview(plan, "/tmp/project", "/tmp/project/runecontext.yaml", upgradeHumanOptions{color: false})
+	if got := strings.Count(out, "migrate runecontext_version 0.1.0-alpha.12 -> 0.1.0-alpha.13"); got != 1 {
+		t.Fatalf("expected migration line once, got %d in output %q", got, out)
+	}
+	if !strings.Contains(out, "hop 0.1.0-alpha.12 -> 0.1.0-alpha.13") {
+		t.Fatalf("expected hop line in output, got %q", out)
+	}
+}

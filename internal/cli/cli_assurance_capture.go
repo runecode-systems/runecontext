@@ -69,7 +69,7 @@ func emitAssuranceCaptureDryRun(stdout, stderr io.Writer, machine machineOptions
 		{"root", project.absRoot},
 		{"selected_config_path", selectedConfigPath(project.loaded)},
 		{"mode", "context-pack"},
-		{"plan_action_1", "write assurance receipt under assurance/receipts/context-packs/"},
+		{"plan_action_1", "write assurance receipt under runecontext/assurance/receipts/context-packs/"},
 		{"requested_bundle_count", fmt.Sprintf("%d", len(request.bundleIDs))},
 	}
 	output = appendStringItems(output, "requested_bundle", request.bundleIDs)

@@ -118,7 +118,7 @@ func buildAssuranceBackfillDryRunPlan(root string) ([]string, error) {
 		return nil, err
 	}
 	return []string{
-		fmt.Sprintf("write %s", filepath.Join(root, "assurance", "backfill", fmt.Sprintf("imported-git-history-%s.json", adoptionCommit))),
+		fmt.Sprintf("write %s", filepath.Join(assuranceBackfillRootPath(root), fmt.Sprintf("imported-git-history-%s.json", adoptionCommit))),
 		fmt.Sprintf("update %s", context.baselinePath),
 	}, nil
 }

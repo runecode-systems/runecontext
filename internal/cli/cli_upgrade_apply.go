@@ -91,23 +91,6 @@ func finalizeUpgradeTargetVersion(stageCtx upgradeMigrationContext, plan upgrade
 	return rewriteStageRunecontextVersion(stageCtx.ConfigPath, plan.TargetVersion)
 }
 
-func executeUpgradeHops(stageCtx upgradeMigrationContext, plan upgradePlan) error {
-	registry := upgradeApplyMigrationRegistryFn()
-	for _, hop := range plan.UpgradeHops {
-		migration := registry.forHop(hop)
-		if err := migration.Apply(stageCtx, hop); err != nil {
-			return fmt.Errorf("apply upgrade hop %s -> %s: %w", hop.From, hop.To, err)
-		}
-		if err := validateUpgradeStage(stageCtx.Root); err != nil {
-			return fmt.Errorf("validate staged upgrade tree after hop %s -> %s: %w", hop.From, hop.To, err)
-		}
-		if err := migration.Verify(stageCtx, hop); err != nil {
-			return fmt.Errorf("verify upgrade hop %s -> %s: %w", hop.From, hop.To, err)
-		}
-	}
-	return nil
-}
-
 func applyUpgradeAdapterPlansInStage(stageRoot string, plan upgradePlan) error {
 	states, err := rebuildUpgradeAdapterStatesInStage(stageRoot, plan)
 	if err != nil {

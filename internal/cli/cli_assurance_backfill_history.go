@@ -119,7 +119,7 @@ func parseUnixTimestamp(raw string) (int64, error) {
 func writeImportedGitHistory(root, adoptionCommit string, commits []importedGitHistoryCommit) (string, error) {
 	// Use the full canonical adoption commit SHA in filenames to avoid
 	// collisions that can occur when truncating to a short prefix.
-	path := filepath.Join(root, "assurance", "backfill", fmt.Sprintf("imported-git-history-%s.json", adoptionCommit))
+	path := filepath.Join(assuranceBackfillRootPath(root), fmt.Sprintf("imported-git-history-%s.json", adoptionCommit))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", fmt.Errorf("create backfill directory: %w", err)
 	}
@@ -140,11 +140,4 @@ func writeImportedGitHistory(root, adoptionCommit string, commits []importedGitH
 		return "", fmt.Errorf("write imported history: %w", err)
 	}
 	return path, nil
-}
-
-func shortenCommit(commit string) string {
-	if len(commit) <= 12 {
-		return commit
-	}
-	return commit[:12]
 }

@@ -13,7 +13,7 @@ func loadBackfillInputs(root string) (assuranceBackfillContext, map[string]any, 
 	if err := requireVerifiedTierForBackfill(root); err != nil {
 		return assuranceBackfillContext{}, nil, "", err
 	}
-	baselinePath := filepath.Join(root, "assurance", "baseline.yaml")
+	baselinePath := assuranceBaselinePath(root)
 	baselineData, err := os.ReadFile(baselinePath)
 	if err != nil {
 		return assuranceBackfillContext{}, nil, "", fmt.Errorf("read assurance baseline: %w", err)
@@ -57,7 +57,7 @@ func readBaselineAdoptionCommit(baseline map[string]any) string {
 }
 
 func shouldSkipRebuild(root string, baseline map[string]any, adoptionCommit string) (bool, string) {
-	relative := filepath.ToSlash(filepath.Join("assurance", "backfill", fmt.Sprintf("imported-git-history-%s.json", adoptionCommit)))
+	relative := assuranceBackfillRelativePath(adoptionCommit)
 	absPath := filepath.Join(root, filepath.FromSlash(relative))
 	if !hasImportedEvidenceEntry(baseline, relative) {
 		return false, ""

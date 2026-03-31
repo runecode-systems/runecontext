@@ -187,8 +187,8 @@ func assertCompatibilityPopulation(t *testing.T, descriptor capabilityDescriptor
 	if descriptor.Compatibility.DefaultProjectVersion == "" {
 		t.Fatal("expected default project version to be populated")
 	}
-	if len(descriptor.Compatibility.ExplicitUpgradeEdges) != 0 {
-		t.Fatalf("expected explicit upgrade edges to be empty when no real migrations are registered: %#v", descriptor.Compatibility.ExplicitUpgradeEdges)
+	if len(descriptor.Compatibility.ExplicitUpgradeEdges) == 0 {
+		t.Fatalf("expected explicit upgrade edges to be populated for registered real migrations")
 	}
 }
 
@@ -203,8 +203,18 @@ func assertCompatibilityIncludesExpectedVersions(t *testing.T, descriptor capabi
 	if containsString(descriptor.Compatibility.DirectlySupportedProjectVersions, "0.1.0-alpha.9") {
 		t.Fatalf("expected alpha.9 to remain upgrade-only, got %#v", descriptor.Compatibility.DirectlySupportedProjectVersions)
 	}
-	if len(descriptor.Compatibility.UpgradeableFromProjectVersions) != 0 {
-		t.Fatalf("expected upgradeable-from project versions to be empty when no explicit migration edges remain: %#v", descriptor.Compatibility.UpgradeableFromProjectVersions)
+	if !containsString(descriptor.Compatibility.UpgradeableFromProjectVersions, "0.1.0-alpha.12") {
+		t.Fatalf("expected upgradeable-from project versions to include alpha.12 migration source: %#v", descriptor.Compatibility.UpgradeableFromProjectVersions)
+	}
+	hasEdge := false
+	for _, edge := range descriptor.Compatibility.ExplicitUpgradeEdges {
+		if edge.From == "0.1.0-alpha.12" && edge.To == "0.1.0-alpha.13" {
+			hasEdge = true
+			break
+		}
+	}
+	if !hasEdge {
+		t.Fatalf("expected explicit upgrade edge 0.1.0-alpha.12 -> 0.1.0-alpha.13, got %#v", descriptor.Compatibility.ExplicitUpgradeEdges)
 	}
 }
 

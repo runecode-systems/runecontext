@@ -22,6 +22,6 @@ materialize with dynamic git repository values.
   temporary local git repositories (no network) built from
   `fixtures/source-resolution/templates/minimal-runecontext`.
 - `verified/` mirrors embedded structure with `assurance_tier: verified` and a
-  deterministic baseline fixture under `assurance/`.
+  deterministic baseline fixture under `runecontext/assurance/`.
 - `monorepo/` models nested RuneContext roots: top-level root config plus a
   service-local nested root under `packages/service/`.

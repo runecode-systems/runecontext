@@ -61,7 +61,7 @@ func appendCapturedVerifiedReceiptRewrite(rewrites []fileRewrite, changedFiles [
 		return nil, nil, fmt.Errorf("marshal assurance receipt: %w", err)
 	}
 	receiptData = append(receiptData, '\n')
-	receiptPath := filepath.Join(projectRoot, "assurance", "receipts", family, filename)
+	receiptPath := filepath.Join(projectRoot, "runecontext", "assurance", "receipts", family, filename)
 	rewrites = append(rewrites, fileRewrite{Path: receiptPath, Data: receiptData, Perm: 0o644})
 	changedFiles = append(changedFiles, FileMutation{Path: runeContextRelativePath(projectRoot, receiptPath), Action: "created"})
 	return rewrites, changedFiles, nil

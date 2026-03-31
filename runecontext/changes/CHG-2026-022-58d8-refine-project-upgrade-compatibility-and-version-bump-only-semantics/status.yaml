@@ -13,6 +13,7 @@ related_changes:
   - CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts
   - CHG-2026-017-d68f-add-staged-per-hop-upgrade-execution-and-validation
   - CHG-2026-023-2423-add-explicit-cli-self-update-and-release-check-flows
+  - CHG-2026-024-3756-plan-interval-based-real-migration-edge-discovery-for-project-upgrades
 depends_on:
   - CHG-2026-016-e00c-add-multi-hop-upgrade-path-planning-and-preview-contracts
   - CHG-2026-017-d68f-add-staged-per-hop-upgrade-execution-and-validation

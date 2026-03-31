@@ -74,7 +74,7 @@ func runAssuranceEnableWithMachine(args []string, stdout, stderr io.Writer, mach
 	resolvedRoot := projectRootForAssurance(project)
 	plans := []string{
 		fmt.Sprintf("update %s", filepath.Join(resolvedRoot, "runecontext.yaml")),
-		fmt.Sprintf("write %s", filepath.Join(resolvedRoot, "assurance", "baseline.yaml")),
+		fmt.Sprintf("write %s", assuranceBaselinePath(resolvedRoot)),
 	}
 	if machine.dryRun {
 		return emitAssuranceEnableDryRun(stdout, stderr, machine, resolvedRoot, plans)
@@ -123,7 +123,7 @@ func executeAssuranceEnable(stdout, stderr io.Writer, machine machineOptions, ro
 	if machine.explain {
 		plans := []string{
 			fmt.Sprintf("update %s", filepath.Join(root, "runecontext.yaml")),
-			fmt.Sprintf("write %s", filepath.Join(root, "assurance", "baseline.yaml")),
+			fmt.Sprintf("write %s", assuranceBaselinePath(root)),
 		}
 		output = appendAssuranceEnableExplainLines(output, root, plans)
 	}
