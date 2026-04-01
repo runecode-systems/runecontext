@@ -40,3 +40,24 @@ func TestRunUpgradePreviewRejectsSymlinkedManagedScanTarget(t *testing.T) {
 		t.Fatalf("expected managed scan symlink rejection, got %q", stderr.String())
 	}
 }
+
+func TestScanManagedHostNativeArtifactsInDirShortCircuitsFileReadsAfterMatch(t *testing.T) {
+	root := t.TempDir()
+	managed := filepath.Join(root, "000-managed.md")
+	managedContent := "<!-- runecontext-managed-artifact: host-native-v1 -->\n<!-- runecontext-tool: opencode -->\n<!-- runecontext-kind: flow_asset -->\n<!-- runecontext-id: runecontext:test -->\n"
+	if err := os.WriteFile(managed, []byte(managedContent), 0o644); err != nil {
+		t.Fatalf("write managed host-native file: %v", err)
+	}
+	oversized := filepath.Join(root, "zzz-oversized.md")
+	if err := os.WriteFile(oversized, make([]byte, maxManagedHostNativeArtifactScanBytes+1), 0o644); err != nil {
+		t.Fatalf("write oversized trap file: %v", err)
+	}
+
+	found, err := scanManagedHostNativeArtifactsInDir(root, "opencode")
+	if err != nil {
+		t.Fatalf("expected short-circuit scan success, got %v", err)
+	}
+	if !found {
+		t.Fatalf("expected managed host-native artifact detection")
+	}
+}

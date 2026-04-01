@@ -111,6 +111,27 @@ func TestCommandMetadataRegistryIncludesChangeDecompositionCommands(t *testing.T
 	assertChangeDecompositionCommandMetadata(t, change, "change decomposition-apply", changeDecompApplyUsage)
 }
 
+func TestCommandMetadataRegistryIncludesAdapterRenderDecompositionOperations(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	adapter := commandMetadataByPath(registry.Commands, "adapter")
+	if adapter == nil {
+		t.Fatalf("expected adapter command in registry")
+	}
+	render := commandMetadataByPath(adapter.Subcommands, "adapter render-host-native")
+	if render == nil {
+		t.Fatalf("expected adapter render-host-native subcommand in registry")
+	}
+	if len(render.Positionals) < 2 {
+		t.Fatalf("expected tool and operation positionals for adapter render-host-native, got %#v", render.Positionals)
+	}
+	operations := render.Positionals[1].Value.EnumValues
+	for _, op := range []string{"change-decomposition-plan", "change-decomposition-apply"} {
+		if !slices.Contains(operations, op) {
+			t.Fatalf("expected adapter render-host-native operation enum to include %q, got %#v", op, operations)
+		}
+	}
+}
+
 func assertChangeDecompositionCommandMetadata(t *testing.T, change *CommandMetadata, path, usage string) {
 	t.Helper()
 	metadata := commandMetadataByPath(change.Subcommands, path)

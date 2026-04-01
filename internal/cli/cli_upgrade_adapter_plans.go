@@ -92,6 +92,9 @@ func skipManagedHostNativeWalkEntry(root, path string, entry os.DirEntry, walkEr
 }
 
 func markManagedHostNativeFile(path, tool string, managed *bool) error {
+	if *managed {
+		return nil
+	}
 	owned, err := isManagedHostNativeFileForTool(path, tool)
 	if err != nil {
 		return err

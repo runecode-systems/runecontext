@@ -10,6 +10,7 @@ func ListStandards(v *Validator, loaded *LoadedProject, options StandardListOpti
 	if err != nil {
 		return nil, err
 	}
+	defer index.Close()
 	normalizedScopePaths, err := normalizeStandardScopePaths(options.ScopePaths)
 	if err != nil {
 		return nil, err

@@ -273,7 +273,7 @@ _runectx_suggest_provider_for_flag() {
 
 _runectx_positional_enum() {
   case "$1" in
-    'adapter render-host-native|2') echo 'change-assess-decomposition change-assess-intake change-new change-shape index promote standard-discover' ;;
+    'adapter render-host-native|2') echo 'change-assess-decomposition change-assess-intake change-decomposition-apply change-decomposition-plan change-new change-shape index promote standard-discover' ;;
     'assurance capture|1') echo 'context-pack' ;;
     'assurance enable|1') echo 'verified' ;;
     'completion suggest|1') echo 'adapter-names adapter-names-shell-injection bundle-ids change-ids promotion-targets' ;;
