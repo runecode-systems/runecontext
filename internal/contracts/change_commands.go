@@ -128,6 +128,29 @@ type ChangeAssessDecompositionResult struct {
 	Reasons               []string
 }
 
+type ChangeDecompositionPlanOptions struct {
+	UmbrellaID string
+	SubChanges []SplitSubChange
+}
+
+type ChangeDecompositionPlanResult struct {
+	UmbrellaID string
+	NodeIDs    []string
+	Graph      map[string]ChangeGraphLinks
+}
+
+type ChangeDecompositionApplyOptions struct {
+	UmbrellaID string
+	SubChanges []SplitSubChange
+}
+
+type ChangeDecompositionApplyResult struct {
+	UmbrellaID   string
+	NodeIDs      []string
+	Graph        map[string]ChangeGraphLinks
+	ChangedFiles []FileMutation
+}
+
 type ChangeReallocationResult struct {
 	OldID                   string
 	ID                      string

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -118,8 +117,15 @@ func TestRunAdapterSyncAppliesHostNativeFiles(t *testing.T) {
 func TestRunAdapterSyncWritesHostNativeArtifactsByTool(t *testing.T) {
 	projectRoot := t.TempDir()
 
+	assertOpenCodeHostNativeArtifacts(t, projectRoot)
+	assertClaudeCodeHostNativeArtifacts(t, projectRoot)
+	assertCodexHostNativeArtifacts(t, projectRoot)
+}
+
+func assertOpenCodeHostNativeArtifacts(t *testing.T, projectRoot string) {
+	t.Helper()
 	opencode := runAdapterSyncAndParse(t, projectRoot, "opencode")
-	if got, want := opencode["host_native_file_count"], "12"; got != want {
+	if got, want := opencode["host_native_file_count"], "16"; got != want {
 		t.Fatalf("expected opencode host_native_file_count %q, got %q", want, got)
 	}
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md"), "runectx adapter render-host-native --role flow_asset opencode change-new")
@@ -127,32 +133,46 @@ func TestRunAdapterSyncWritesHostNativeArtifactsByTool(t *testing.T) {
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-assess-intake.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-assess-intake")
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-assess-decomposition.md"), "runectx adapter render-host-native --role flow_asset opencode change-assess-decomposition")
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-assess-decomposition.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-assess-decomposition")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-decomposition-plan.md"), "runectx adapter render-host-native --role flow_asset opencode change-decomposition-plan")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-decomposition-plan.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-decomposition-plan")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-decomposition-apply.md"), "runectx adapter render-host-native --role flow_asset opencode change-decomposition-apply")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-decomposition-apply.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-decomposition-apply")
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"), "runectx adapter render-host-native --role discoverability_shim opencode change-new")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"), "description: Create a new RuneContext change")
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md"))
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"))
+}
 
+func assertClaudeCodeHostNativeArtifacts(t *testing.T, projectRoot string) {
+	t.Helper()
 	claude := runAdapterSyncAndParse(t, projectRoot, "claude-code")
-	if got, want := claude["host_native_file_count"], "7"; got != want {
+	if got, want := claude["host_native_file_count"], "9"; got != want {
 		t.Fatalf("expected claude host_native_file_count %q, got %q", want, got)
 	}
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "runectx adapter render-host-native --role flow_asset claude-code change-new")
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-assess-intake.md"), "runectx adapter render-host-native --role flow_asset claude-code change-assess-intake")
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-assess-decomposition.md"), "runectx adapter render-host-native --role flow_asset claude-code change-assess-decomposition")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-decomposition-plan.md"), "runectx adapter render-host-native --role flow_asset claude-code change-decomposition-plan")
+	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-decomposition-apply.md"), "runectx adapter render-host-native --role flow_asset claude-code change-decomposition-apply")
 	assertShellInjectionCallPresent(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"), "runectx adapter render-host-native --role discoverability_shim claude-code index")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "name: runecontext-change-new")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"), "description: Create a new RuneContext change")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"), "name: runecontext")
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"))
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"))
+}
 
+func assertCodexHostNativeArtifacts(t *testing.T, projectRoot string) {
+	t.Helper()
 	codex := runAdapterSyncAndParse(t, projectRoot, "codex")
-	if got, want := codex["host_native_file_count"], "6"; got != want {
+	if got, want := codex["host_native_file_count"], "8"; got != want {
 		t.Fatalf("expected codex host_native_file_count %q, got %q", want, got)
 	}
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"), "name: runecontext-change-new")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-assess-intake.md"), "name: runecontext-change-assess-intake")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-assess-decomposition.md"), "name: runecontext-change-assess-decomposition")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-decomposition-plan.md"), "name: runecontext-change-decomposition-plan")
+	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-decomposition-apply.md"), "name: runecontext-change-decomposition-apply")
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"), "description: Create a new RuneContext change")
 	assertNoShellInjectionCall(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))
@@ -276,7 +296,7 @@ func assertAdapterSyncWritesExpectedFilePermissions(t *testing.T, adaptersRoot s
 		t.Fatalf("expected synced host-native file to contain render-host-native call")
 	}
 	if runtime.GOOS != "windows" && syncedMode.Perm() != 0o644 {
-		t.Fatalf("expected synced host-native file permissions 0644, got %s", fmt.Sprintf("%#o", syncedMode.Perm()))
+		t.Fatalf("expected synced host-native file permissions 0644, got %#o", syncedMode.Perm())
 	}
 }
 
@@ -344,102 +364,6 @@ func TestRunAdapterSyncRejectsSymlinkedHostNativeAncestor(t *testing.T) {
 	}
 }
 
-func statMode(t *testing.T, path string) os.FileMode {
-	t.Helper()
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatalf("stat %s: %v", path, err)
-	}
-	return info.Mode()
-}
-
-func createUserOwnedConfig(t *testing.T, projectRoot string) string {
-	t.Helper()
-	userConfigPath := filepath.Join(projectRoot, ".opencode", "config.yml")
-	if err := os.MkdirAll(filepath.Dir(userConfigPath), 0o755); err != nil {
-		t.Fatalf("mkdir user config dir: %v", err)
-	}
-	if err := os.WriteFile(userConfigPath, []byte("user_owned: true\n"), 0o644); err != nil {
-		t.Fatalf("write user config file: %v", err)
-	}
-	return userConfigPath
-}
-
-func assertUserOwnedConfigPreserved(t *testing.T, userConfigPath string) {
-	t.Helper()
-	userData, err := os.ReadFile(userConfigPath)
-	if err != nil {
-		t.Fatalf("read user config after sync: %v", err)
-	}
-	if string(userData) != "user_owned: true\n" {
-		t.Fatalf("expected user config boundary to be preserved, got %q", string(userData))
-	}
-}
-
-func assertAdapterSyncBoundaries(t *testing.T, userConfigPath, projectRoot string) {
-	t.Helper()
-	assertUserOwnedConfigPreserved(t, userConfigPath)
-	assertNoAdapterTrackingTree(t, projectRoot)
-	if _, err := os.Stat(filepath.Join(projectRoot, "adapters")); !os.IsNotExist(err) {
-		t.Fatalf("expected sync to avoid user-owned adapter source tree writes, got err=%v", err)
-	}
-}
-
-func assertNoAdapterTrackingTree(t *testing.T, projectRoot string) {
-	t.Helper()
-	if _, err := os.Stat(filepath.Join(projectRoot, ".runecontext", "adapters")); !os.IsNotExist(err) {
-		t.Fatalf("expected no adapter tracking tree under .runecontext, got err=%v", err)
-	}
-}
-
-func assertManagedArtifactMarker(t *testing.T, path string) {
-	t.Helper()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read managed artifact %s: %v", path, err)
-	}
-	if _, ok := parseHostNativeOwnershipHeader(data); !ok {
-		t.Fatalf("expected ownership marker in %s", path)
-	}
-}
-
-func assertShellInjectionCallPresent(t *testing.T, path, call string) {
-	t.Helper()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read host-native artifact %s: %v", path, err)
-	}
-	token := "!`" + call + "`"
-	if !strings.Contains(string(data), token) {
-		t.Fatalf("expected shell-injection token %q in %s", token, path)
-	}
-}
-
-func assertNoShellInjectionCall(t *testing.T, path string) {
-	t.Helper()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read host-native artifact %s: %v", path, err)
-	}
-	if strings.Contains(string(data), "!`") {
-		t.Fatalf("expected no shell injection token in %s", path)
-	}
-}
-
-func assertFrontmatterContains(t *testing.T, path, token string) {
-	t.Helper()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read host-native artifact %s: %v", path, err)
-	}
-	if !strings.HasPrefix(string(data), "---\n") {
-		t.Fatalf("expected frontmatter prefix in %s", path)
-	}
-	if !strings.Contains(string(data), token) {
-		t.Fatalf("expected frontmatter token %q in %s", token, path)
-	}
-}
-
 func TestRunAdapterSyncUnknownToolFails(t *testing.T) {
 	projectRoot := t.TempDir()
 	var stdout bytes.Buffer
@@ -491,56 +415,4 @@ func TestValidateAfterAuthoritativeEditScriptBoundaries(t *testing.T) {
 			t.Fatalf("expected no validate call for unrelated paths, got err=%v", err)
 		}
 	})
-}
-
-type validateHookBoundaryTest struct {
-	scriptPath  string
-	projectRoot string
-	fakeBin     string
-	calledPath  string
-}
-
-func prepareValidateHookBoundaryTest(t *testing.T) validateHookBoundaryTest {
-	t.Helper()
-	repoRoot, err := repoRootForTests()
-	if err != nil {
-		t.Fatal(err)
-	}
-	test := validateHookBoundaryTest{
-		scriptPath:  filepath.Join(repoRoot, "adapters", "opencode", "automation", "validate_after_authoritative_edit.sh"),
-		projectRoot: prepareCLIWorkflowProject(t),
-		fakeBin:     t.TempDir(),
-	}
-	test.calledPath = filepath.Join(test.projectRoot, "validate-called")
-	writeFakeRunectxExecutable(t, filepath.Join(test.fakeBin, "runectx"))
-	return test
-}
-
-func writeFakeRunectxExecutable(t *testing.T, path string) {
-	t.Helper()
-	stub := "#!/usr/bin/env bash\nset -euo pipefail\nprintf '%s\\n' \"$*\" > \"$RUNECTX_ARGS_OUT\"\n"
-	if err := os.WriteFile(path, []byte(stub), 0o755); err != nil {
-		t.Fatalf("write fake runectx: %v", err)
-	}
-}
-
-func runValidateHookScript(test validateHookBoundaryTest, changedPath string) (string, error) {
-	_ = os.Remove(test.calledPath)
-	cmd := exec.Command("bash", test.scriptPath, changedPath)
-	cmd.Dir = test.projectRoot
-	cmd.Env = append(os.Environ(),
-		"PATH="+test.fakeBin+":"+os.Getenv("PATH"),
-		"RUNECTX_ARGS_OUT="+test.calledPath,
-	)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("script failed: %w\n%s", err, string(out))
-	}
-	called, err := os.ReadFile(test.calledPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", err
-	}
-	return string(called), nil
 }

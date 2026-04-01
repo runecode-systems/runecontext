@@ -154,6 +154,45 @@ func buildChangeAssessDecompositionOutput(absRoot string, loaded *contracts.Load
 	return appendStringItems(output, "reason", result.Reasons)
 }
 
+func buildChangeDecompositionPlanOutput(absRoot string, loaded *contracts.LoadedProject, result *contracts.ChangeDecompositionPlanResult) []line {
+	output := []line{
+		{"result", "ok"},
+		{"command", "change_decomposition_plan"},
+		{"root", absRoot},
+		{"selected_config_path", selectedConfigPath(loaded)},
+		{"mutation_performed", "false"},
+		{"umbrella_change_id", result.UmbrellaID},
+		{"graph_node_count", fmt.Sprintf("%d", len(result.NodeIDs))},
+	}
+	output = appendStringItems(output, "graph_node", result.NodeIDs)
+	return appendDecompositionGraphLines(output, result.Graph)
+}
+
+func buildChangeDecompositionApplyOutput(absRoot string, loaded *contracts.LoadedProject, result *contracts.ChangeDecompositionApplyResult) []line {
+	output := []line{
+		{"result", "ok"},
+		{"command", "change_decomposition_apply"},
+		{"root", absRoot},
+		{"selected_config_path", selectedConfigPath(loaded)},
+		{"umbrella_change_id", result.UmbrellaID},
+		{"graph_node_count", fmt.Sprintf("%d", len(result.NodeIDs))},
+	}
+	output = appendStringItems(output, "graph_node", result.NodeIDs)
+	output = appendDecompositionGraphLines(output, result.Graph)
+	return appendChangedFiles(output, result.ChangedFiles)
+}
+
+func appendDecompositionGraphLines(output []line, graph map[string]contracts.ChangeGraphLinks) []line {
+	for _, nodeID := range contracts.SortedKeys(graph) {
+		links := graph[nodeID]
+		output = append(output, line{"graph_" + nodeID + "_related_change_count", fmt.Sprintf("%d", len(links.RelatedChanges))})
+		output = appendStringItems(output, "graph_"+nodeID+"_related_change", links.RelatedChanges)
+		output = append(output, line{"graph_" + nodeID + "_depends_on_count", fmt.Sprintf("%d", len(links.DependsOn))})
+		output = appendStringItems(output, "graph_"+nodeID+"_depends_on", links.DependsOn)
+	}
+	return output
+}
+
 func selectedConfigPath(loaded *contracts.LoadedProject) string {
 	if loaded == nil || loaded.Resolution == nil {
 		return ""

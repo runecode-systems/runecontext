@@ -64,6 +64,8 @@ complete -c runectx -f -n '__fish_seen_subcommand_from bundle' -a 'resolve'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'assess-decomposition'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'assess-intake'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'close'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'decomposition-apply'
+complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'decomposition-plan'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'new'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'reallocate'
 complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'shape'
@@ -151,6 +153,21 @@ complete -c runectx -n '__fish_seen_subcommand_from change close' -l superseded-
 complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --superseded-by' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from change close' -l verification-status -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from change close); and __runectx_prev_token_is --verification-status' -a 'failed passed skipped'
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-apply' -l depends-on -r
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-apply' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-apply' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-apply' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-apply' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-apply' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-apply' -l sub-change -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change decomposition-apply); and __runectx_prev_token_is --sub-change' -a '(__runectx_dynamic_suggest change-ids)'
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-plan' -l depends-on -r
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-plan' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-plan' -l json
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-plan' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-plan' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from change decomposition-plan' -l sub-change -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from change decomposition-plan); and __runectx_prev_token_is --sub-change' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from change new' -l bundle -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from change new); and __runectx_prev_token_is --bundle' -a '(__runectx_dynamic_suggest bundle-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from change new' -l description -r
@@ -278,6 +295,8 @@ function __runectx_flag_name_takes_value
     return 0
   case --closed-at
     return 0
+  case --depends-on
+    return 0
   case --description
     return 0
   case --design
@@ -307,6 +326,8 @@ function __runectx_flag_name_takes_value
   case --ssh-allowed-signers
     return 0
   case --status
+    return 0
+  case --sub-change
     return 0
   case --superseded-by
     return 0
@@ -396,6 +417,8 @@ complete -c runectx -f -n '__fish_seen_subcommand_from adapter render-host-nativ
 complete -c runectx -f -n '__fish_seen_subcommand_from adapter sync' -a '(__runectx_dynamic_suggest adapter-names)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change assess-decomposition' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change close' -a '(__runectx_dynamic_suggest change-ids)'
+complete -c runectx -f -n '__fish_seen_subcommand_from change decomposition-apply' -a '(__runectx_dynamic_suggest change-ids)'
+complete -c runectx -f -n '__fish_seen_subcommand_from change decomposition-plan' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change reallocate' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change shape' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -f -n '__fish_seen_subcommand_from change update' -a '(__runectx_dynamic_suggest change-ids)'

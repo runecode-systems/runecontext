@@ -16,6 +16,8 @@ _runectx_has_command() {
     'change assess-decomposition') return 0 ;;
     'change assess-intake') return 0 ;;
     'change close') return 0 ;;
+    'change decomposition-apply') return 0 ;;
+    'change decomposition-plan') return 0 ;;
     'change new') return 0 ;;
     'change reallocate') return 0 ;;
     'change shape') return 0 ;;
@@ -57,10 +59,12 @@ _runectx_subcommands_for() {
     'assurance enable') echo '' ;;
     'bundle') echo 'resolve' ;;
     'bundle resolve') echo '' ;;
-    'change') echo 'assess-decomposition assess-intake close new reallocate shape update' ;;
+    'change') echo 'assess-decomposition assess-intake close decomposition-apply decomposition-plan new reallocate shape update' ;;
     'change assess-decomposition') echo '' ;;
     'change assess-intake') echo '' ;;
     'change close') echo '' ;;
+    'change decomposition-apply') echo '' ;;
+    'change decomposition-plan') echo '' ;;
     'change new') echo '' ;;
     'change reallocate') echo '' ;;
     'change shape') echo '' ;;
@@ -105,6 +109,8 @@ _runectx_flags_for() {
     'change assess-decomposition') echo '--explain --json --non-interactive --path' ;;
     'change assess-intake') echo '--bundle --description --explain --json --non-interactive --path --size --title --type' ;;
     'change close') echo '--closed-at --dry-run --explain --json --non-interactive --path --recursive --superseded-by --verification-status' ;;
+    'change decomposition-apply') echo '--depends-on --dry-run --explain --json --non-interactive --path --sub-change' ;;
+    'change decomposition-plan') echo '--depends-on --explain --json --non-interactive --path --sub-change' ;;
     'change new') echo '--bundle --description --dry-run --explain --json --non-interactive --path --shape --size --title --type' ;;
     'change reallocate') echo '--dry-run --explain --json --non-interactive --path' ;;
     'change shape') echo '--design --dry-run --explain --json --non-interactive --path --reference --task --verification' ;;
@@ -147,6 +153,12 @@ _runectx_flag_takes_value() {
     'change close|--path') return 0 ;;
     'change close|--superseded-by') return 0 ;;
     'change close|--verification-status') return 0 ;;
+    'change decomposition-apply|--depends-on') return 0 ;;
+    'change decomposition-apply|--path') return 0 ;;
+    'change decomposition-apply|--sub-change') return 0 ;;
+    'change decomposition-plan|--depends-on') return 0 ;;
+    'change decomposition-plan|--path') return 0 ;;
+    'change decomposition-plan|--sub-change') return 0 ;;
     'change new|--bundle') return 0 ;;
     'change new|--description') return 0 ;;
     'change new|--path') return 0 ;;
@@ -212,6 +224,8 @@ _runectx_suggest_provider_for_flag() {
   case "$1" in
     'change assess-intake|--bundle') echo 'bundle-ids' ;;
     'change close|--superseded-by') echo 'change-ids' ;;
+    'change decomposition-apply|--sub-change') echo 'change-ids' ;;
+    'change decomposition-plan|--sub-change') echo 'change-ids' ;;
     'change new|--bundle') echo 'bundle-ids' ;;
     'change update|--add-related-change') echo 'change-ids' ;;
     'change update|--remove-related-change') echo 'change-ids' ;;
@@ -242,6 +256,8 @@ _runectx_suggest_provider_for_positional() {
     'bundle resolve|1') echo 'bundle-ids' ;;
     'change assess-decomposition|1') echo 'change-ids' ;;
     'change close|1') echo 'change-ids' ;;
+    'change decomposition-apply|1') echo 'change-ids' ;;
+    'change decomposition-plan|1') echo 'change-ids' ;;
     'change reallocate|1') echo 'change-ids' ;;
     'change shape|1') echo 'change-ids' ;;
     'change update|1') echo 'change-ids' ;;

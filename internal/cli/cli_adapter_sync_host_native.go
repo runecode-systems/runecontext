@@ -116,47 +116,6 @@ func sortHostNativeArtifacts(artifacts []hostNativeArtifact) {
 	sort.Slice(artifacts, func(i, j int) bool { return artifacts[i].relPath < artifacts[j].relPath })
 }
 
-func toolFlowMappings(tool string) []hostNativeFlow {
-	return []hostNativeFlow{
-		{
-			id:          "change-new",
-			name:        "change new",
-			description: "Create a new RuneContext change",
-			source:      "adapters/" + tool + "/flows/change-new.md",
-		},
-		{
-			id:          "change-assess-intake",
-			name:        "change assess-intake",
-			description: "Assess intake readiness and advisory shaping signals",
-			source:      "adapters/" + tool + "/flows/change-assess-intake.md",
-		},
-		{
-			id:          "change-assess-decomposition",
-			name:        "change assess-decomposition",
-			description: "Assess decomposition and umbrella/sub-change signals",
-			source:      "adapters/" + tool + "/flows/change-assess-decomposition.md",
-		},
-		{
-			id:          "change-shape",
-			name:        "change shape",
-			description: "Shape an existing RuneContext change",
-			source:      "adapters/" + tool + "/flows/change-shape.md",
-		},
-		{
-			id:          "standard-discover",
-			name:        "standard discover",
-			description: "Discover standards candidates for promotion",
-			source:      "adapters/" + tool + "/flows/standard-discover.md",
-		},
-		{
-			id:          "promote",
-			name:        "promote",
-			description: "Advance RuneContext promotion state",
-			source:      "adapters/" + tool + "/flows/promote.md",
-		},
-	}
-}
-
 func buildHostNativeFlowAssetContent(tool string, flow hostNativeFlow) []byte {
 	body := buildHostNativeBody(tool, flow.id, hostNativeKindFlowAsset)
 	lines := append(hostNativeFrontmatter(tool, flow, hostNativeKindFlowAsset), []string{

@@ -80,6 +80,14 @@
           "token": "change_close"
         },
         {
+          "path": "change decomposition-apply",
+          "token": "change_decomposition_apply"
+        },
+        {
+          "path": "change decomposition-plan",
+          "token": "change_decomposition_plan"
+        },
+        {
           "path": "change new",
           "token": "change_new"
         },

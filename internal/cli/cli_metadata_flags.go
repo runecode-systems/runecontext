@@ -54,6 +54,14 @@ func changeAssessIntakeFlags() []FlagMetadata {
 	}
 }
 
+func changeDecompositionFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--sub-change", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs), Repeatable: true, Required: true},
+		{Name: "--depends-on", Value: textValueSpec(), Repeatable: true},
+		{Name: "--path", Value: textValueSpec()},
+	}
+}
+
 func validateFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--ssh-allowed-signers", Value: textValueSpec()},

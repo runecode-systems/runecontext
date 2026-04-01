@@ -219,6 +219,32 @@ func appendChangeAssessDecompositionExplainLines(lines []line, result *contracts
 	return lines
 }
 
+func appendChangeDecompositionPlanExplainLines(lines []line, result *contracts.ChangeDecompositionPlanResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "change-decomposition-plan"},
+		line{"explain_advisory_only", "true"},
+		line{"explain_umbrella_change_id", result.UmbrellaID},
+		line{"explain_graph_node_count", fmt.Sprintf("%d", len(result.NodeIDs))},
+	)
+	return lines
+}
+
+func appendChangeDecompositionApplyExplainLines(lines []line, result *contracts.ChangeDecompositionApplyResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "change-decomposition-apply"},
+		line{"explain_umbrella_change_id", result.UmbrellaID},
+		line{"explain_graph_node_count", fmt.Sprintf("%d", len(result.NodeIDs))},
+		line{"explain_changed_file_count", fmt.Sprintf("%d", len(result.ChangedFiles))},
+	)
+	return lines
+}
+
 func appendAssuranceEnableExplainLines(lines []line, root string, plans []string) []line {
 	lines = append(lines,
 		line{"explain_scope", "assurance-enable"},

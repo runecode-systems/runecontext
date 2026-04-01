@@ -99,6 +99,10 @@ func commandPathFromFlowID(flowID string) string {
 		suffix := strings.TrimPrefix(flowID, "change-assess-")
 		return "change assess-" + suffix
 	}
+	if strings.HasPrefix(flowID, "change-decomposition-") {
+		suffix := strings.TrimPrefix(flowID, "change-decomposition-")
+		return "change decomposition-" + suffix
+	}
 	return strings.ReplaceAll(flowID, "-", " ")
 }
 

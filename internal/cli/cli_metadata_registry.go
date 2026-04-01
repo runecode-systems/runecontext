@@ -95,6 +95,8 @@ func changeCommandMetadata() CommandMetadata {
 			{Name: "update", Path: "change update", Usage: changeUpdateUsage, Flags: writeCommandFlags(changeUpdateFlags()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
 			{Name: "assess-intake", Path: "change assess-intake", Usage: changeAssessIntakeUsage, Flags: readOnlyCommandFlags(changeAssessIntakeFlags())},
 			{Name: "assess-decomposition", Path: "change assess-decomposition", Usage: changeAssessDecompUsage, Flags: readOnlyCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
+			{Name: "decomposition-plan", Path: "change decomposition-plan", Usage: changeDecompPlanUsage, Flags: readOnlyCommandFlags(changeDecompositionFlags()), Positionals: []PositionalMetadata{{Name: "UMBRELLA_CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
+			{Name: "decomposition-apply", Path: "change decomposition-apply", Usage: changeDecompApplyUsage, Flags: writeCommandFlags(changeDecompositionFlags()), Positionals: []PositionalMetadata{{Name: "UMBRELLA_CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
 		},
 	}
 }

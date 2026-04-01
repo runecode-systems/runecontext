@@ -43,7 +43,7 @@ func TestRunAdapterRenderHostNativeOutputsMinimalMarkdown(t *testing.T) {
 }
 
 func TestRunAdapterRenderHostNativeSupportsAssessmentOperations(t *testing.T) {
-	for _, operation := range []string{"change-assess-intake", "change-assess-decomposition"} {
+	for _, operation := range []string{"change-assess-intake", "change-assess-decomposition", "change-decomposition-plan", "change-decomposition-apply"} {
 		t.Run(operation, func(t *testing.T) {
 			var stdout bytes.Buffer
 			var stderr bytes.Buffer
@@ -55,7 +55,7 @@ func TestRunAdapterRenderHostNativeSupportsAssessmentOperations(t *testing.T) {
 			if !strings.Contains(text, "operation_identifier: `runecontext:"+operation+"`") {
 				t.Fatalf("expected operation identifier for %s, got %q", operation, text)
 			}
-			expectedPath := "change assess-" + strings.TrimPrefix(operation, "change-assess-")
+			expectedPath := commandPathFromFlowID(operation)
 			if !strings.Contains(text, "command_path: `"+expectedPath+"`") {
 				t.Fatalf("expected command path for %s, got %q", operation, text)
 			}
@@ -82,6 +82,12 @@ func TestRunAdapterRenderHostNativeIndexForClaude(t *testing.T) {
 	}
 	if !strings.Contains(text, "operation: `runecontext:change-assess-decomposition`") {
 		t.Fatalf("expected indexed change-assess-decomposition operation, got %q", text)
+	}
+	if !strings.Contains(text, "operation: `runecontext:change-decomposition-plan`") {
+		t.Fatalf("expected indexed change-decomposition-plan operation, got %q", text)
+	}
+	if !strings.Contains(text, "operation: `runecontext:change-decomposition-apply`") {
+		t.Fatalf("expected indexed change-decomposition-apply operation, got %q", text)
 	}
 }
 

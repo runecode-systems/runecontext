@@ -101,6 +101,40 @@ func TestCommandMetadataRegistryIncludesChangeAssessCommands(t *testing.T) {
 	}
 }
 
+func TestCommandMetadataRegistryIncludesChangeDecompositionCommands(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	change := commandMetadataByPath(registry.Commands, "change")
+	if change == nil {
+		t.Fatalf("expected change command in registry")
+	}
+	assertChangeDecompositionCommandMetadata(t, change, "change decomposition-plan", changeDecompPlanUsage)
+	assertChangeDecompositionCommandMetadata(t, change, "change decomposition-apply", changeDecompApplyUsage)
+}
+
+func assertChangeDecompositionCommandMetadata(t *testing.T, change *CommandMetadata, path, usage string) {
+	t.Helper()
+	metadata := commandMetadataByPath(change.Subcommands, path)
+	if metadata == nil {
+		t.Fatalf("expected %s subcommand in registry", path)
+	}
+	if metadata.Usage != usage {
+		t.Fatalf("expected %s usage %q, got %q", path, usage, metadata.Usage)
+	}
+	if len(metadata.Positionals) != 1 || metadata.Positionals[0].Name != "UMBRELLA_CHANGE_ID" {
+		t.Fatalf("expected one UMBRELLA_CHANGE_ID positional for %s, got %#v", path, metadata.Positionals)
+	}
+	assertCommandHasFlags(t, metadata.Flags, path, []string{"--sub-change", "--depends-on"})
+}
+
+func assertCommandHasFlags(t *testing.T, flags []FlagMetadata, commandPath string, names []string) {
+	t.Helper()
+	for _, name := range names {
+		if flagMetadataByName(flags, name) == nil {
+			t.Fatalf("expected %s flag for %s", name, commandPath)
+		}
+	}
+}
+
 func validateChangeUpdateFlags(t *testing.T, update *CommandMetadata) {
 	status := flagMetadataByName(update.Flags, "--status")
 	if status == nil {

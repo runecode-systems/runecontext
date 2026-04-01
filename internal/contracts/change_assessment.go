@@ -9,8 +9,8 @@ func AssessChangeIntake(v *Validator, loaded *LoadedProject, options ChangeAsses
 	if err := validateChangeCommandInputs(v, loaded); err != nil {
 		return nil, err
 	}
-	changeType := strings.TrimSpace(options.Type)
-	if err := validateChangeTypeValue(changeType); err != nil {
+	changeType, err := normalizeAssessedChangeType(options.Type)
+	if err != nil {
 		return nil, err
 	}
 	if strings.TrimSpace(options.Title) == "" {
@@ -23,19 +23,9 @@ func AssessChangeIntake(v *Validator, loaded *LoadedProject, options ChangeAsses
 	defer index.Close()
 
 	assessment := assessChangeIntake(options.Title, changeType, options.Size, options.Description)
-	contextBundles, contextAssumptions, err := resolveContextBundlesForChange(index, options.ContextBundles)
+	contextBundles, assumptions, standards, err := resolveIntakeContextAndStandards(index, loaded, options, assessment)
 	if err != nil {
 		return nil, err
-	}
-	standards, standardAssumptions, err := resolveApplicableStandards(index, contextBundles)
-	if err != nil {
-		return nil, err
-	}
-	assumptions := uniqueStringsInOrder(append([]string{}, assessment.Assumptions...))
-	assumptions = uniqueStringsInOrder(append(assumptions, contextAssumptions...))
-	assumptions = uniqueStringsInOrder(append(assumptions, standardAssumptions...))
-	if note := verificationAssumption(loaded.Resolution.ProjectRoot); note != "" {
-		assumptions = append(assumptions, note)
 	}
 
 	return &ChangeAssessIntakeResult{
@@ -51,6 +41,37 @@ func AssessChangeIntake(v *Validator, loaded *LoadedProject, options ChangeAsses
 		Reasons:              append([]string(nil), assessment.Reasons...),
 		Assumptions:          assumptions,
 	}, nil
+}
+
+func normalizeAssessedChangeType(raw string) (string, error) {
+	changeType := strings.TrimSpace(raw)
+	if err := validateChangeTypeValue(changeType); err != nil {
+		return "", err
+	}
+	return changeType, nil
+}
+
+func resolveIntakeContextAndStandards(index *ProjectIndex, loaded *LoadedProject, options ChangeAssessIntakeOptions, assessment changeIntakeAssessment) ([]string, []string, []string, error) {
+	contextBundles, contextAssumptions, err := resolveContextBundlesForChange(index, options.ContextBundles)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	standards, standardAssumptions, err := resolveApplicableStandards(index, contextBundles)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	assumptions := buildIntakeAssumptions(assessment, contextAssumptions, standardAssumptions, loaded.Resolution.ProjectRoot)
+	return contextBundles, assumptions, standards, nil
+}
+
+func buildIntakeAssumptions(assessment changeIntakeAssessment, contextAssumptions, standardAssumptions []string, projectRoot string) []string {
+	assumptions := uniqueStringsInOrder(append([]string{}, assessment.Assumptions...))
+	assumptions = uniqueStringsInOrder(append(assumptions, contextAssumptions...))
+	assumptions = uniqueStringsInOrder(append(assumptions, standardAssumptions...))
+	if note := verificationAssumption(projectRoot); note != "" {
+		assumptions = append(assumptions, note)
+	}
+	return assumptions
 }
 
 func AssessChangeDecomposition(v *Validator, loaded *LoadedProject, changeID string) (*ChangeAssessDecompositionResult, error) {

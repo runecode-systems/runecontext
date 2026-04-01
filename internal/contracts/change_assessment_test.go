@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -79,5 +80,81 @@ func TestAssessChangeDecompositionRejectsUnknownChange(t *testing.T) {
 	_, err := AssessChangeDecomposition(v, loaded, "CHG-2099-001-missing")
 	if err == nil || !strings.Contains(err.Error(), "does not exist") {
 		t.Fatalf("expected unknown change error, got %v", err)
+	}
+}
+
+func TestPlanChangeDecompositionBuildsGraph(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, umbrellaID, _ := createUmbrellaAndFeatureSubChange(t, root)
+	_, secondFeature := mustCreateChange(t, root, defaultFeatureChangeOptions("Second sub-change", []byte{0x91, 0x92}))
+
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	result, err := PlanChangeDecomposition(v, loaded, ChangeDecompositionPlanOptions{
+		UmbrellaID: umbrellaID,
+		SubChanges: []SplitSubChange{
+			{ID: secondFeature.ID},
+			{ID: "CHG-2026-002-3344-feature-sub-change", DependsOn: []string{secondFeature.ID}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("plan decomposition: %v", err)
+	}
+	if got, want := result.UmbrellaID, umbrellaID; got != want {
+		t.Fatalf("expected umbrella %q, got %q", want, got)
+	}
+	if got := len(result.Graph); got != 3 {
+		t.Fatalf("expected graph with 3 nodes, got %d", got)
+	}
+	if got := result.Graph[umbrellaID].RelatedChanges; len(got) != 2 {
+		t.Fatalf("expected umbrella related links to both sub-changes, got %#v", got)
+	}
+}
+
+func TestApplyChangeDecompositionRewritesRelationships(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, umbrellaID, _ := createUmbrellaAndFeatureSubChange(t, root)
+	_, secondFeature := mustCreateChange(t, root, defaultFeatureChangeOptions("Second sub-change", []byte{0xa1, 0xa2}))
+
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	result, err := ApplyChangeDecomposition(v, loaded, ChangeDecompositionApplyOptions{
+		UmbrellaID: umbrellaID,
+		SubChanges: []SplitSubChange{
+			{ID: secondFeature.ID},
+			{ID: "CHG-2026-002-3344-feature-sub-change", DependsOn: []string{secondFeature.ID}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("apply decomposition: %v", err)
+	}
+	if got := len(result.ChangedFiles); got != 3 {
+		t.Fatalf("expected 3 changed status files, got %d (%#v)", got, result.ChangedFiles)
+	}
+	umbrellaStatusPath := filepath.Join(root, "runecontext", "changes", umbrellaID, "status.yaml")
+	umbrellaText := strings.ReplaceAll(string(mustReadBytes(t, umbrellaStatusPath)), "\r\n", "\n")
+	if !strings.Contains(umbrellaText, "related_changes:\n  - CHG-2026-002-3344-feature-sub-change\n  - "+secondFeature.ID) {
+		t.Fatalf("expected umbrella related_changes rewrite, got:\n%s", umbrellaText)
+	}
+	featureStatusPath := filepath.Join(root, "runecontext", "changes", "CHG-2026-002-3344-feature-sub-change", "status.yaml")
+	featureText := strings.ReplaceAll(string(mustReadBytes(t, featureStatusPath)), "\r\n", "\n")
+	if !strings.Contains(featureText, "depends_on:\n  - "+secondFeature.ID) {
+		t.Fatalf("expected feature depends_on rewrite, got:\n%s", featureText)
+	}
+	assertValidatedWorkflowProject(t, v, root)
+}
+
+func TestApplyChangeDecompositionRejectsNonProjectUmbrella(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, feature := mustCreateDefaultFeatureChange(t, root)
+	_, secondFeature := mustCreateChange(t, root, defaultFeatureChangeOptions("Second feature", []byte{0xb1, 0xb2}))
+	loaded := mustReloadWorkflowProject(t, v, root)
+	defer loaded.Close()
+	_, err := ApplyChangeDecomposition(v, loaded, ChangeDecompositionApplyOptions{
+		UmbrellaID: feature.ID,
+		SubChanges: []SplitSubChange{{ID: secondFeature.ID}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "decomposition umbrella must be type project") {
+		t.Fatalf("expected non-project umbrella rejection, got %v", err)
 	}
 }
