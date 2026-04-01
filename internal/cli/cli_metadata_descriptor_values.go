@@ -4,7 +4,7 @@ import "github.com/runecode-systems/runecontext/internal/contracts"
 
 func descriptorDistributionLayouts() []descriptorLayout {
 	return []descriptorLayout{
-		{Profile: "repo_bundle", SchemaPath: "schemas", AdaptersPath: "adapters"},
+		{Profile: "repo_bundle", SchemaPath: "schemas", AdaptersPath: "build/generated/adapters"},
 		{Profile: "installed_share_layout", SchemaPath: "share/runecontext/schemas", AdaptersPath: "share/runecontext/adapters"},
 	}
 }

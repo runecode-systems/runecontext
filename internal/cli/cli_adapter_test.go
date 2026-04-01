@@ -260,7 +260,7 @@ func TestRunAdapterSyncWritesExpectedHostNativeFilePermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adaptersRoot := filepath.Join(root, "adapters")
+	adaptersRoot := filepath.Join(root, "adapters", "source", "packs")
 	t.Chdir(root)
 	assertAdapterSyncWritesExpectedFilePermissions(t, adaptersRoot)
 }

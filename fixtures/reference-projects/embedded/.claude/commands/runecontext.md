@@ -15,25 +15,25 @@ This file is a discoverability shim. Canonical flow assets live in `.claude/skil
 ## Commands
 
 - `runecontext:change-new`
-  - Canonical flow source: `adapters/claude-code/flows/change-new.md`
+  - Canonical flow source: `build/generated/adapters/claude-code/flows/change-new.md`
   - Skill file: `.claude/skills/runecontext-change-new.md`
 
 - command_path: `change new`
 
 - `runecontext:change-shape`
-  - Canonical flow source: `adapters/claude-code/flows/change-shape.md`
+  - Canonical flow source: `build/generated/adapters/claude-code/flows/change-shape.md`
   - Skill file: `.claude/skills/runecontext-change-shape.md`
 
 - command_path: `change shape`
 
 - `runecontext:standard-discover`
-  - Canonical flow source: `adapters/claude-code/flows/standard-discover.md`
+  - Canonical flow source: `build/generated/adapters/claude-code/flows/standard-discover.md`
   - Skill file: `.claude/skills/runecontext-standard-discover.md`
 
 - command_path: `standard discover`
 
 - `runecontext:promote`
-  - Canonical flow source: `adapters/claude-code/flows/promote.md`
+  - Canonical flow source: `build/generated/adapters/claude-code/flows/promote.md`
   - Skill file: `.claude/skills/runecontext-promote.md`
 
 - command_path: `promote`

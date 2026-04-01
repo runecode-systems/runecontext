@@ -8,7 +8,7 @@ description: Create a new RuneContext change
 <!-- runecontext-id: runecontext:change-new -->
 # RuneContext Skill: change new
 
-- canonical_flow_source: `adapters/codex/flows/change-new.md`
+- canonical_flow_source: `build/generated/adapters/codex/flows/change-new.md`
 - adapter_role: `flow_asset`
 - operation_identifier: `runecontext:change-new`
 - command_path: `change new`

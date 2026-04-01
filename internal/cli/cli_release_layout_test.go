@@ -17,8 +17,8 @@ func TestReleaseMetadataIncludesAdaptersDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read release metadata: %v", err)
 	}
-	if !strings.Contains(string(data), "\"adapters\"") {
-		t.Fatalf("expected release metadata to include adapters top-level directory")
+	if strings.Contains(string(data), "\"adapters\"") {
+		t.Fatalf("expected release metadata to stop including adapters top-level directory")
 	}
 }
 

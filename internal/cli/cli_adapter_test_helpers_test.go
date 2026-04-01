@@ -119,7 +119,7 @@ func prepareValidateHookBoundaryTest(t *testing.T) validateHookBoundaryTest {
 		t.Fatal(err)
 	}
 	test := validateHookBoundaryTest{
-		scriptPath:  filepath.Join(repoRoot, "adapters", "opencode", "automation", "validate_after_authoritative_edit.sh"),
+		scriptPath:  filepath.Join(repoRoot, "adapters", "source", "packs", "opencode", "automation", "validate_after_authoritative_edit.sh"),
 		projectRoot: prepareCLIWorkflowProject(t),
 		fakeBin:     t.TempDir(),
 	}

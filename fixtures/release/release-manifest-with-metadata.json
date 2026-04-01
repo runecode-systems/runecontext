@@ -230,7 +230,7 @@
     },
     "distribution_layouts": [
       {
-        "adapters_path": "adapters",
+        "adapters_path": "build/generated/adapters",
         "profile": "repo_bundle",
         "schema_path": "schemas"
       },

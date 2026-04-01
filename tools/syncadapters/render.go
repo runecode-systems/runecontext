@@ -52,9 +52,9 @@ func resolveOutput(absRoot, output string) (string, error) {
 }
 
 func renderTool(root, output, toolID string, flows []flowDefinition, tool toolDefinition) error {
-	sourceDir := filepath.Join(root, "adapters", toolID)
+	sourceDir := filepath.Join(root, "adapters", "source", "packs", toolID)
 	if info, err := os.Stat(sourceDir); err != nil || !info.IsDir() {
-		return fmt.Errorf("adapter source directory missing for %q", toolID)
+		return fmt.Errorf("adapter passthrough source directory missing for %q", toolID)
 	}
 	targetDir := filepath.Join(output, toolID)
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {

@@ -18,6 +18,6 @@ func flowForTool(tool, id, name, description string) hostNativeFlow {
 		id:          id,
 		name:        name,
 		description: description,
-		source:      "adapters/" + tool + "/flows/" + id + ".md",
+		source:      "build/generated/adapters/" + tool + "/flows/" + id + ".md",
 	}
 }

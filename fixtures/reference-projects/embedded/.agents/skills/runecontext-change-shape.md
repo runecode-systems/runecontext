@@ -8,7 +8,7 @@ description: Shape an existing RuneContext change
 <!-- runecontext-id: runecontext:change-shape -->
 # RuneContext Skill: change shape
 
-- canonical_flow_source: `adapters/codex/flows/change-shape.md`
+- canonical_flow_source: `build/generated/adapters/codex/flows/change-shape.md`
 - adapter_role: `flow_asset`
 - operation_identifier: `runecontext:change-shape`
 - command_path: `change shape`

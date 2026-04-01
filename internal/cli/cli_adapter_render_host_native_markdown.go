@@ -44,7 +44,7 @@ func renderHostNativeIndexMarkdown(request adapterRenderRequest) (string, error)
 		return "", fmt.Errorf("adapter render-host-native index is not defined for tool %q", request.tool)
 	}
 	lines := []string{
-		"- canonical_flow_source: `adapters/" + request.tool + "/flows/*.md`",
+		"- canonical_flow_source: `build/generated/adapters/" + request.tool + "/flows/*.md`",
 		"- adapter_role: `" + hostNativeKindDiscoverabilityShim + "`",
 		"- operation_identifier: `runecontext:index`",
 	}

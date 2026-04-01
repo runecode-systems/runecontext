@@ -21,7 +21,7 @@ let
     topLevelDirectories = [
       "docs"
       "core"
-      "adapters"
+      "adapters/source"
       "schemas"
       "fixtures"
       "scripts"
