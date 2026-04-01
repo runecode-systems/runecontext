@@ -130,9 +130,12 @@ func standardCommandMetadata() CommandMetadata {
 		Name:  "standard",
 		Path:  "standard",
 		Usage: standardUsage,
-		Flags: readMachineFlags(),
+		Flags: writeMachineFlags(),
 		Subcommands: []CommandMetadata{
 			{Name: "discover", Path: "standard discover", Usage: standardDiscoverUsage, Flags: readOnlyCommandFlags(standardDiscoverFlags())},
+			{Name: "list", Path: "standard list", Usage: standardListUsage, Flags: readOnlyCommandFlags(standardListFlags())},
+			{Name: "create", Path: "standard create", Usage: standardCreateUsage, Flags: writeCommandFlags(standardCreateFlags())},
+			{Name: "update", Path: "standard update", Usage: standardUpdateUsage, Flags: writeCommandFlags(standardUpdateFlags())},
 		},
 	}
 }

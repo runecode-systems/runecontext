@@ -148,8 +148,20 @@
           "token": "standard"
         },
         {
+          "path": "standard create",
+          "token": "standard_create"
+        },
+        {
           "path": "standard discover",
           "token": "standard_discover"
+        },
+        {
+          "path": "standard list",
+          "token": "standard_list"
+        },
+        {
+          "path": "standard update",
+          "token": "standard_update"
         },
         {
           "path": "status",

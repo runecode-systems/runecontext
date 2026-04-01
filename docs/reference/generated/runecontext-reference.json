@@ -130,8 +130,20 @@
         "token": "standard"
       },
       {
+        "path": "standard create",
+        "token": "standard_create"
+      },
+      {
         "path": "standard discover",
         "token": "standard_discover"
+      },
+      {
+        "path": "standard list",
+        "token": "standard_list"
+      },
+      {
+        "path": "standard update",
+        "token": "standard_update"
       },
       {
         "path": "status",
@@ -199,7 +211,10 @@
       "metadata",
       "promote",
       "standard",
+      "standard_create",
       "standard_discover",
+      "standard_list",
+      "standard_update",
       "status",
       "upgrade",
       "upgrade_apply",

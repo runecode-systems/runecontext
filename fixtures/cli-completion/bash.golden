@@ -33,7 +33,10 @@ _runectx_has_command() {
     'metadata') return 0 ;;
     'promote') return 0 ;;
     'standard') return 0 ;;
+    'standard create') return 0 ;;
     'standard discover') return 0 ;;
+    'standard list') return 0 ;;
+    'standard update') return 0 ;;
     'status') return 0 ;;
     'upgrade') return 0 ;;
     'upgrade apply') return 0 ;;
@@ -79,8 +82,11 @@ _runectx_subcommands_for() {
     'init') echo '' ;;
     'metadata') echo '' ;;
     'promote') echo '' ;;
-    'standard') echo 'discover' ;;
+    'standard') echo 'create discover list update' ;;
+    'standard create') echo '' ;;
     'standard discover') echo '' ;;
+    'standard list') echo '' ;;
+    'standard update') echo '' ;;
     'status') echo '' ;;
     'upgrade') echo 'apply cli' ;;
     'upgrade apply') echo '' ;;
@@ -121,8 +127,11 @@ _runectx_flags_for() {
     'generate indexes') echo '--explain --json --non-interactive --path' ;;
     'init') echo '--dry-run --explain --json --mode --non-interactive --path --seed-bundle' ;;
     'promote') echo '--accept --complete --dry-run --explain --json --non-interactive --path --target' ;;
-    'standard') echo '--explain --json --non-interactive' ;;
+    'standard') echo '--dry-run --explain --json --non-interactive' ;;
+    'standard create') echo '--alias --body --dry-run --explain --id --json --non-interactive --path --project-path --replaced-by --status --suggested-context-bundle --title' ;;
     'standard discover') echo '--change --confirm-handoff --explain --focus --json --non-interactive --path --scope-path --target' ;;
+    'standard list') echo '--explain --focus --json --non-interactive --path --scope-path --status' ;;
+    'standard update') echo '--alias --clear-replaced-by --dry-run --explain --json --non-interactive --path --project-path --replace-aliases --replace-suggested-context-bundles --replaced-by --status --suggested-context-bundle --title' ;;
     'status') echo '--explain --json --non-interactive --path' ;;
     'upgrade') echo '--explain --json --non-interactive --path --target-version' ;;
     'upgrade apply') echo '--explain --json --non-interactive --path --target-version' ;;
@@ -186,11 +195,31 @@ _runectx_flag_takes_value() {
     'init|--seed-bundle') return 0 ;;
     'promote|--path') return 0 ;;
     'promote|--target') return 0 ;;
+    'standard create|--alias') return 0 ;;
+    'standard create|--body') return 0 ;;
+    'standard create|--id') return 0 ;;
+    'standard create|--path') return 0 ;;
+    'standard create|--project-path') return 0 ;;
+    'standard create|--replaced-by') return 0 ;;
+    'standard create|--status') return 0 ;;
+    'standard create|--suggested-context-bundle') return 0 ;;
+    'standard create|--title') return 0 ;;
     'standard discover|--change') return 0 ;;
     'standard discover|--focus') return 0 ;;
     'standard discover|--path') return 0 ;;
     'standard discover|--scope-path') return 0 ;;
     'standard discover|--target') return 0 ;;
+    'standard list|--focus') return 0 ;;
+    'standard list|--path') return 0 ;;
+    'standard list|--scope-path') return 0 ;;
+    'standard list|--status') return 0 ;;
+    'standard update|--alias') return 0 ;;
+    'standard update|--path') return 0 ;;
+    'standard update|--project-path') return 0 ;;
+    'standard update|--replaced-by') return 0 ;;
+    'standard update|--status') return 0 ;;
+    'standard update|--suggested-context-bundle') return 0 ;;
+    'standard update|--title') return 0 ;;
     'status|--path') return 0 ;;
     'upgrade apply|--path') return 0 ;;
     'upgrade apply|--target-version') return 0 ;;
@@ -216,6 +245,9 @@ _runectx_enum_for_flag() {
     'change update|--status') echo 'implemented planned verified' ;;
     'change update|--verification-status') echo 'failed passed skipped' ;;
     'init|--mode') echo 'embedded linked' ;;
+    'standard create|--status') echo 'active deprecated draft' ;;
+    'standard list|--status') echo 'active deprecated draft' ;;
+    'standard update|--status') echo 'active deprecated draft' ;;
     *) echo '' ;;
   esac
 }
@@ -231,8 +263,10 @@ _runectx_suggest_provider_for_flag() {
     'change update|--remove-related-change') echo 'change-ids' ;;
     'init|--seed-bundle') echo 'bundle-ids' ;;
     'promote|--target') echo 'promotion-targets' ;;
+    'standard create|--suggested-context-bundle') echo 'bundle-ids' ;;
     'standard discover|--change') echo 'change-ids' ;;
     'standard discover|--target') echo 'promotion-targets' ;;
+    'standard update|--suggested-context-bundle') echo 'bundle-ids' ;;
     *) echo '' ;;
   esac
 }

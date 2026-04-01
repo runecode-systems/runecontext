@@ -32,8 +32,11 @@ const (
 	changeDecompApplyUsage  = "runectx change decomposition-apply [--json] [--non-interactive] [--dry-run] [--explain] UMBRELLA_CHANGE_ID --sub-change ID [--sub-change ID ...] [--depends-on SUB_CHANGE_ID:CHANGE_ID ...] [--path PATH]"
 	initUsage               = "runectx init [--json] [--non-interactive] [--dry-run] [--explain] [--mode embedded|linked] [--seed-bundle NAME] [--path PATH]"
 	promoteUsage            = "runectx promote [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--accept | --complete] [--target TYPE:PATH (summary auto-filled per target type)] [--path PATH]"
-	standardUsage           = "runectx standard [--json] [--non-interactive] [--explain] <discover>"
+	standardUsage           = "runectx standard [--json] [--non-interactive] [--dry-run] [--explain] <discover|list|create|update>"
 	standardDiscoverUsage   = "runectx standard discover [--json] [--non-interactive] [--explain] [--path PATH] [--change CHANGE_ID] [--scope-path PATH] [--focus TEXT] [--confirm-handoff] [--target TYPE:PATH]"
+	standardListUsage       = "runectx standard list [--json] [--non-interactive] [--explain] [--path PATH] [--scope-path PATH] [--focus TEXT] [--status draft|active|deprecated]"
+	standardCreateUsage     = "runectx standard create [--json] [--non-interactive] [--dry-run] [--explain] --path STANDARD_PATH [--id ID] --title TITLE [--status draft|active|deprecated] [--replaced-by STANDARD_PATH] [--alias ID] [--suggested-context-bundle BUNDLE_ID] [--body TEXT] [--project-path PATH]"
+	standardUpdateUsage     = "runectx standard update [--json] [--non-interactive] [--dry-run] [--explain] --path STANDARD_PATH [--title TITLE] [--status draft|active|deprecated] [--replaced-by STANDARD_PATH | --clear-replaced-by] [--replace-aliases --alias ID] [--replace-suggested-context-bundles --suggested-context-bundle BUNDLE_ID] [--project-path PATH]"
 	assuranceUsage          = "runectx assurance [--json] [--non-interactive] [--dry-run] [--explain] <enable|backfill|capture> ..."
 	adapterUsage            = "runectx adapter [--json] [--non-interactive] [--dry-run] [--explain] <sync|render-host-native> ..."
 	adapterSyncUsage        = "runectx adapter sync [--json] [--non-interactive] [--dry-run] [--explain] [--path PATH] <tool>"
@@ -166,7 +169,7 @@ func rootHelpCommandGroups() []rootHelpGroup {
 			commands: []rootHelpCommand{
 				{name: "change", description: "Create, shape, assess, update, close, and reallocate changes"},
 				{name: "promote", description: "Advance promotion assessment state"},
-				{name: "standard", description: "Discover advisory standards candidates"},
+				{name: "standard", description: "Discover, list, and author standards"},
 			},
 		},
 		{

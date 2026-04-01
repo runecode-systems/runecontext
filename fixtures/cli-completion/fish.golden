@@ -73,7 +73,10 @@ complete -c runectx -f -n '__fish_seen_subcommand_from change' -a 'update'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'metadata'
 complete -c runectx -f -n '__fish_seen_subcommand_from completion' -a 'suggest'
 complete -c runectx -f -n '__fish_seen_subcommand_from generate' -a 'indexes'
+complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'create'
 complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'discover'
+complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'list'
+complete -c runectx -f -n '__fish_seen_subcommand_from standard' -a 'update'
 complete -c runectx -f -n '__fish_seen_subcommand_from upgrade' -a 'apply'
 complete -c runectx -f -n '__fish_seen_subcommand_from upgrade' -a 'cli'
 complete -c runectx -f -n '__fish_seen_subcommand_from upgrade cli' -a 'apply'
@@ -242,9 +245,25 @@ complete -c runectx -n '__fish_seen_subcommand_from promote' -l non-interactive
 complete -c runectx -n '__fish_seen_subcommand_from promote' -l path -r
 complete -c runectx -n '__fish_seen_subcommand_from promote' -l target -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from promote); and __runectx_prev_token_is --target' -a '(__runectx_dynamic_suggest promotion-targets)'
+complete -c runectx -n '__fish_seen_subcommand_from standard' -l dry-run
 complete -c runectx -n '__fish_seen_subcommand_from standard' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from standard' -l json
 complete -c runectx -n '__fish_seen_subcommand_from standard' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l alias -r
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l body -r
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l id -r
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l json
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l project-path -r
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l replaced-by -r
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l status -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from standard create); and __runectx_prev_token_is --status' -a 'active deprecated draft'
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l suggested-context-bundle -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from standard create); and __runectx_prev_token_is --suggested-context-bundle' -a '(__runectx_dynamic_suggest bundle-ids)'
+complete -c runectx -n '__fish_seen_subcommand_from standard create' -l title -r
 complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l change -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from standard discover); and __runectx_prev_token_is --change' -a '(__runectx_dynamic_suggest change-ids)'
 complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l confirm-handoff
@@ -256,6 +275,30 @@ complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l path -
 complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l scope-path -r
 complete -c runectx -n '__fish_seen_subcommand_from standard discover' -l target -r
 complete -c runectx -f -n '(__fish_seen_subcommand_from standard discover); and __runectx_prev_token_is --target' -a '(__runectx_dynamic_suggest promotion-targets)'
+complete -c runectx -n '__fish_seen_subcommand_from standard list' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from standard list' -l focus -r
+complete -c runectx -n '__fish_seen_subcommand_from standard list' -l json
+complete -c runectx -n '__fish_seen_subcommand_from standard list' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from standard list' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from standard list' -l scope-path -r
+complete -c runectx -n '__fish_seen_subcommand_from standard list' -l status -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from standard list); and __runectx_prev_token_is --status' -a 'active deprecated draft'
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l alias -r
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l clear-replaced-by
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l dry-run
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l explain
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l json
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l non-interactive
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l path -r
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l project-path -r
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l replace-aliases
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l replace-suggested-context-bundles
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l replaced-by -r
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l status -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from standard update); and __runectx_prev_token_is --status' -a 'active deprecated draft'
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l suggested-context-bundle -r
+complete -c runectx -f -n '(__fish_seen_subcommand_from standard update); and __runectx_prev_token_is --suggested-context-bundle' -a '(__runectx_dynamic_suggest bundle-ids)'
+complete -c runectx -n '__fish_seen_subcommand_from standard update' -l title -r
 complete -c runectx -n '__fish_seen_subcommand_from status' -l explain
 complete -c runectx -n '__fish_seen_subcommand_from status' -l json
 complete -c runectx -n '__fish_seen_subcommand_from status' -l non-interactive
@@ -289,6 +332,10 @@ function __runectx_flag_name_takes_value
   switch $argv[1]
   case --add-related-change
     return 0
+  case --alias
+    return 0
+  case --body
+    return 0
   case --bundle
     return 0
   case --change
@@ -303,15 +350,21 @@ function __runectx_flag_name_takes_value
     return 0
   case --focus
     return 0
+  case --id
+    return 0
   case --mode
     return 0
   case --path
     return 0
   case --prefix
     return 0
+  case --project-path
+    return 0
   case --reference
     return 0
   case --remove-related-change
+    return 0
+  case --replaced-by
     return 0
   case --role
     return 0
@@ -328,6 +381,8 @@ function __runectx_flag_name_takes_value
   case --status
     return 0
   case --sub-change
+    return 0
+  case --suggested-context-bundle
     return 0
   case --superseded-by
     return 0
