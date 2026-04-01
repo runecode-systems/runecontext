@@ -31,6 +31,7 @@ func TestLocateAdaptersRootFromReleaseStyleLayout(t *testing.T) {
 	if err := os.MkdirAll(stagedAdaptersDir, 0o755); err != nil {
 		t.Fatalf("mkdir staged adapters dir: %v", err)
 	}
+	seedAdapterPackForDiscovery(t, stagedAdaptersDir, "opencode")
 
 	originalWD, err := os.Getwd()
 	if err != nil {
@@ -55,6 +56,42 @@ func TestLocateAdaptersRootFromReleaseStyleLayout(t *testing.T) {
 	}
 	if gotCanonical != expectedCanonical {
 		t.Fatalf("expected adapters root %q, got %q", expectedCanonical, gotCanonical)
+	}
+}
+
+func seedAdapterPackForDiscovery(t *testing.T, adaptersDir, tool string) {
+	t.Helper()
+	toolDir := filepath.Join(adaptersDir, tool)
+	if err := os.MkdirAll(toolDir, 0o755); err != nil {
+		t.Fatalf("mkdir adapter pack dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(toolDir, "workflow.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatalf("write workflow contract: %v", err)
+	}
+}
+
+func TestLocateAdaptersRootRejectsRepositoryAdaptersFallback(t *testing.T) {
+	root := t.TempDir()
+	schemaDir := filepath.Join(root, "schemas")
+	repoAdaptersDir := filepath.Join(root, "adapters")
+	seedReleaseStyleLayout(t, schemaDir, repoAdaptersDir)
+	seedAdapterPackForDiscovery(t, repoAdaptersDir, "opencode")
+
+	originalWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(originalWD) })
+	if err := os.Chdir(root); err != nil {
+		t.Fatalf("chdir test root: %v", err)
+	}
+
+	if err := os.Remove(filepath.Join(repoAdaptersDir, "opencode", "workflow.json")); err != nil {
+		t.Fatalf("remove fallback workflow contract: %v", err)
+	}
+
+	if _, err := locateAdaptersRoot(); err == nil {
+		t.Fatal("expected adapters root discovery to reject adapter roots without generated workflow contracts")
 	}
 }
 

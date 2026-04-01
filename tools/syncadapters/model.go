@@ -11,10 +11,24 @@ import (
 )
 
 type flowDefinition struct {
-	ID          string `json:"id"`
-	CommandPath string `json:"command_path"`
-	Description string `json:"description"`
-	Usage       string `json:"usage"`
+	ID                      string        `json:"id"`
+	CommandPath             string        `json:"command_path"`
+	Description             string        `json:"description"`
+	Usage                   string        `json:"usage"`
+	RequiredOutcome         string        `json:"required_outcome"`
+	Guardrails              []string      `json:"guardrails"`
+	InputsToGather          []string      `json:"inputs_to_gather"`
+	DecisionRules           []string      `json:"decision_rules"`
+	WorkflowSteps           []string      `json:"workflow_steps"`
+	StopCondition           string        `json:"stop_condition"`
+	RecommendedNextCommands []string      `json:"recommended_next_commands"`
+	Examples                []flowExample `json:"examples"`
+}
+
+type flowExample struct {
+	Scenario          string `json:"scenario"`
+	UserPrompt        string `json:"user_prompt"`
+	AssistantResponse string `json:"assistant_response"`
 }
 
 type toolDefinition struct {
@@ -24,15 +38,29 @@ type toolDefinition struct {
 }
 
 func loadFlowDefinitions(root string) ([]flowDefinition, error) {
-	path := filepath.Join(root, "adapters", "source", "shared", "flows.json")
-	var defs []flowDefinition
-	if err := loadJSON(path, &defs); err != nil {
-		return nil, err
+	pattern := filepath.Join(root, "adapters", "source", "shared", "flows", "*.json")
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("list flow definitions: %w", err)
 	}
-	for i := range defs {
-		if err := validateFlowDefinition(defs[i]); err != nil {
-			return nil, fmt.Errorf("invalid flow definition %q: %w", defs[i].ID, err)
+	if len(files) == 0 {
+		return nil, errors.New("no adapter source flow definitions found")
+	}
+	defs := make([]flowDefinition, 0, len(files))
+	seen := make(map[string]struct{}, len(files))
+	for _, path := range files {
+		var def flowDefinition
+		if err := loadJSON(path, &def); err != nil {
+			return nil, err
 		}
+		if err := validateFlowDefinition(def); err != nil {
+			return nil, fmt.Errorf("invalid flow definition %q: %w", path, err)
+		}
+		if _, ok := seen[def.ID]; ok {
+			return nil, fmt.Errorf("duplicate flow definition id %q", def.ID)
+		}
+		seen[def.ID] = struct{}{}
+		defs = append(defs, def)
 	}
 	sort.Slice(defs, func(i, j int) bool { return defs[i].ID < defs[j].ID })
 	return defs, nil
@@ -42,14 +70,87 @@ func validateFlowDefinition(def flowDefinition) error {
 	if strings.TrimSpace(def.ID) == "" {
 		return errors.New("id is required")
 	}
-	if strings.TrimSpace(def.CommandPath) == "" {
-		return errors.New("command_path is required")
+	if err := validateFlowRequiredStrings(def); err != nil {
+		return err
 	}
-	if strings.TrimSpace(def.Description) == "" {
-		return errors.New("description is required")
+	if err := validateFlowLists(def); err != nil {
+		return err
 	}
-	if strings.TrimSpace(def.Usage) == "" {
-		return errors.New("usage is required")
+	return validateFlowExamples(def.Examples)
+}
+
+func validateFlowRequiredStrings(def flowDefinition) error {
+	checks := []struct {
+		name  string
+		value string
+	}{
+		{name: "command_path", value: def.CommandPath},
+		{name: "description", value: def.Description},
+		{name: "usage", value: def.Usage},
+		{name: "required_outcome", value: def.RequiredOutcome},
+		{name: "stop_condition", value: def.StopCondition},
+	}
+	for _, check := range checks {
+		if strings.TrimSpace(check.value) == "" {
+			return fmt.Errorf("%s is required", check.name)
+		}
+	}
+	return nil
+}
+
+func validateFlowLists(def flowDefinition) error {
+	listChecks := []struct {
+		name   string
+		values []string
+	}{
+		{name: "guardrails", values: def.Guardrails},
+		{name: "inputs_to_gather", values: def.InputsToGather},
+		{name: "decision_rules", values: def.DecisionRules},
+		{name: "workflow_steps", values: def.WorkflowSteps},
+		{name: "recommended_next_commands", values: def.RecommendedNextCommands},
+	}
+	for _, check := range listChecks {
+		if err := validateNonEmptyList(check.name, check.values); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateFlowExamples(examples []flowExample) error {
+	if len(examples) == 0 {
+		return errors.New("examples are required")
+	}
+	for i := range examples {
+		if err := validateFlowExample(examples[i], i); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateNonEmptyList(name string, values []string) error {
+	if len(values) == 0 {
+		return fmt.Errorf("%s is required", name)
+	}
+	for _, value := range values {
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("%s must not contain empty entries", name)
+		}
+	}
+	return nil
+}
+
+func validateFlowExample(example flowExample, index int) error {
+	prefix := fmt.Sprintf("examples[%d]", index)
+	if strings.TrimSpace(example.Scenario) == "" {
+		return fmt.Errorf("%s.scenario is required", prefix)
+	}
+	if strings.TrimSpace(example.UserPrompt) == "" {
+		return fmt.Errorf("%s.user_prompt is required", prefix)
+	}
+	if strings.TrimSpace(example.AssistantResponse) == "" {
+		return fmt.Errorf("%s.assistant_response is required", prefix)
 	}
 	return nil
 }

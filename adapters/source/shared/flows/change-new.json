@@ -1,0 +1,43 @@
+{
+  "id": "change-new",
+  "command_path": "change new",
+  "description": "Create a new RuneContext change",
+  "usage": "runectx change new --title \"<title>\" --type <type> [--size <size>] [--shape <minimum|full>] [--bundle <bundle-id>] [--description \"<text>\"] [--path <project-root>]",
+  "required_outcome": "Create a new change directory with a stable change id and initialized change artifacts.",
+  "guardrails": [
+    "Map every generated suggestion directly to the documented runectx command and flags.",
+    "Do not execute any follow-up command automatically after change creation.",
+    "Keep all proposed mutations reviewable and explicit to the user."
+  ],
+  "inputs_to_gather": [
+    "change title",
+    "change type",
+    "optional size",
+    "optional shape",
+    "optional bundle",
+    "optional proposal description"
+  ],
+  "decision_rules": [
+    "If required title or type is missing, ask for those values before proposing command execution.",
+    "If optional values are not provided, omit their flags instead of inventing defaults.",
+    "After command completion, stop and report the resulting change id and path."
+  ],
+  "workflow_steps": [
+    "Collect missing required and optional command inputs.",
+    "Present a single explicit runectx command proposal for review.",
+    "Execute or instruct execution of runectx change new.",
+    "Return the created change id and immediate output fields only."
+  ],
+  "stop_condition": "Stop immediately after reporting change creation output and do not chain additional workflow commands.",
+  "recommended_next_commands": [
+    "runectx change shape <change-id>",
+    "runectx standard discover --scope-path <path>"
+  ],
+  "examples": [
+    {
+      "scenario": "Create a feature change with minimal inputs",
+      "user_prompt": "Create a new feature change titled Add adapter workflow contracts.",
+      "assistant_response": "I will run `runectx change new --title \"Add adapter workflow contracts\" --type feature` once you confirm. After it succeeds, I will report the new change id and stop."
+    }
+  ]
+}

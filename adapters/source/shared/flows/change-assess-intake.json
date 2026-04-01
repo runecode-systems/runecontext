@@ -1,0 +1,42 @@
+{
+  "id": "change-assess-intake",
+  "command_path": "change assess-intake",
+  "description": "Assess intake readiness and advisory shaping signals",
+  "usage": "runectx change assess-intake --title <title> --type <type> [--size <size>] [--bundle <bundle-id>] [--description \"<text>\"] [--path <project-root>]",
+  "required_outcome": "Return authoritative intake advisory output for a proposed change request.",
+  "guardrails": [
+    "Treat assess-intake as advisory and do not mutate repository state.",
+    "Preserve exact advisory fields from CLI output when summarizing.",
+    "Do not auto-run change new after intake assessment."
+  ],
+  "inputs_to_gather": [
+    "proposed title",
+    "proposed change type",
+    "optional size",
+    "optional bundle",
+    "optional description"
+  ],
+  "decision_rules": [
+    "Gather required title and type before proposing the command.",
+    "Surface advisory output as-is and keep recommendations clearly non-authoritative.",
+    "Stop after reporting intake assessment results."
+  ],
+  "workflow_steps": [
+    "Gather required and optional assess-intake arguments.",
+    "Propose and run runectx change assess-intake.",
+    "Report advisory readiness, decomposition signals, and suggested next command.",
+    "End the flow without chaining further commands."
+  ],
+  "stop_condition": "Stop after presenting intake advisory output and suggested next command options.",
+  "recommended_next_commands": [
+    "runectx change new --title \"<title>\" --type <type>",
+    "runectx change assess-decomposition <change-id>"
+  ],
+  "examples": [
+    {
+      "scenario": "Assess readiness before creating a project change",
+      "user_prompt": "Assess intake for a large project change to revamp adapters.",
+      "assistant_response": "I will run `runectx change assess-intake --title \"Revamp adapters\" --type project --size large` and report the advisory output only."
+    }
+  ]
+}

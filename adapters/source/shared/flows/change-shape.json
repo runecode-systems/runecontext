@@ -1,0 +1,40 @@
+{
+  "id": "change-shape",
+  "command_path": "change shape",
+  "description": "Shape an existing RuneContext change",
+  "usage": "runectx change shape <change-id> [--design \"<text>\"] [--verification \"<text>\"] [--task \"<text>\"] [--reference \"<text>\"] [--path <project-root>]",
+  "required_outcome": "Append shaped design, verification, task, or reference entries to an existing change.",
+  "guardrails": [
+    "Require explicit change id and scoped shape inputs.",
+    "Do not rewrite unrelated change artifacts during shaping.",
+    "Stop after shape output without chaining more edits automatically."
+  ],
+  "inputs_to_gather": [
+    "target change id",
+    "one or more shape entries",
+    "shape entry types (design, verification, task, reference)"
+  ],
+  "decision_rules": [
+    "If no shape entries are provided, request at least one before proposing command execution.",
+    "Map each provided entry to the corresponding repeated CLI flag.",
+    "Stop after reporting shape mutation output."
+  ],
+  "workflow_steps": [
+    "Collect target change id and shape entry values.",
+    "Build and propose runectx change shape command with explicit flags.",
+    "Execute or guide execution and report output fields.",
+    "Conclude with optional next-command recommendation only."
+  ],
+  "stop_condition": "Stop after shape output is reported for the command that was run.",
+  "recommended_next_commands": [
+    "runectx validate --path <project-root>",
+    "runectx standard discover --scope-path <path>"
+  ],
+  "examples": [
+    {
+      "scenario": "Add task and verification notes",
+      "user_prompt": "Add a task and verification note to CHG-2026-300-aaaa-new-flow.",
+      "assistant_response": "I will run `runectx change shape CHG-2026-300-aaaa-new-flow --task \"Add workflow contract generator tests\" --verification \"Run just test\"` and report the shape result."
+    }
+  ]
+}

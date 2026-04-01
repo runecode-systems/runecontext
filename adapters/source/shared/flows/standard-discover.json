@@ -1,0 +1,39 @@
+{
+  "id": "standard-discover",
+  "command_path": "standard discover",
+  "description": "Discover standards candidates for promotion",
+  "usage": "runectx standard discover --scope-path <path> [--focus <topic>] [--path <project-root>]",
+  "required_outcome": "Return discoverable standards candidates and promotion target fields for the requested scope.",
+  "guardrails": [
+    "Treat discovery results as advisory candidates, not automatic promotions.",
+    "Use explicit scope-path input and avoid scanning hidden implicit roots.",
+    "Do not execute promote automatically after discovery."
+  ],
+  "inputs_to_gather": [
+    "scope-path",
+    "optional focus"
+  ],
+  "decision_rules": [
+    "Require scope-path before command proposal.",
+    "When focus is absent, omit the flag instead of guessing a topic.",
+    "Stop after reporting candidate promotion targets."
+  ],
+  "workflow_steps": [
+    "Collect scope-path and optional focus.",
+    "Propose and run runectx standard discover.",
+    "Report candidate promotion targets and diagnostics.",
+    "End flow without chaining promote automatically."
+  ],
+  "stop_condition": "Stop after discovery output is summarized and candidate targets are listed.",
+  "recommended_next_commands": [
+    "runectx promote --target standard:<path>",
+    "runectx validate --path <project-root>"
+  ],
+  "examples": [
+    {
+      "scenario": "Discover standards in a focused area",
+      "user_prompt": "Discover standards for adapter workflow generation under tools/syncadapters.",
+      "assistant_response": "I will run `runectx standard discover --scope-path tools/syncadapters --focus adapter-workflow` and report candidate targets only."
+    }
+  ]
+}

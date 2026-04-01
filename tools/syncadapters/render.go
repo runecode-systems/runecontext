@@ -142,7 +142,10 @@ func renderTool(root, output, toolID string, flows []flowDefinition, tool toolDe
 	if err := writeCapabilities(targetDir, toolID, tool); err != nil {
 		return err
 	}
-	return writeFlows(targetDir, tool, flows)
+	if err := writeFlows(targetDir, tool, flows); err != nil {
+		return err
+	}
+	return writeWorkflowContract(targetDir, toolID, tool, flows)
 }
 
 func generatedExcludes(flows []flowDefinition) map[string]struct{} {
@@ -152,6 +155,7 @@ func generatedExcludes(flows []flowDefinition) map[string]struct{} {
 	for _, flow := range flows {
 		excludes[filepath.ToSlash(filepath.Join(generatedFlowsDir, flow.ID+".md"))] = struct{}{}
 	}
+	excludes["workflow.json"] = struct{}{}
 	return excludes
 }
 
@@ -210,40 +214,4 @@ func writeCapabilities(targetDir, toolID string, tool toolDefinition) error {
 		lines = append(lines, "  "+key+": \""+capabilityFallback(key, tool.Capabilities[key])+"\"")
 	}
 	return os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o644)
-}
-
-func writeFlows(targetDir string, tool toolDefinition, flows []flowDefinition) error {
-	flowsDir := filepath.Join(targetDir, generatedFlowsDir)
-	if err := os.MkdirAll(flowsDir, 0o755); err != nil {
-		return fmt.Errorf("create flows dir: %w", err)
-	}
-	for _, flow := range flows {
-		if err := writeFlowFile(flowsDir, tool, flow); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func writeFlowFile(flowsDir string, tool toolDefinition, flow flowDefinition) error {
-	path := filepath.Join(flowsDir, flow.ID+".md")
-	lines := []string{
-		"# " + tool.DisplayName + " Flow: " + flow.CommandPath,
-		"",
-		tool.FlowIntro,
-		"",
-		"## Intent",
-		"",
-		"- " + flow.Description,
-		"",
-		"## Command Mapping",
-		"",
-		"```sh",
-		flow.Usage,
-		"```",
-	}
-	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
-		return fmt.Errorf("write flow %q: %w", flow.ID, err)
-	}
-	return nil
 }

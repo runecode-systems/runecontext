@@ -1,0 +1,38 @@
+{
+  "id": "change-assess-decomposition",
+  "command_path": "change assess-decomposition",
+  "description": "Assess decomposition and umbrella/sub-change signals",
+  "usage": "runectx change assess-decomposition <change-id> [--path <project-root>]",
+  "required_outcome": "Return decomposition advisory output for an existing change id.",
+  "guardrails": [
+    "Require an explicit change id; never infer mutation targets.",
+    "Treat output as advisory and avoid modifying relationships in this step.",
+    "Do not auto-run decomposition plan or apply commands."
+  ],
+  "inputs_to_gather": [
+    "change id"
+  ],
+  "decision_rules": [
+    "If change id is missing, request it before proposing command execution.",
+    "Reflect advisory decomposition signals without rewriting their meaning.",
+    "Stop after presenting the assess-decomposition result."
+  ],
+  "workflow_steps": [
+    "Collect the target change id.",
+    "Propose and run runectx change assess-decomposition.",
+    "Report decomposition signals and explicit suggested next command.",
+    "End the flow after reporting this immediate output."
+  ],
+  "stop_condition": "Stop after decomposition advisory output is reported for the requested change id.",
+  "recommended_next_commands": [
+    "runectx change decomposition-plan <umbrella-change-id> --sub-change <id>",
+    "runectx change shape <change-id> --task \"<text>\""
+  ],
+  "examples": [
+    {
+      "scenario": "Assess if a large change should be decomposed",
+      "user_prompt": "Assess decomposition for CHG-2026-100-aaaa-large-refactor.",
+      "assistant_response": "I will run `runectx change assess-decomposition CHG-2026-100-aaaa-large-refactor` and return the advisory decomposition guidance without applying changes."
+    }
+  ]
+}

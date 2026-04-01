@@ -17,6 +17,7 @@ related_changes:
   - CHG-2026-026-041d-add-canonical-adapter-source-generation-and-rendering-pipeline
   - CHG-2026-027-762d-stage-generated-adapter-packs-in-tests-and-release-builds
   - CHG-2026-028-1c18-stop-committing-rendered-adapter-packs-and-adopt-build-generated-outputs
+  - CHG-2026-029-010a-add-generated-structured-adapter-workflow-contracts
 depends_on: []
 informed_by: []
 supersedes: []

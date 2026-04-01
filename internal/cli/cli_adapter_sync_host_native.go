@@ -20,20 +20,30 @@ type hostNativeArtifact struct {
 }
 
 type hostNativeFlow struct {
-	id          string
-	name        string
-	description string
-	source      string
+	id                      string
+	name                    string
+	description             string
+	source                  string
+	commandPath             string
+	usage                   string
+	requiredOutcome         string
+	guardrails              []string
+	inputsToGather          []string
+	decisionRules           []string
+	workflowSteps           []string
+	stopCondition           string
+	recommendedNextCommands []string
+	examples                []adapterWorkflowExample
 }
 
 func buildHostNativeArtifacts(tool string) ([]hostNativeArtifact, error) {
 	switch tool {
 	case "opencode":
-		return buildOpenCodeHostNativeArtifacts(), nil
+		return buildOpenCodeHostNativeArtifacts()
 	case "claude-code":
-		return buildClaudeCodeHostNativeArtifacts(), nil
+		return buildClaudeCodeHostNativeArtifacts()
 	case "codex":
-		return buildCodexHostNativeArtifacts(), nil
+		return buildCodexHostNativeArtifacts()
 	case "generic":
 		return nil, nil
 	default:
@@ -41,8 +51,11 @@ func buildHostNativeArtifacts(tool string) ([]hostNativeArtifact, error) {
 	}
 }
 
-func buildOpenCodeHostNativeArtifacts() []hostNativeArtifact {
-	flows := toolFlowMappings("opencode")
+func buildOpenCodeHostNativeArtifacts() ([]hostNativeArtifact, error) {
+	flows, err := toolFlowMappings("opencode")
+	if err != nil {
+		return nil, err
+	}
 	artifacts := make([]hostNativeArtifact, 0, len(flows)*2)
 	for _, flow := range flows {
 		name := "runecontext-" + flow.id + ".md"
@@ -66,11 +79,14 @@ func buildOpenCodeHostNativeArtifacts() []hostNativeArtifact {
 		)
 	}
 	sortHostNativeArtifacts(artifacts)
-	return artifacts
+	return artifacts, nil
 }
 
-func buildClaudeCodeHostNativeArtifacts() []hostNativeArtifact {
-	flows := toolFlowMappings("claude-code")
+func buildClaudeCodeHostNativeArtifacts() ([]hostNativeArtifact, error) {
+	flows, err := toolFlowMappings("claude-code")
+	if err != nil {
+		return nil, err
+	}
 	artifacts := make([]hostNativeArtifact, 0, len(flows)+1)
 	for _, flow := range flows {
 		name := "runecontext-" + flow.id + ".md"
@@ -92,11 +108,14 @@ func buildClaudeCodeHostNativeArtifacts() []hostNativeArtifact {
 		content: buildClaudeCommandIndexShimContent(flows),
 	})
 	sortHostNativeArtifacts(artifacts)
-	return artifacts
+	return artifacts, nil
 }
 
-func buildCodexHostNativeArtifacts() []hostNativeArtifact {
-	flows := toolFlowMappings("codex")
+func buildCodexHostNativeArtifacts() ([]hostNativeArtifact, error) {
+	flows, err := toolFlowMappings("codex")
+	if err != nil {
+		return nil, err
+	}
 	artifacts := make([]hostNativeArtifact, 0, len(flows))
 	for _, flow := range flows {
 		name := "runecontext-" + flow.id + ".md"
@@ -110,7 +129,7 @@ func buildCodexHostNativeArtifacts() []hostNativeArtifact {
 		})
 	}
 	sortHostNativeArtifacts(artifacts)
-	return artifacts
+	return artifacts, nil
 }
 
 func sortHostNativeArtifacts(artifacts []hostNativeArtifact) {
@@ -164,7 +183,7 @@ func buildClaudeCommandIndexShimContent(flows []hostNativeFlow) []byte {
 		"## Commands",
 	}...)
 	for _, flow := range flows {
-		commandPath := commandPathFromFlowID(flow.id)
+		commandPath := flow.commandPath
 		lines = append(lines,
 			"",
 			"- `runecontext:"+flow.id+"`",

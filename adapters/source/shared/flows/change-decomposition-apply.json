@@ -1,0 +1,40 @@
+{
+  "id": "change-decomposition-apply",
+  "command_path": "change decomposition-apply",
+  "description": "Apply umbrella and sub-change graph rewrites",
+  "usage": "runectx change decomposition-apply <umbrella-change-id> --sub-change <id> [--sub-change <id> ...] [--depends-on <sub-change-id>:<change-id> ...] [--path <project-root>]",
+  "required_outcome": "Apply decomposition relationship rewrites and report authoritative mutation output.",
+  "guardrails": [
+    "Require explicit umbrella and sub-change identifiers before mutation.",
+    "Keep the operation bounded to provided relationship edits only.",
+    "Stop after the apply result and do not auto-run validation or promotion."
+  ],
+  "inputs_to_gather": [
+    "umbrella change id",
+    "one or more sub-change ids",
+    "optional depends-on edges"
+  ],
+  "decision_rules": [
+    "Use decomposition-plan first when the requested graph rewrite is not yet reviewed.",
+    "Preserve explicit edge inputs from the user without inferred dependencies.",
+    "After apply completion, return mutation fields and stop."
+  ],
+  "workflow_steps": [
+    "Gather explicit umbrella, sub-change, and dependency inputs.",
+    "Propose and run runectx change decomposition-apply.",
+    "Report applied graph changes from command output.",
+    "End the flow and recommend the next command if requested."
+  ],
+  "stop_condition": "Stop after apply output is delivered for the requested decomposition mutation.",
+  "recommended_next_commands": [
+    "runectx validate --path <project-root>",
+    "runectx promote"
+  ],
+  "examples": [
+    {
+      "scenario": "Apply a reviewed decomposition plan",
+      "user_prompt": "Apply decomposition for CHG-2026-200-umbrella with sub changes CHG-2026-201-a and CHG-2026-202-b.",
+      "assistant_response": "I will run `runectx change decomposition-apply CHG-2026-200-umbrella --sub-change CHG-2026-201-a --sub-change CHG-2026-202-b` and return the apply result."
+    }
+  ]
+}

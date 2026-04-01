@@ -28,10 +28,16 @@ func TestRunAdapterRenderHostNativeOutputsMinimalMarkdown(t *testing.T) {
 	text := stdout.String()
 	for _, token := range []string{
 		"canonical_flow_source:",
+		"canonical_workflow_contract:",
 		"adapter_role:",
 		"operation_identifier:",
 		"command_path:",
 		"usage:",
+		"required_outcome:",
+		"guardrails:",
+		"workflow_steps:",
+		"stop_condition:",
+		"recommended_next_commands:",
 		"interaction_rule:",
 		hostNativeNoQuestionRule,
 	} {
@@ -57,11 +63,26 @@ func TestRunAdapterRenderHostNativeSupportsAssessmentOperations(t *testing.T) {
 			if !strings.Contains(text, "operation_identifier: `runecontext:"+operation+"`") {
 				t.Fatalf("expected operation identifier for %s, got %q", operation, text)
 			}
-			expectedPath := commandPathFromFlowID(operation)
+			expectedPath := expectedCommandPathForOperation(operation)
 			if !strings.Contains(text, "command_path: `"+expectedPath+"`") {
 				t.Fatalf("expected command path for %s, got %q", operation, text)
 			}
 		})
+	}
+}
+
+func expectedCommandPathForOperation(operation string) string {
+	switch operation {
+	case "change-assess-intake":
+		return "change assess-intake"
+	case "change-assess-decomposition":
+		return "change assess-decomposition"
+	case "change-decomposition-plan":
+		return "change decomposition-plan"
+	case "change-decomposition-apply":
+		return "change decomposition-apply"
+	default:
+		return strings.ReplaceAll(operation, "-", " ")
 	}
 }
 
@@ -96,15 +117,15 @@ func TestRunAdapterRenderHostNativeIndexForClaude(t *testing.T) {
 	}
 }
 
-func TestRunAdapterRenderHostNativeRejectsUnsupportedTool(t *testing.T) {
+func TestRunAdapterRenderHostNativeSupportsCodexRender(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	code := Run([]string{"adapter", "render-host-native", "codex", "change-new"}, &stdout, &stderr)
-	if code != exitInvalid {
-		t.Fatalf("expected invalid exit code, got %d (%s)", code, stderr.String())
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "does not support shell-output injection") {
-		t.Fatalf("expected unsupported shell injection error, got %q", stderr.String())
+	if !strings.Contains(stdout.String(), "operation_identifier: `runecontext:change-new`") {
+		t.Fatalf("expected codex flow output, got %q", stdout.String())
 	}
 }
 
@@ -116,7 +137,7 @@ func TestRunAdapterRenderHostNativeJSONOutput(t *testing.T) {
 		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
 	}
 	text := stdout.String()
-	for _, token := range []string{"\"command\":\"adapter_render_host_native\"", "\"adapter\":\"opencode\"", "\"operation\":\"change-new\"", "\"body\":\"- canonical_flow_source:"} {
+	for _, token := range []string{"\"command\":\"adapter_render_host_native\"", "\"adapter\":\"opencode\"", "\"operation\":\"change-new\"", "\"body\":\"- canonical_flow_source:", "canonical_workflow_contract"} {
 		if !strings.Contains(text, token) {
 			t.Fatalf("expected token %q in JSON output, got %q", token, text)
 		}
