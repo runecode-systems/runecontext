@@ -20,22 +20,8 @@ func TestResolveOutputRejectsUnsafeTargets(t *testing.T) {
 
 func TestResolveOutputAllowsRepositoryDescendants(t *testing.T) {
 	root := t.TempDir()
-	for _, output := range []string{"build/generated/adapters", filepath.Join(root, "build", "generated", "adapters")} {
-		output := output
-		t.Run(output, func(t *testing.T) {
-			got, err := resolveOutput(root, output)
-			if err != nil {
-				t.Fatalf("resolveOutput returned error: %v", err)
-			}
-			rel, err := filepath.Rel(root, got)
-			if err != nil {
-				t.Fatalf("compute relative path: %v", err)
-			}
-			if rel == "." || rel == ".." || rel == "" {
-				t.Fatalf("expected repository descendant output, got %q", got)
-			}
-		})
-	}
+	assertRepositoryDescendantOutput(t, root, "build/generated/adapters")
+	assertRepositoryDescendantOutput(t, root, filepath.Join(root, "build", "generated", "adapters"))
 }
 
 func TestResolveOutputRejectsSymlinkedOutputAncestor(t *testing.T) {
@@ -50,4 +36,21 @@ func TestResolveOutputRejectsSymlinkedOutputAncestor(t *testing.T) {
 	if _, err := resolveOutput(root, "build/generated/adapters"); err == nil {
 		t.Fatal("expected resolveOutput to reject symlinked output ancestor")
 	}
+}
+
+func assertRepositoryDescendantOutput(t *testing.T, root, output string) {
+	t.Helper()
+	t.Run(output, func(t *testing.T) {
+		got, err := resolveOutput(root, output)
+		if err != nil {
+			t.Fatalf("resolveOutput returned error: %v", err)
+		}
+		rel, err := filepath.Rel(root, got)
+		if err != nil {
+			t.Fatalf("compute relative path: %v", err)
+		}
+		if rel == "." || rel == ".." || rel == "" {
+			t.Fatalf("expected repository descendant output, got %q", got)
+		}
+	})
 }

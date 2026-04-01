@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-028-1c18-stop-committing-rendered-adapter-packs-and-adopt-build-generated-outputs
 title: Stop committing rendered adapter packs and adopt build generated outputs
-status: planned
+status: implemented
 type: chore
 size: medium
 verification_status: pending

@@ -101,8 +101,11 @@ func stageGeneratedAdapterWorkspaceForTests(t *testing.T) (string, string) {
 	schemaSource := filepath.Join(repoRoot, "schemas")
 	schemaTarget := filepath.Join(workspace, "schemas")
 	copyDirForCLI(t, schemaSource, schemaTarget)
+	adapterSource := filepath.Join(repoRoot, "adapters", "source")
+	adapterTarget := filepath.Join(workspace, "adapters", "source")
+	copyDirForCLI(t, adapterSource, adapterTarget)
 	adaptersRoot := filepath.Join(workspace, "build", "generated", "adapters")
-	cmd := exec.Command("go", "run", "./tools/syncadapters", "--root", repoRoot, "--output", adaptersRoot)
+	cmd := exec.Command("go", "run", "./tools/syncadapters", "--root", workspace, "--output", adaptersRoot)
 	cmd.Dir = repoRoot
 	output, err := cmd.CombinedOutput()
 	if err != nil {

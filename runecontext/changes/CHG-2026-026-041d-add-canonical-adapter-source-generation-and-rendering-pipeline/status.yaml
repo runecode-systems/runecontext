@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-026-041d-add-canonical-adapter-source-generation-and-rendering-pipeline
 title: Add canonical adapter source generation and rendering pipeline
-status: planned
+status: implemented
 type: feature
 size: large
 verification_status: pending

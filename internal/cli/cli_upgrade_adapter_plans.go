@@ -66,8 +66,11 @@ func hasManagedHostNativeArtifactsInDir(root, tool string) (bool, error) {
 }
 
 func scanManagedHostNativeArtifactsInDir(root, tool string) (bool, error) {
+	if err := validateManagedHostNativeWalkSafety(root); err != nil {
+		return false, err
+	}
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
-		if skip, err := skipManagedHostNativeWalkEntry(root, path, entry, walkErr); skip || err != nil {
+		if skip, err := skipManagedHostNativeFileEntry(path, entry, walkErr); skip || err != nil {
 			return err
 		}
 		return markManagedHostNativeFile(path, tool)
@@ -81,7 +84,23 @@ func scanManagedHostNativeArtifactsInDir(root, tool string) (bool, error) {
 	return false, err
 }
 
-func skipManagedHostNativeWalkEntry(root, path string, entry os.DirEntry, walkErr error) (bool, error) {
+func validateManagedHostNativeWalkSafety(root string) error {
+	return filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.Type()&os.ModeSymlink == 0 {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("managed host-native scan rejects symlinked path %s", filepath.ToSlash(rel))
+	})
+}
+
+func skipManagedHostNativeFileEntry(path string, entry os.DirEntry, walkErr error) (bool, error) {
 	if walkErr != nil {
 		return true, walkErr
 	}
@@ -89,11 +108,7 @@ func skipManagedHostNativeWalkEntry(root, path string, entry os.DirEntry, walkEr
 		return true, nil
 	}
 	if entry.Type()&os.ModeSymlink != 0 {
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return true, err
-		}
-		return true, fmt.Errorf("managed host-native scan rejects symlinked path %s", filepath.ToSlash(rel))
+		return true, fmt.Errorf("managed host-native scan rejects symlinked path %s", filepath.ToSlash(path))
 	}
 	return false, nil
 }

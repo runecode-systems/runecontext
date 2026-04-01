@@ -87,23 +87,43 @@ func rejectSymlinkedOutputAncestors(absRoot, relOutput string) error {
 		return nil
 	}
 	current := absRoot
-	for _, segment := range strings.Split(relOutput, string(filepath.Separator)) {
-		if segment == "" || segment == "." {
-			continue
-		}
+	for _, segment := range outputSegments(relOutput) {
 		current = filepath.Join(current, segment)
-		info, err := os.Lstat(current)
+		exists, symlinked, err := outputComponentState(current)
 		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return fmt.Errorf("stat output component %q: %w", current, err)
+			return err
 		}
-		if info.Mode()&os.ModeSymlink != 0 {
+		if !exists {
+			return nil
+		}
+		if symlinked {
 			return fmt.Errorf("output root component %q must not be a symlink", current)
 		}
 	}
 	return nil
+}
+
+func outputSegments(relOutput string) []string {
+	parts := strings.Split(relOutput, string(filepath.Separator))
+	segments := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part == "" || part == "." {
+			continue
+		}
+		segments = append(segments, part)
+	}
+	return segments
+}
+
+func outputComponentState(path string) (exists bool, symlinked bool, err error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, false, nil
+		}
+		return false, false, fmt.Errorf("stat output component %q: %w", path, err)
+	}
+	return true, info.Mode()&os.ModeSymlink != 0, nil
 }
 
 func renderTool(root, output, toolID string, flows []flowDefinition, tool toolDefinition) error {
