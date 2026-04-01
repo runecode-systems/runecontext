@@ -8,3 +8,9 @@ Canonical adapter definitions live under `adapters/source/`.
 
 Rendered adapter packs are build-generated at `build/generated/adapters/` via `just sync-adapters`.
 Those generated outputs are ephemeral and must not be committed.
+
+Contributor workflow:
+
+1. Edit canonical sources under `adapters/source/`.
+2. Run `just sync-adapters` to regenerate `build/generated/adapters/`.
+3. Review generated changes locally as build output; commit only source inputs.

@@ -12,6 +12,9 @@ import (
 
 func TestReleaseMetadataDeclaresSchemaBundleAndAdapterPacks(t *testing.T) {
 	metadata := readReleaseFileForTests(t, filepath.Join("nix", "release", "metadata.nix"))
+	if strings.Contains(metadata, `"adapters/source"`) {
+		t.Fatal("expected release metadata to exclude adapters/source from shipped top-level directories")
+	}
 
 	requireSubstrings(t, metadata,
 		`name = "schema-bundle";`,
@@ -45,6 +48,7 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 	requireSubstrings(t, script,
 		`process_pack_archives "schema_bundle"`,
 		`process_pack_archives "adapter_pack"`,
+		`go run ./tools/syncadapters --root . --output build/generated/adapters`,
 		`"${coreutils}/rm" -rf "${bundle_root}/adapters"`,
 		`"${coreutils}/cp" -R build/generated/adapters "${bundle_root}/adapters"`,
 		`"${coreutils}/cp" -R schemas "${share_dir}/schemas"`,

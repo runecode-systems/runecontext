@@ -45,10 +45,65 @@ func resolveOutput(absRoot, output string) (string, error) {
 	if strings.TrimSpace(output) == "" {
 		return "", fmt.Errorf("output root must be non-empty")
 	}
-	if filepath.IsAbs(output) {
-		return filepath.Clean(output), nil
+	cleanRoot := filepath.Clean(absRoot)
+	if !filepath.IsAbs(cleanRoot) {
+		return "", fmt.Errorf("root %q must be absolute", absRoot)
 	}
-	return filepath.Clean(filepath.Join(absRoot, output)), nil
+	canonicalRoot, err := filepath.EvalSymlinks(cleanRoot)
+	if err != nil {
+		return "", fmt.Errorf("resolve root symlinks %q: %w", cleanRoot, err)
+	}
+	var absOutput string
+	if filepath.IsAbs(output) {
+		absOutput = filepath.Clean(output)
+	} else {
+		absOutput = filepath.Clean(filepath.Join(canonicalRoot, output))
+	}
+	if err := validateOutputRoot(canonicalRoot, absOutput); err != nil {
+		return "", err
+	}
+	return absOutput, nil
+}
+
+func validateOutputRoot(absRoot, absOutput string) error {
+	if absOutput == string(filepath.Separator) {
+		return fmt.Errorf("output root %q is not allowed", absOutput)
+	}
+	rel, err := filepath.Rel(absRoot, absOutput)
+	if err != nil {
+		return fmt.Errorf("resolve output root %q relative to %q: %w", absOutput, absRoot, err)
+	}
+	if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("output root %q must stay under repository root %q", absOutput, absRoot)
+	}
+	if err := rejectSymlinkedOutputAncestors(absRoot, rel); err != nil {
+		return err
+	}
+	return nil
+}
+
+func rejectSymlinkedOutputAncestors(absRoot, relOutput string) error {
+	if relOutput == "." {
+		return nil
+	}
+	current := absRoot
+	for _, segment := range strings.Split(relOutput, string(filepath.Separator)) {
+		if segment == "" || segment == "." {
+			continue
+		}
+		current = filepath.Join(current, segment)
+		info, err := os.Lstat(current)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return fmt.Errorf("stat output component %q: %w", current, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("output root component %q must not be a symlink", current)
+		}
+	}
+	return nil
 }
 
 func renderTool(root, output, toolID string, flows []flowDefinition, tool toolDefinition) error {

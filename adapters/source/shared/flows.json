@@ -9,31 +9,31 @@
     "id": "change-assess-intake",
     "command_path": "change assess-intake",
     "description": "Assess intake readiness and advisory shaping signals",
-    "usage": "runectx change assess-intake --id <change-id> [--path <project-root>]"
+    "usage": "runectx change assess-intake --title <title> --type <type> [--size <size>] [--bundle <bundle-id>] [--description \"<text>\"] [--path <project-root>]"
   },
   {
     "id": "change-assess-decomposition",
     "command_path": "change assess-decomposition",
     "description": "Assess decomposition and umbrella/sub-change signals",
-    "usage": "runectx change assess-decomposition --id <change-id> [--path <project-root>]"
+    "usage": "runectx change assess-decomposition <change-id> [--path <project-root>]"
   },
   {
     "id": "change-decomposition-plan",
     "command_path": "change decomposition-plan",
     "description": "Plan umbrella and sub-change graph rewrites",
-    "usage": "runectx change decomposition-plan --id <change-id> [--path <project-root>]"
+    "usage": "runectx change decomposition-plan <umbrella-change-id> --sub-change <id> [--sub-change <id> ...] [--depends-on <sub-change-id>:<change-id> ...] [--path <project-root>]"
   },
   {
     "id": "change-decomposition-apply",
     "command_path": "change decomposition-apply",
     "description": "Apply umbrella and sub-change graph rewrites",
-    "usage": "runectx change decomposition-apply --id <change-id> [--path <project-root>]"
+    "usage": "runectx change decomposition-apply <umbrella-change-id> --sub-change <id> [--sub-change <id> ...] [--depends-on <sub-change-id>:<change-id> ...] [--path <project-root>]"
   },
   {
     "id": "change-shape",
     "command_path": "change shape",
     "description": "Shape an existing RuneContext change",
-    "usage": "runectx change shape --id <change-id> [--path <project-root>]"
+    "usage": "runectx change shape <change-id> [--design \"<text>\"] [--verification \"<text>\"] [--task \"<text>\"] [--reference \"<text>\"] [--path <project-root>]"
   },
   {
     "id": "standard-discover",

@@ -10,6 +10,8 @@ import (
 
 const maxManagedHostNativeArtifactScanBytes = 1 << 20
 
+var errManagedHostNativeArtifactFound = fmt.Errorf("managed host-native artifact found")
+
 func collectUpgradeAdapterPlans(absRoot string) (map[string]adapterSyncState, []string, []string, error) {
 	states := map[string]adapterSyncState{}
 	conflicts := make([]string, 0)
@@ -64,14 +66,19 @@ func hasManagedHostNativeArtifactsInDir(root, tool string) (bool, error) {
 }
 
 func scanManagedHostNativeArtifactsInDir(root, tool string) (bool, error) {
-	var managed bool
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 		if skip, err := skipManagedHostNativeWalkEntry(root, path, entry, walkErr); skip || err != nil {
 			return err
 		}
-		return markManagedHostNativeFile(path, tool, &managed)
+		return markManagedHostNativeFile(path, tool)
 	})
-	return managed, err
+	if err == nil {
+		return false, nil
+	}
+	if err == errManagedHostNativeArtifactFound {
+		return true, nil
+	}
+	return false, err
 }
 
 func skipManagedHostNativeWalkEntry(root, path string, entry os.DirEntry, walkErr error) (bool, error) {
@@ -91,10 +98,7 @@ func skipManagedHostNativeWalkEntry(root, path string, entry os.DirEntry, walkEr
 	return false, nil
 }
 
-func markManagedHostNativeFile(path, tool string, managed *bool) error {
-	if *managed {
-		return nil
-	}
+func markManagedHostNativeFile(path, tool string) error {
 	owned, err := isManagedHostNativeFileForTool(path, tool)
 	if err != nil {
 		return err
@@ -102,8 +106,7 @@ func markManagedHostNativeFile(path, tool string, managed *bool) error {
 	if !owned {
 		return nil
 	}
-	*managed = true
-	return nil
+	return errManagedHostNativeArtifactFound
 }
 
 func existingHostNativeDir(root string) (bool, error) {
