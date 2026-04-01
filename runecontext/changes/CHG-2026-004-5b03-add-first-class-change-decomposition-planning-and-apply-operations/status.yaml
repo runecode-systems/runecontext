@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-004-5b03-add-first-class-change-decomposition-planning-and-apply-operations
 title: Add first-class change decomposition planning and apply operations
-status: proposed
+status: implemented
 type: feature
 size: large
 verification_status: pending

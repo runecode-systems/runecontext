@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-006-5aaf-add-first-class-standard-authoring-commands
 title: Add first-class standard authoring commands
-status: proposed
+status: implemented
 type: feature
 size: large
 verification_status: pending

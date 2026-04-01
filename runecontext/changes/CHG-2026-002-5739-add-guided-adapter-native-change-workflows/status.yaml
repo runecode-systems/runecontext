@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-002-5739-add-guided-adapter-native-change-workflows
 title: Add guided adapter-native change workflows
-status: proposed
+status: implemented
 type: project
 size: large
 verification_status: pending

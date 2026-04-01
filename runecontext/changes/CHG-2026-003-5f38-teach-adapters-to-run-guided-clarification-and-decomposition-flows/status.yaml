@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-003-5f38-teach-adapters-to-run-guided-clarification-and-decomposition-flows
 title: Teach adapters to run guided clarification and decomposition flows
-status: proposed
+status: implemented
 type: feature
 size: large
 verification_status: pending
