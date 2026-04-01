@@ -25,8 +25,12 @@ func TestReleaseMetadataIncludesAdaptersDirectory(t *testing.T) {
 func TestLocateAdaptersRootFromReleaseStyleLayout(t *testing.T) {
 	root := t.TempDir()
 	schemaDir := filepath.Join(root, "schemas")
-	adaptersDir := filepath.Join(root, "adapters")
-	seedReleaseStyleLayout(t, schemaDir, adaptersDir)
+	repoAdaptersDir := filepath.Join(root, "adapters")
+	stagedAdaptersDir := filepath.Join(root, "build", "generated", "adapters")
+	seedReleaseStyleLayout(t, schemaDir, repoAdaptersDir)
+	if err := os.MkdirAll(stagedAdaptersDir, 0o755); err != nil {
+		t.Fatalf("mkdir staged adapters dir: %v", err)
+	}
 
 	originalWD, err := os.Getwd()
 	if err != nil {
@@ -45,7 +49,7 @@ func TestLocateAdaptersRootFromReleaseStyleLayout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve located adapters root symlinks: %v", err)
 	}
-	expectedCanonical, err := filepath.EvalSymlinks(adaptersDir)
+	expectedCanonical, err := filepath.EvalSymlinks(stagedAdaptersDir)
 	if err != nil {
 		t.Fatalf("resolve expected adapters root symlinks: %v", err)
 	}

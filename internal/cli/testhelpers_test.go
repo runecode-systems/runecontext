@@ -91,6 +91,26 @@ func repoFixtureRoot(t *testing.T, elems ...string) string {
 	return filepath.Join(parts...)
 }
 
+func stageGeneratedAdapterWorkspaceForTests(t *testing.T) (string, string) {
+	t.Helper()
+	repoRoot, err := repoRootForTests()
+	if err != nil {
+		t.Fatalf("locate repo root: %v", err)
+	}
+	workspace := t.TempDir()
+	schemaSource := filepath.Join(repoRoot, "schemas")
+	schemaTarget := filepath.Join(workspace, "schemas")
+	copyDirForCLI(t, schemaSource, schemaTarget)
+	adaptersRoot := filepath.Join(workspace, "build", "generated", "adapters")
+	cmd := exec.Command("go", "run", "./tools/syncadapters", "--root", repoRoot, "--output", adaptersRoot)
+	cmd.Dir = repoRoot
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("generate staged adapter packs: %v\n%s", err, string(output))
+	}
+	return workspace, adaptersRoot
+}
+
 func copyDirForCLI(t *testing.T, srcRoot, dstRoot string) {
 	t.Helper()
 	if err := filepath.Walk(srcRoot, func(path string, info os.FileInfo, err error) error {

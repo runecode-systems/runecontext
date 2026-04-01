@@ -53,11 +53,8 @@ func TestRunCompletionSuggestSoftFailsOutsideRuneContextProject(t *testing.T) {
 }
 
 func TestRunCompletionSuggestAdapterNamesShellInjection(t *testing.T) {
-	root, err := repoRootForTests()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Chdir(root)
+	workspaceRoot, _ := stageGeneratedAdapterWorkspaceForTests(t)
+	t.Chdir(workspaceRoot)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -123,11 +120,8 @@ func assertCompletionSuggestInvalid(t *testing.T, args []string, wantSubstring s
 }
 
 func TestRunCompletionSuggestAdapterNames(t *testing.T) {
-	root, err := repoRootForTests()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Chdir(root)
+	workspaceRoot, _ := stageGeneratedAdapterWorkspaceForTests(t)
+	t.Chdir(workspaceRoot)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

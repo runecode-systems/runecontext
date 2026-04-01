@@ -30,6 +30,11 @@ the release manifest:
 nix build --no-link .#release-artifacts
 ```
 
+During that build, adapter packs are regenerated from canonical adapter source
+definitions into `build/generated/adapters` and staged into release archives.
+Installed runtime layouts still place adapters at
+`share/runecontext/adapters`.
+
 The release workflow generates the SBOM afterward, then signs and attests it
 separately. The canonical `SHA256SUMS` file covers the unsigned archives,
 schema bundle, adapter packs, and release manifest.

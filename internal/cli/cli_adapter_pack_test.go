@@ -10,12 +10,7 @@ import (
 )
 
 func TestAdapterPackDocsExist(t *testing.T) {
-	repoRoot, err := repoRootForTests()
-	if err != nil {
-		t.Fatalf("repo root: %v", err)
-	}
-
-	adaptersRoot := filepath.Join(repoRoot, "adapters")
+	_, adaptersRoot := stageGeneratedAdapterWorkspaceForTests(t)
 	if info, err := os.Stat(adaptersRoot); err != nil {
 		t.Fatalf("adapters root: %v", err)
 	} else if !info.IsDir() {

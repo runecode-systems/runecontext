@@ -45,6 +45,8 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 	requireSubstrings(t, script,
 		`process_pack_archives "schema_bundle"`,
 		`process_pack_archives "adapter_pack"`,
+		`"${coreutils}/rm" -rf "${bundle_root}/adapters"`,
+		`"${coreutils}/cp" -R build/generated/adapters "${bundle_root}/adapters"`,
 		`"${coreutils}/cp" -R schemas "${share_dir}/schemas"`,
 		`"${coreutils}/cp" -R build/generated/adapters "${share_dir}/adapters"`,
 		`"${host_metadata_binary}" metadata > "release/metadata-descriptor.json"`,

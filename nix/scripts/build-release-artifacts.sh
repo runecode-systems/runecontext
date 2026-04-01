@@ -57,6 +57,9 @@ while IFS= read -r entry; do
   "${coreutils}/cp" -R --parents "${entry}" "${bundle_root}"
 done < "@layoutEntriesFile@"
 
+"${coreutils}/rm" -rf "${bundle_root}/adapters"
+"${coreutils}/cp" -R build/generated/adapters "${bundle_root}/adapters"
+
 "${coreutils}/chmod" -R u=rwX,go=rX "${bundle_root}"
 "${findutils}/find" "${bundle_root}" -exec "${coreutils}/touch" -h -d '1980-01-01T00:00:00Z' {} +
 

@@ -16,6 +16,7 @@ For each pushed release tag, the workflow:
 
 - reruns `just ci`
 - builds the canonical unsigned artifacts with `nix build .#release-artifacts`
+- regenerates adapter packs into `build/generated/adapters` during the build and stages that generated tree into published archives
 - emits the final versioned repo bundles, Linux/macOS `runectx` binary archives,
   `schema-bundle.tar.gz`, adapter-pack archives (`adapter-*.tar.gz`),
   `SHA256SUMS`, and `runecontext_<tag>_release-manifest.json` from the Nix
