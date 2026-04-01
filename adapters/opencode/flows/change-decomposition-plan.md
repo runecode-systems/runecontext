@@ -20,3 +20,16 @@ runectx change decomposition-plan <UMBRELLA_CHANGE_ID> --sub-change <CHANGE_ID> 
 
 - Confirm umbrella and sub-change IDs before execution.
 - Keep advisory graph outputs (`graph_*`) user-visible for review.
+
+## Guided Clarification And Iteration
+
+- If the planned graph conflicts with user intent, gather clarifications on
+  missing sub-changes or dependency edges and re-run planning.
+- Preserve reviewability by proposing exact revised `--sub-change` and
+  `--depends-on` arguments before each re-run.
+
+## Apply Handoff
+
+- When the user accepts the advisory graph, hand off to
+  `runectx change decomposition-apply` with the same umbrella/sub-change/edge
+  inputs used for the approved plan.

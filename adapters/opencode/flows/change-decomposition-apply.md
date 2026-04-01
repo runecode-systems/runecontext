@@ -20,3 +20,10 @@ runectx change decomposition-apply <UMBRELLA_CHANGE_ID> --sub-change <CHANGE_ID>
 
 - Confirm umbrella and sub-change IDs before execution.
 - Review changed status files and relationship rewrites before commit.
+
+## Guided Clarification Guardrails
+
+- If the user is unsure about relationships or missing prerequisites, pause and
+  return to `change decomposition-plan` for another advisory pass.
+- Keep command proposals explicit and user-confirmed; do not apply hidden
+  relationship edits.
