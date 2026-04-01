@@ -8,6 +8,7 @@ import (
 )
 
 const hostNativeOwnershipMarker = "runecontext-managed-artifact: host-native-v1"
+const hostNativeNoQuestionRule = "Never use the `question` tool; ask in normal conversational text when clarification is needed."
 
 type hostNativeArtifact struct {
 	relPath string
@@ -125,6 +126,8 @@ func buildHostNativeFlowAssetContent(tool string, flow hostNativeFlow) []byte {
 		"<!-- runecontext-id: runecontext:" + flow.id + " -->",
 		"# RuneContext Skill: " + flow.name,
 		"",
+		hostNativeNoQuestionRule,
+		"",
 		body,
 	}...)
 	return []byte(strings.Join(lines, "\n") + "\n")
@@ -138,6 +141,8 @@ func buildHostNativeCommandShimContent(tool string, flow hostNativeFlow) []byte 
 		"<!-- runecontext-kind: discoverability_shim -->",
 		"<!-- runecontext-id: runecontext:" + flow.id + " -->",
 		"# RuneContext Command Shim: " + flow.name,
+		"",
+		hostNativeNoQuestionRule,
 		"",
 		body,
 	}...)
@@ -170,6 +175,8 @@ func buildClaudeCommandIndexShimContent(flows []hostNativeFlow) []byte {
 		)
 	}
 	lines = append(lines,
+		"",
+		hostNativeNoQuestionRule,
 		"",
 		buildHostNativeBody("claude-code", "index", hostNativeKindDiscoverabilityShim),
 	)

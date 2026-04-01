@@ -32,6 +32,8 @@ func TestRunAdapterRenderHostNativeOutputsMinimalMarkdown(t *testing.T) {
 		"operation_identifier:",
 		"command_path:",
 		"usage:",
+		"interaction_rule:",
+		hostNativeNoQuestionRule,
 	} {
 		if !strings.Contains(text, token) {
 			t.Fatalf("expected token %q in render output, got %q", token, text)
@@ -88,6 +90,9 @@ func TestRunAdapterRenderHostNativeIndexForClaude(t *testing.T) {
 	}
 	if !strings.Contains(text, "operation: `runecontext:change-decomposition-apply`") {
 		t.Fatalf("expected indexed change-decomposition-apply operation, got %q", text)
+	}
+	if !strings.Contains(text, "interaction_rule: "+hostNativeNoQuestionRule) {
+		t.Fatalf("expected no-question interaction rule in index output, got %q", text)
 	}
 }
 

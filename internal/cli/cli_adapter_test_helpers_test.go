@@ -91,6 +91,17 @@ func assertNoShellInjectionCall(t *testing.T, path string) {
 	}
 }
 
+func assertNoQuestionToolRulePresent(t *testing.T, path string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read host-native artifact %s: %v", path, err)
+	}
+	if !strings.Contains(string(data), hostNativeNoQuestionRule) {
+		t.Fatalf("expected no-question interaction rule in %s", path)
+	}
+}
+
 func assertFrontmatterContains(t *testing.T, path, token string) {
 	t.Helper()
 	data, err := os.ReadFile(path)

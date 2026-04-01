@@ -25,6 +25,7 @@ func renderHostNativeOperationMarkdown(request adapterRenderRequest) (string, er
 		"- operation_identifier: `" + meta.operationID + "`",
 		"- command_path: `" + meta.commandPath + "`",
 		"- usage: `" + meta.usage + "`",
+		"- interaction_rule: " + hostNativeNoQuestionRule,
 	}
 	if len(meta.requiredFlags) > 0 {
 		lines = append(lines, "- required_flags: `"+strings.Join(meta.requiredFlags, " ")+"`")
@@ -47,6 +48,7 @@ func renderHostNativeIndexMarkdown(request adapterRenderRequest) (string, error)
 		"- canonical_flow_source: `build/generated/adapters/" + request.tool + "/flows/*.md`",
 		"- adapter_role: `" + hostNativeKindDiscoverabilityShim + "`",
 		"- operation_identifier: `runecontext:index`",
+		"- interaction_rule: " + hostNativeNoQuestionRule,
 	}
 	for _, flow := range flows {
 		commandPath := commandPathFromFlowID(flow.id)

@@ -141,6 +141,8 @@ func assertOpenCodeHostNativeArtifacts(t *testing.T, projectRoot string) {
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"), "description: Create a new RuneContext change")
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md"))
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"))
+	assertNoQuestionToolRulePresent(t, filepath.Join(projectRoot, ".opencode", "skills", "runecontext-change-new.md"))
+	assertNoQuestionToolRulePresent(t, filepath.Join(projectRoot, ".opencode", "commands", "runecontext-change-new.md"))
 }
 
 func assertClaudeCodeHostNativeArtifacts(t *testing.T, projectRoot string) {
@@ -160,6 +162,8 @@ func assertClaudeCodeHostNativeArtifacts(t *testing.T, projectRoot string) {
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"), "name: runecontext")
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"))
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"))
+	assertNoQuestionToolRulePresent(t, filepath.Join(projectRoot, ".claude", "skills", "runecontext-change-new.md"))
+	assertNoQuestionToolRulePresent(t, filepath.Join(projectRoot, ".claude", "commands", "runecontext.md"))
 }
 
 func assertCodexHostNativeArtifacts(t *testing.T, projectRoot string) {
@@ -176,6 +180,7 @@ func assertCodexHostNativeArtifacts(t *testing.T, projectRoot string) {
 	assertFrontmatterContains(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"), "description: Create a new RuneContext change")
 	assertNoShellInjectionCall(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))
 	assertManagedArtifactMarker(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))
+	assertNoQuestionToolRulePresent(t, filepath.Join(projectRoot, ".agents", "skills", "runecontext-change-new.md"))
 }
 
 func TestRunAdapterSyncHostNativeConflictFailsClosed(t *testing.T) {
