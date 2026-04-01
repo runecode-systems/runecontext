@@ -137,6 +137,7 @@ func TestRunChangeDecompositionUsageErrors(t *testing.T) {
 		{name: "missing umbrella", args: []string{"change", "decomposition-plan"}, message: "requires exactly one umbrella change ID"},
 		{name: "plan dry-run", args: []string{"change", "decomposition-plan", "CHG-2026-001-a3f2-auth-gateway", "--dry-run"}, message: "--dry-run is not supported"},
 		{name: "malformed dependency", args: []string{"change", "decomposition-plan", "CHG-2026-001-a3f2-auth-gateway", "--sub-change", "CHG-2026-002-b4c3-api", "--depends-on", "CHG-2026-002-b4c3-api"}, message: "--depends-on must use SUB_CHANGE_ID:CHANGE_ID"},
+		{name: "depends-on before sub-change", args: []string{"change", "decomposition-plan", "CHG-2026-001-a3f2-auth-gateway", "--depends-on", "CHG-2026-002-b4c3-api:CHG-2026-003-c5d4-ui", "--sub-change", "CHG-2026-002-b4c3-api"}, message: "before it is declared with --sub-change"},
 		{name: "missing sub-change", args: []string{"change", "decomposition-apply", "CHG-2026-001-a3f2-auth-gateway"}, message: "requires at least one --sub-change ID"},
 		{name: "unknown apply flag", args: []string{"change", "decomposition-apply", "CHG-2026-001-a3f2-auth-gateway", "--sub-change", "CHG-2026-002-b4c3-api", "--recursive"}, message: "unknown change decomposition-apply flag"},
 	} {

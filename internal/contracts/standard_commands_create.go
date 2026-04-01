@@ -53,7 +53,10 @@ func prepareCreateStandardOptions(options StandardCreateOptions) (preparedCreate
 	if id == "" {
 		return preparedCreateStandardOptions{}, fmt.Errorf("standard create could not infer id from %q", path)
 	}
-	replacedBy := strings.TrimSpace(options.ReplacedBy)
+	replacedBy, err := normalizeOptionalStandardReplacement(options.ReplacedBy)
+	if err != nil {
+		return preparedCreateStandardOptions{}, err
+	}
 	if err := validateStandardReplacementFields(status, replacedBy); err != nil {
 		return preparedCreateStandardOptions{}, err
 	}

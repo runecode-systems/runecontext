@@ -151,6 +151,14 @@ func validateStandardReplacementFields(status StandardStatus, replacedBy string)
 	return nil
 }
 
+func normalizeOptionalStandardReplacement(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", nil
+	}
+	return normalizeStandardArtifactPath(trimmed)
+}
+
 func standardIDFromPath(path string) string {
 	if !strings.HasPrefix(path, "standards/") || !strings.HasSuffix(path, ".md") {
 		return ""

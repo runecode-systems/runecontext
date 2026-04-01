@@ -10,6 +10,7 @@ import (
 type pendingSubChangeCLI struct {
 	id        string
 	dependsOn []string
+	explicit  bool
 }
 
 func parseChangeDecompositionArgs(args []string, commandLabel string) (changeDecompositionRequest, error) {
@@ -64,7 +65,8 @@ func handleSubChangeFlag(args []string, flag parsedFlag, commandLabel string, pe
 	if id == "" {
 		return flag.next, fmt.Errorf("%s requires non-empty --sub-change value", commandLabel)
 	}
-	ensurePendingSubChange(id, pending, order)
+	node := ensurePendingSubChange(id, pending, order)
+	node.explicit = true
 	return next, nil
 }
 
@@ -77,7 +79,10 @@ func handleDependsOnFlag(args []string, flag parsedFlag, commandLabel string, pe
 	if err != nil {
 		return flag.next, err
 	}
-	node := ensurePendingSubChange(subID, pending, order)
+	node, ok := pending[subID]
+	if !ok || !node.explicit {
+		return flag.next, fmt.Errorf("%s --depends-on references sub-change %q before it is declared with --sub-change", commandLabel, subID)
+	}
 	node.dependsOn = append(node.dependsOn, depID)
 	return next, nil
 }

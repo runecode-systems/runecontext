@@ -119,3 +119,24 @@ func TestUpdateStandardRejectsReplacedByWithoutDeprecatedStatus(t *testing.T) {
 		t.Fatalf("expected replaced_by status rejection, got %v", err)
 	}
 }
+
+func TestCreateStandardNormalizesReplacedByBeforeValidation(t *testing.T) {
+	root := copyChangeWorkflowTemplate(t)
+	v, loaded := mustLoadWorkflowProject(t, root)
+	defer loaded.Close()
+
+	result, err := CreateStandard(v, loaded, StandardCreateOptions{
+		Path:       "custom/deprecated-auth",
+		Title:      "Deprecated Auth Standard",
+		Status:     StandardStatusDeprecated,
+		ReplacedBy: "global/base",
+	})
+	if err != nil {
+		t.Fatalf("create standard with replacement shorthand: %v", err)
+	}
+	path := filepath.Join(root, "runecontext", filepath.FromSlash(result.Path))
+	text := strings.ReplaceAll(string(mustReadBytes(t, path)), "\r\n", "\n")
+	if !strings.Contains(text, "replaced_by: standards/global/base.md") {
+		t.Fatalf("expected normalized replaced_by path, got:\n%s", text)
+	}
+}

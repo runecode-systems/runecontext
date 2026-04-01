@@ -156,7 +156,7 @@ func applyStandardUpdateReplacement(updated *standardFrontmatter, standardPath s
 		updated.ReplacedBy = ""
 	}
 	if replacedBy := strings.TrimSpace(options.ReplacedBy); replacedBy != "" {
-		normalized, err := normalizeStandardArtifactPath(replacedBy)
+		normalized, err := normalizeOptionalStandardReplacement(replacedBy)
 		if err != nil {
 			return err
 		}
