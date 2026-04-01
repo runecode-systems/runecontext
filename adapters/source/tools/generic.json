@@ -1,0 +1,11 @@
+{
+  "display_name": "Generic",
+  "flow_intro": "Use explicit CLI command proposals for host-agnostic, reviewable operation mapping.",
+  "capabilities": {
+    "prompts": "optional",
+    "shell_access": "optional",
+    "hooks": "optional",
+    "dynamic_suggestions": "optional",
+    "structured_output": "optional"
+  }
+}

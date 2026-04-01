@@ -23,6 +23,9 @@ test:
 sync-metadata:
   go run ./tools/syncmetadataartifacts --root .
 
+sync-adapters:
+  go run ./tools/syncadapters --root . --output build/generated/adapters
+
 release-check:
   nix build --no-link .#release-artifacts
 

@@ -11,9 +11,11 @@ func locateAdaptersRoot() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	projectRoot := filepath.Dir(schemaRoot)
 	candidates := []string{
+		filepath.Join(projectRoot, "build", "generated", "adapters"),
 		filepath.Join(schemaRoot, "adapters"),
-		filepath.Join(filepath.Dir(schemaRoot), "adapters"),
+		filepath.Join(projectRoot, "adapters"),
 	}
 	for _, candidate := range candidates {
 		if isDirectory(candidate) {

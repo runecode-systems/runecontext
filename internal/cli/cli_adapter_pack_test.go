@@ -32,6 +32,9 @@ func TestAdapterPackDocsExist(t *testing.T) {
 			continue
 		}
 		name := entry.Name()
+		if name == "source" {
+			continue
+		}
 		t.Run(name, func(t *testing.T) {
 			runAdapterDocChecks(t, adaptersRoot, name)
 		})

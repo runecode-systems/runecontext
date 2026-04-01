@@ -1,0 +1,11 @@
+{
+  "display_name": "OpenCode",
+  "flow_intro": "Use this conversational flow to map host-native guidance to explicit RuneContext CLI operations.",
+  "capabilities": {
+    "prompts": "supported",
+    "shell_access": "supported",
+    "hooks": "supported",
+    "dynamic_suggestions": "supported",
+    "structured_output": "supported"
+  }
+}

@@ -46,7 +46,7 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 		`process_pack_archives "schema_bundle"`,
 		`process_pack_archives "adapter_pack"`,
 		`"${coreutils}/cp" -R schemas "${share_dir}/schemas"`,
-		`"${coreutils}/cp" -R adapters "${share_dir}/adapters"`,
+		`"${coreutils}/cp" -R build/generated/adapters "${share_dir}/adapters"`,
 		`"${host_metadata_binary}" metadata > "release/metadata-descriptor.json"`,
 		`if ! @jq@/bin/jq -e '`,
 		`invalid metadata descriptor payload: release/metadata-descriptor.json`,

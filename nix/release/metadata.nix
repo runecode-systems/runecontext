@@ -55,25 +55,25 @@ let
       {
         name = "adapter-generic";
         entries = [
-          "adapters/generic"
+          "build/generated/adapters/generic"
         ];
       }
       {
         name = "adapter-codex";
         entries = [
-          "adapters/codex"
+          "build/generated/adapters/codex"
         ];
       }
       {
         name = "adapter-claude-code";
         entries = [
-          "adapters/claude-code"
+          "build/generated/adapters/claude-code"
         ];
       }
       {
         name = "adapter-opencode";
         entries = [
-          "adapters/opencode"
+          "build/generated/adapters/opencode"
         ];
       }
     ];
