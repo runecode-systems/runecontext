@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -196,51 +195,12 @@ func renderTool(root, output, toolID string, flows []flowDefinition, tool toolDe
 func generatedExcludes(flows []flowDefinition) map[string]struct{} {
 	excludes := map[string]struct{}{
 		"capabilities.yaml": {},
+		"workflow.json":     {},
 	}
 	for _, flow := range flows {
 		excludes[filepath.ToSlash(filepath.Join(generatedFlowsDir, flow.ID+".md"))] = struct{}{}
 	}
-	excludes["workflow.json"] = struct{}{}
 	return excludes
-}
-
-func copyPassthroughTree(sourceRoot, targetRoot string, excludes map[string]struct{}) error {
-	return filepath.WalkDir(sourceRoot, func(path string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(sourceRoot, path)
-		if err != nil {
-			return err
-		}
-		if rel == "." {
-			return nil
-		}
-		rel = filepath.ToSlash(rel)
-		if _, excluded := excludes[rel]; excluded {
-			return nil
-		}
-		targetPath := filepath.Join(targetRoot, filepath.FromSlash(rel))
-		if d.IsDir() {
-			return os.MkdirAll(targetPath, 0o755)
-		}
-		return copyFileWithMode(path, targetPath)
-	})
-}
-
-func copyFileWithMode(source, target string) error {
-	data, err := os.ReadFile(source)
-	if err != nil {
-		return err
-	}
-	info, err := os.Stat(source)
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(target, data, info.Mode().Perm())
 }
 
 func writeCapabilities(targetDir, toolID string, tool toolDefinition) error {

@@ -88,6 +88,54 @@ func TestRunGeneratesSingleRequestedTool(t *testing.T) {
 	}
 }
 
+func TestRunRejectsSymlinkedPassthroughFile(t *testing.T) {
+	root := t.TempDir()
+	seedSingleToolFixtureRoot(t, root)
+	packDir := filepath.Join(root, "adapters", "source", "packs", "opencode")
+	outside := filepath.Join(root, "outside.md")
+	if err := os.WriteFile(outside, []byte("outside\n"), 0o644); err != nil {
+		t.Fatalf("write outside file: %v", err)
+	}
+	symlinkPath := filepath.Join(packDir, "README.md")
+	if err := os.Symlink(outside, symlinkPath); err != nil {
+		if os.IsPermission(err) {
+			t.Skipf("symlink creation not permitted: %v", err)
+		}
+		t.Fatalf("create symlinked passthrough file: %v", err)
+	}
+
+	output := filepath.Join(root, "build", "generated", "adapters")
+	err := run(root, output, "opencode")
+	if err == nil {
+		t.Fatal("expected symlinked passthrough file to be rejected")
+	}
+	if !strings.Contains(err.Error(), "must not be a symlink") {
+		t.Fatalf("expected symlink rejection error, got %v", err)
+	}
+}
+
+func seedSingleToolFixtureRoot(t *testing.T, root string) {
+	t.Helper()
+	writeFile(t, filepath.Join(root, "go.mod"), "module example.com/test\n")
+	writeFile(t, filepath.Join(root, "adapters", "source", "shared", "flows", "change-new.json"), singleToolFlowDefinitionJSON)
+	writeFile(t, filepath.Join(root, "adapters", "source", "tools", "opencode.json"), singleToolDefinitionJSON)
+	writeFile(t, filepath.Join(root, "adapters", "source", "packs", "opencode", "flows", "conversational-parity.md"), "ok\n")
+}
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir parent for %s: %v", path, err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write %s: %v", path, err)
+	}
+}
+
+const singleToolFlowDefinitionJSON = `{"id":"change-new","command_path":"change new","description":"desc","usage":"runectx change new --title T --type feature","required_outcome":"create change","guardrails":["g"],"inputs_to_gather":["i"],"decision_rules":["d"],"workflow_steps":["w"],"stop_condition":"stop","recommended_next_commands":["runectx change shape <change-id>"],"examples":[{"scenario":"s","user_prompt":"u","assistant_response":"a"}]}`
+
+const singleToolDefinitionJSON = `{"display_name":"OpenCode","flow_intro":"Intro","capabilities":{"prompts":"supported","shell_access":"supported","hooks":"supported","dynamic_suggestions":"supported","structured_output":"supported"}}`
+
 func assertWorkflowContractGenerated(t *testing.T, output string) {
 	t.Helper()
 	workflowPath := filepath.Join(output, "opencode", "workflow.json")

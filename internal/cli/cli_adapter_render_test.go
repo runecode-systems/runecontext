@@ -186,3 +186,40 @@ func TestRunAdapterRenderHostNativeRegeneratesMissingRequestedPack(t *testing.T)
 		t.Fatalf("expected rendered change-new output, got %q", stdout.String())
 	}
 }
+
+func TestRunAdapterRenderHostNativeUsesInstalledShareCanonicalPaths(t *testing.T) {
+	root := t.TempDir()
+	runtimeRoot := filepath.Join(root, "share", "runecontext")
+	schemaDir := filepath.Join(runtimeRoot, "schemas")
+	adaptersDir := filepath.Join(runtimeRoot, "adapters")
+	seedReleaseStyleLayout(t, schemaDir, adaptersDir)
+	seedAdapterPackForDiscovery(t, adaptersDir, "opencode")
+
+	workflow := `{"schema_version":"1","adapter":"opencode","display_name":"OpenCode","flow_intro":"Intro","flows":[{"id":"change-new","command_path":"change new","description":"Create a new RuneContext change","usage":"runectx change new --title TITLE --type TYPE","required_outcome":"Create a new change directory with a stable change id and initialized change artifacts.","guardrails":["Map every generated suggestion directly to the documented runectx command and flags."],"inputs_to_gather":["change title","change type"],"decision_rules":["If required title or type is missing, ask for those values before proposing command execution."],"workflow_steps":["Collect missing required and optional command inputs."],"stop_condition":"Stop immediately after reporting change creation output and do not chain additional workflow commands.","recommended_next_commands":["runectx change shape <change-id>"],"examples":[{"scenario":"Create feature","user_prompt":"Create change","assistant_response":"I will run runectx change new..."}]}]}`
+	if err := os.WriteFile(filepath.Join(adaptersDir, "opencode", "workflow.json"), []byte(workflow), 0o644); err != nil {
+		t.Fatalf("write workflow contract: %v", err)
+	}
+
+	originalWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(originalWD) })
+	if err := os.Chdir(runtimeRoot); err != nil {
+		t.Fatalf("chdir runtime root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"adapter", "render-host-native", "opencode", "change-new"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected success exit code, got %d (%s)", code, stderr.String())
+	}
+	text := stdout.String()
+	if !strings.Contains(text, "canonical_flow_source: `share/runecontext/adapters/opencode/flows/change-new.md`") {
+		t.Fatalf("expected share-layout canonical flow source, got %q", text)
+	}
+	if !strings.Contains(text, "canonical_workflow_contract: `share/runecontext/adapters/opencode/workflow.json`") {
+		t.Fatalf("expected share-layout canonical workflow contract, got %q", text)
+	}
+}

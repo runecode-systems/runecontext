@@ -44,13 +44,17 @@ func toolFlowMappings(tool string) ([]hostNativeFlow, error) {
 	if err != nil {
 		return nil, err
 	}
+	referenceRoot, err := adapterReferenceRoot()
+	if err != nil {
+		return nil, err
+	}
 	flows := make([]hostNativeFlow, 0, len(doc.Flows))
 	for _, flow := range doc.Flows {
 		flows = append(flows, hostNativeFlow{
 			id:                      flow.ID,
 			name:                    flow.CommandPath,
 			description:             flow.Description,
-			source:                  workflowMarkdownSource(tool, flow.ID),
+			source:                  workflowMarkdownSource(referenceRoot, tool, flow.ID),
 			commandPath:             flow.CommandPath,
 			usage:                   flow.Usage,
 			requiredOutcome:         flow.RequiredOutcome,
@@ -118,6 +122,31 @@ func workflowContractPath(tool string) (string, error) {
 	return filepath.Join(adaptersRoot, tool, "workflow.json"), nil
 }
 
+func adapterReferenceRoot() (string, error) {
+	adaptersRoot, err := locateAdaptersRoot()
+	if err != nil {
+		return "", err
+	}
+	return adapterReferenceRootForPath(adaptersRoot), nil
+}
+
+func adapterReferenceRootForPath(adaptersRoot string) string {
+	normalized := filepath.ToSlash(filepath.Clean(adaptersRoot))
+	for _, suffix := range []string{"build/generated/adapters", "share/runecontext/adapters"} {
+		slashedSuffix := "/" + suffix
+		if normalized == suffix || strings.HasSuffix(normalized, slashedSuffix) {
+			return suffix
+		}
+	}
+	for _, suffix := range []string{"adapters"} {
+		slashedSuffix := "/" + suffix
+		if normalized == suffix || strings.HasSuffix(normalized, slashedSuffix) {
+			return suffix
+		}
+	}
+	return normalized
+}
+
 func ensureGeneratedAdapterPack(tool string) error {
 	tool = strings.TrimSpace(tool)
 	if tool == "" {
@@ -144,8 +173,12 @@ func ensureGeneratedAdapterPack(tool string) error {
 	return nil
 }
 
-func workflowMarkdownSource(tool, flowID string) string {
-	return "build/generated/adapters/" + tool + "/flows/" + flowID + ".md"
+func workflowMarkdownSource(referenceRoot, tool, flowID string) string {
+	return filepath.ToSlash(filepath.Join(referenceRoot, tool, "flows", flowID+".md"))
+}
+
+func workflowContractReferencePath(referenceRoot, tool string) string {
+	return filepath.ToSlash(filepath.Join(referenceRoot, tool, "workflow.json"))
 }
 
 func validateWorkflowDocument(tool string, doc adapterWorkflowDocument) error {

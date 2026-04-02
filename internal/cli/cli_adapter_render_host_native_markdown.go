@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -119,9 +120,13 @@ func renderHostNativeIndexMarkdown(request adapterRenderRequest) (string, error)
 	if len(flows) == 0 {
 		return "", fmt.Errorf("adapter render-host-native index is not defined for tool %q", request.tool)
 	}
+	referenceRoot, err := adapterReferenceRoot()
+	if err != nil {
+		return "", err
+	}
 	lines := []string{
-		"- canonical_flow_source: `build/generated/adapters/" + request.tool + "/flows/*.md`",
-		"- canonical_workflow_contract: `build/generated/adapters/" + request.tool + "/workflow.json`",
+		"- canonical_flow_source: `" + filepath.ToSlash(filepath.Join(referenceRoot, request.tool, "flows", "*.md")) + "`",
+		"- canonical_workflow_contract: `" + workflowContractReferencePath(referenceRoot, request.tool) + "`",
 		"- adapter_role: `" + hostNativeKindDiscoverabilityShim + "`",
 		"- operation_identifier: `runecontext:index`",
 		"- interaction_rule: " + hostNativeNoQuestionRule,
@@ -170,10 +175,14 @@ func hostNativeRenderMetadata(request adapterRenderRequest, flow hostNativeFlow)
 	if request.role == hostNativeKindDiscoverabilityShim {
 		role = hostNativeKindDiscoverabilityShim
 	}
+	referenceRoot, err := adapterReferenceRoot()
+	if err != nil {
+		return hostNativeRenderMeta{}, err
+	}
 	return hostNativeRenderMeta{
 		operationID:             "runecontext:" + flow.id,
 		source:                  flow.source,
-		contractSource:          "build/generated/adapters/" + request.tool + "/workflow.json",
+		contractSource:          workflowContractReferencePath(referenceRoot, request.tool),
 		role:                    role,
 		commandPath:             path,
 		usage:                   command.Usage,
