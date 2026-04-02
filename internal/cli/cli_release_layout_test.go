@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestReleaseMetadataIncludesAdaptersDirectory(t *testing.T) {
+func TestReleaseMetadataExcludesAdaptersDirectory(t *testing.T) {
 	root, err := repoRootForTests()
 	if err != nil {
 		t.Fatal(err)
