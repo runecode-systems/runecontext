@@ -56,7 +56,10 @@ func TestResolveOutputAllowsAbsoluteSymlinkAliasUnderRepositoryRoot(t *testing.T
 	if err != nil {
 		t.Fatalf("resolveOutput returned error: %v", err)
 	}
-	expected := filepath.Join(realRoot, "build", "generated", "adapters")
+	expected, err := canonicalizePathAllowMissing(filepath.Join(realRoot, "build", "generated", "adapters"))
+	if err != nil {
+		t.Fatalf("canonicalize expected output path: %v", err)
+	}
 	if got != expected {
 		t.Fatalf("expected canonical output %q, got %q", expected, got)
 	}
@@ -69,7 +72,11 @@ func assertRepositoryDescendantOutput(t *testing.T, root, output string) {
 		if err != nil {
 			t.Fatalf("resolveOutput returned error: %v", err)
 		}
-		rel, err := filepath.Rel(root, got)
+		canonicalRoot, err := canonicalizePathAllowMissing(root)
+		if err != nil {
+			t.Fatalf("canonicalize root: %v", err)
+		}
+		rel, err := filepath.Rel(canonicalRoot, got)
 		if err != nil {
 			t.Fatalf("compute relative path: %v", err)
 		}
