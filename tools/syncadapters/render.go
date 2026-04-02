@@ -123,10 +123,7 @@ func canonicalizePathAllowMissing(path string) (string, error) {
 	for {
 		resolved, err := filepath.EvalSymlinks(current)
 		if err == nil {
-			for i := len(missing) - 1; i >= 0; i-- {
-				resolved = filepath.Join(resolved, missing[i])
-			}
-			return filepath.Clean(resolved), nil
+			return appendMissingSegments(resolved, missing), nil
 		}
 		if !os.IsNotExist(err) {
 			return "", fmt.Errorf("resolve output root symlinks %q: %w", current, err)
@@ -138,6 +135,14 @@ func canonicalizePathAllowMissing(path string) (string, error) {
 		missing = append(missing, filepath.Base(current))
 		current = parent
 	}
+}
+
+func appendMissingSegments(base string, missing []string) string {
+	resolved := base
+	for i := len(missing) - 1; i >= 0; i-- {
+		resolved = filepath.Join(resolved, missing[i])
+	}
+	return filepath.Clean(resolved)
 }
 
 func validateOutputRoot(absRoot, absOutput string) error {
