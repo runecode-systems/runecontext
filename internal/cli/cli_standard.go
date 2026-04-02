@@ -21,7 +21,7 @@ type standardDiscoverRequest struct {
 }
 
 func runStandard(args []string, stdout, stderr io.Writer) int {
-	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowExplain: true})
+	machine, remaining, err := parseMachineFlags(args, machineFlagConfig{allowDryRun: true, allowExplain: true})
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("standard", standardUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
@@ -41,6 +41,12 @@ func runStandard(args []string, stdout, stderr io.Writer) int {
 	switch remaining[0] {
 	case "discover":
 		return runStandardDiscover(remaining[1:], machine, stdout, stderr)
+	case "list":
+		return runStandardList(remaining[1:], machine, stdout, stderr)
+	case "create":
+		return runStandardCreate(remaining[1:], machine, stdout, stderr)
+	case "update":
+		return runStandardUpdate(remaining[1:], machine, stdout, stderr)
 	default:
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("standard", standardUsage, fmt.Errorf("unknown standard subcommand %q", remaining[0])), machine), exitUsage, failureClassUsage)
 		return exitUsage

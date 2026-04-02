@@ -28,10 +28,6 @@ func runAdapterRenderHostNative(args []string, machine machineOptions, stdout, s
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines(adapterRenderCommand, adapterRenderUsage, err), machine), exitUsage, failureClassUsage)
 		return exitUsage
 	}
-	if !supportsShellInjection(request.tool) {
-		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines(adapterRenderCommand, "", fmt.Errorf("adapter %q does not support shell-output injection render mode", request.tool)), machine), exitInvalid, failureClassInvalid)
-		return exitInvalid
-	}
 	rendered, err := renderHostNativeOperationMarkdown(request)
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines(adapterRenderCommand, "", err), machine), exitInvalid, failureClassInvalid)

@@ -1,0 +1,43 @@
+{
+  "id": "change-decomposition-plan",
+  "command_path": "change decomposition-plan",
+  "description": "Plan umbrella and sub-change graph rewrites",
+  "usage": "runectx change decomposition-plan <umbrella-change-id> --sub-change <id> [--sub-change <id> ...] [--depends-on <sub-change-id>:<change-id> ...] [--path <project-root>]",
+  "required_outcome": "Produce a deterministic decomposition plan preview for umbrella and sub-change relationships.",
+  "guardrails": [
+    "Never apply relationship changes in plan mode.",
+    "Require explicit sub-change ids and dependency edges from the user.",
+    "Keep plan output reviewable before any apply step.",
+    "Do not create missing sub-changes in this flow; plan only among existing change ids.",
+    "Do not implement product code in this flow."
+  ],
+  "inputs_to_gather": [
+    "umbrella change id",
+    "one or more sub-change ids",
+    "optional depends-on edges"
+  ],
+  "decision_rules": [
+    "If no sub-change values are provided, request at least one before command proposal.",
+    "If required sub-changes do not exist yet, stop and ask the user to create those changes before planning decomposition.",
+    "Render dependency edges exactly in <sub-change-id>:<change-id> form.",
+    "Stop after showing the decomposition plan output."
+  ],
+  "workflow_steps": [
+    "Collect umbrella, sub-change, and optional dependency inputs.",
+    "Propose and run runectx change decomposition-plan.",
+    "Present planned graph changes and review checkpoints.",
+    "Stop and recommend the explicit apply command if needed."
+  ],
+  "stop_condition": "Stop after plan output is reported and do not execute apply automatically.",
+  "recommended_next_commands": [
+    "runectx change decomposition-apply <umbrella-change-id> --sub-change <id>",
+    "runectx change new --title \"<title>\" --type feature"
+  ],
+  "examples": [
+    {
+      "scenario": "Preview decomposition graph changes",
+      "user_prompt": "Plan decomposition for CHG-2026-200-umbrella with sub changes CHG-2026-201-a and CHG-2026-202-b.",
+      "assistant_response": "I will run `runectx change decomposition-plan CHG-2026-200-umbrella --sub-change CHG-2026-201-a --sub-change CHG-2026-202-b` and show the plan output only."
+    }
+  ]
+}

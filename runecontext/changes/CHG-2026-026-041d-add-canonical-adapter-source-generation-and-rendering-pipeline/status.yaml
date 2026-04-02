@@ -1,0 +1,21 @@
+schema_version: 1
+id: CHG-2026-026-041d-add-canonical-adapter-source-generation-and-rendering-pipeline
+title: Add canonical adapter source generation and rendering pipeline
+status: implemented
+type: feature
+size: large
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-002-5739-add-guided-adapter-native-change-workflows
+depends_on: []
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-04-01"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

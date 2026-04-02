@@ -8,6 +8,7 @@ import (
 )
 
 const hostNativeOwnershipMarker = "runecontext-managed-artifact: host-native-v1"
+const hostNativeNoQuestionRule = "Never use the `question` tool; ask in normal conversational text when clarification is needed."
 
 type hostNativeArtifact struct {
 	relPath string
@@ -19,20 +20,30 @@ type hostNativeArtifact struct {
 }
 
 type hostNativeFlow struct {
-	id          string
-	name        string
-	description string
-	source      string
+	id                      string
+	name                    string
+	description             string
+	source                  string
+	commandPath             string
+	usage                   string
+	requiredOutcome         string
+	guardrails              []string
+	inputsToGather          []string
+	decisionRules           []string
+	workflowSteps           []string
+	stopCondition           string
+	recommendedNextCommands []string
+	examples                []adapterWorkflowExample
 }
 
 func buildHostNativeArtifacts(tool string) ([]hostNativeArtifact, error) {
 	switch tool {
 	case "opencode":
-		return buildOpenCodeHostNativeArtifacts(), nil
+		return buildOpenCodeHostNativeArtifacts()
 	case "claude-code":
-		return buildClaudeCodeHostNativeArtifacts(), nil
+		return buildClaudeCodeHostNativeArtifacts()
 	case "codex":
-		return buildCodexHostNativeArtifacts(), nil
+		return buildCodexHostNativeArtifacts()
 	case "generic":
 		return nil, nil
 	default:
@@ -40,8 +51,11 @@ func buildHostNativeArtifacts(tool string) ([]hostNativeArtifact, error) {
 	}
 }
 
-func buildOpenCodeHostNativeArtifacts() []hostNativeArtifact {
-	flows := toolFlowMappings("opencode")
+func buildOpenCodeHostNativeArtifacts() ([]hostNativeArtifact, error) {
+	flows, err := toolFlowMappings("opencode")
+	if err != nil {
+		return nil, err
+	}
 	artifacts := make([]hostNativeArtifact, 0, len(flows)*2)
 	for _, flow := range flows {
 		name := "runecontext-" + flow.id + ".md"
@@ -65,11 +79,14 @@ func buildOpenCodeHostNativeArtifacts() []hostNativeArtifact {
 		)
 	}
 	sortHostNativeArtifacts(artifacts)
-	return artifacts
+	return artifacts, nil
 }
 
-func buildClaudeCodeHostNativeArtifacts() []hostNativeArtifact {
-	flows := toolFlowMappings("claude-code")
+func buildClaudeCodeHostNativeArtifacts() ([]hostNativeArtifact, error) {
+	flows, err := toolFlowMappings("claude-code")
+	if err != nil {
+		return nil, err
+	}
 	artifacts := make([]hostNativeArtifact, 0, len(flows)+1)
 	for _, flow := range flows {
 		name := "runecontext-" + flow.id + ".md"
@@ -91,11 +108,14 @@ func buildClaudeCodeHostNativeArtifacts() []hostNativeArtifact {
 		content: buildClaudeCommandIndexShimContent(flows),
 	})
 	sortHostNativeArtifacts(artifacts)
-	return artifacts
+	return artifacts, nil
 }
 
-func buildCodexHostNativeArtifacts() []hostNativeArtifact {
-	flows := toolFlowMappings("codex")
+func buildCodexHostNativeArtifacts() ([]hostNativeArtifact, error) {
+	flows, err := toolFlowMappings("codex")
+	if err != nil {
+		return nil, err
+	}
 	artifacts := make([]hostNativeArtifact, 0, len(flows))
 	for _, flow := range flows {
 		name := "runecontext-" + flow.id + ".md"
@@ -109,40 +129,11 @@ func buildCodexHostNativeArtifacts() []hostNativeArtifact {
 		})
 	}
 	sortHostNativeArtifacts(artifacts)
-	return artifacts
+	return artifacts, nil
 }
 
 func sortHostNativeArtifacts(artifacts []hostNativeArtifact) {
 	sort.Slice(artifacts, func(i, j int) bool { return artifacts[i].relPath < artifacts[j].relPath })
-}
-
-func toolFlowMappings(tool string) []hostNativeFlow {
-	return []hostNativeFlow{
-		{
-			id:          "change-new",
-			name:        "change new",
-			description: "Create a new RuneContext change",
-			source:      "adapters/" + tool + "/flows/change-new.md",
-		},
-		{
-			id:          "change-shape",
-			name:        "change shape",
-			description: "Shape an existing RuneContext change",
-			source:      "adapters/" + tool + "/flows/change-shape.md",
-		},
-		{
-			id:          "standard-discover",
-			name:        "standard discover",
-			description: "Discover standards candidates for promotion",
-			source:      "adapters/" + tool + "/flows/standard-discover.md",
-		},
-		{
-			id:          "promote",
-			name:        "promote",
-			description: "Advance RuneContext promotion state",
-			source:      "adapters/" + tool + "/flows/promote.md",
-		},
-	}
 }
 
 func buildHostNativeFlowAssetContent(tool string, flow hostNativeFlow) []byte {
@@ -153,6 +144,8 @@ func buildHostNativeFlowAssetContent(tool string, flow hostNativeFlow) []byte {
 		"<!-- runecontext-kind: flow_asset -->",
 		"<!-- runecontext-id: runecontext:" + flow.id + " -->",
 		"# RuneContext Skill: " + flow.name,
+		"",
+		hostNativeNoQuestionRule,
 		"",
 		body,
 	}...)
@@ -167,6 +160,8 @@ func buildHostNativeCommandShimContent(tool string, flow hostNativeFlow) []byte 
 		"<!-- runecontext-kind: discoverability_shim -->",
 		"<!-- runecontext-id: runecontext:" + flow.id + " -->",
 		"# RuneContext Command Shim: " + flow.name,
+		"",
+		hostNativeNoQuestionRule,
 		"",
 		body,
 	}...)
@@ -188,7 +183,7 @@ func buildClaudeCommandIndexShimContent(flows []hostNativeFlow) []byte {
 		"## Commands",
 	}...)
 	for _, flow := range flows {
-		commandPath := strings.ReplaceAll(flow.id, "-", " ")
+		commandPath := flow.commandPath
 		lines = append(lines,
 			"",
 			"- `runecontext:"+flow.id+"`",
@@ -199,6 +194,8 @@ func buildClaudeCommandIndexShimContent(flows []hostNativeFlow) []byte {
 		)
 	}
 	lines = append(lines,
+		"",
+		hostNativeNoQuestionRule,
 		"",
 		buildHostNativeBody("claude-code", "index", hostNativeKindDiscoverabilityShim),
 	)

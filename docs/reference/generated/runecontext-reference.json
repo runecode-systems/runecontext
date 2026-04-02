@@ -4,8 +4,8 @@
   "binary": "runectx",
   "release": {
     "package_name": "runecontext",
-    "version": "0.1.0-alpha.13",
-    "tag": "v0.1.0-alpha.13"
+    "version": "0.1.0-alpha.14",
+    "tag": "v0.1.0-alpha.14"
   },
   "commands": {
     "items": [
@@ -50,8 +50,24 @@
         "token": "change"
       },
       {
+        "path": "change assess-decomposition",
+        "token": "change_assess_decomposition"
+      },
+      {
+        "path": "change assess-intake",
+        "token": "change_assess_intake"
+      },
+      {
         "path": "change close",
         "token": "change_close"
+      },
+      {
+        "path": "change decomposition-apply",
+        "token": "change_decomposition_apply"
+      },
+      {
+        "path": "change decomposition-plan",
+        "token": "change_decomposition_plan"
       },
       {
         "path": "change new",
@@ -114,8 +130,20 @@
         "token": "standard"
       },
       {
+        "path": "standard create",
+        "token": "standard_create"
+      },
+      {
         "path": "standard discover",
         "token": "standard_discover"
+      },
+      {
+        "path": "standard list",
+        "token": "standard_list"
+      },
+      {
+        "path": "standard update",
+        "token": "standard_update"
       },
       {
         "path": "status",
@@ -163,7 +191,11 @@
       "bundle",
       "bundle_resolve",
       "change",
+      "change_assess_decomposition",
+      "change_assess_intake",
       "change_close",
+      "change_decomposition_apply",
+      "change_decomposition_plan",
       "change_new",
       "change_reallocate",
       "change_shape",
@@ -179,7 +211,10 @@
       "metadata",
       "promote",
       "standard",
+      "standard_create",
       "standard_discover",
+      "standard_list",
+      "standard_update",
       "status",
       "upgrade",
       "upgrade_apply",
@@ -201,13 +236,13 @@
     ]
   },
   "compatibility": {
-    "default_project_version": "0.1.0-alpha.13",
+    "default_project_version": "0.1.0-alpha.14",
     "directly_supported_project_versions": [
       "0.1.0-alpha.5",
       "0.1.0-alpha.6",
       "0.1.0-alpha.7",
       "0.1.0-alpha.8",
-      "0.1.0-alpha.13"
+      "0.1.0-alpha.14"
     ],
     "upgradeable_from_project_versions": [
       "0.1.0-alpha.12",
@@ -224,7 +259,7 @@
     {
       "profile": "repo_bundle",
       "schema_path": "schemas",
-      "adapters_path": "adapters"
+      "adapters_path": "build/generated/adapters"
     },
     {
       "profile": "installed_share_layout",

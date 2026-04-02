@@ -10,12 +10,7 @@ import (
 )
 
 func TestAdapterPackDocsExist(t *testing.T) {
-	repoRoot, err := repoRootForTests()
-	if err != nil {
-		t.Fatalf("repo root: %v", err)
-	}
-
-	adaptersRoot := filepath.Join(repoRoot, "adapters")
+	_, adaptersRoot := stageGeneratedAdapterWorkspaceForTests(t)
 	if info, err := os.Stat(adaptersRoot); err != nil {
 		t.Fatalf("adapters root: %v", err)
 	} else if !info.IsDir() {
@@ -32,6 +27,9 @@ func TestAdapterPackDocsExist(t *testing.T) {
 			continue
 		}
 		name := entry.Name()
+		if name == "source" {
+			continue
+		}
 		t.Run(name, func(t *testing.T) {
 			runAdapterDocChecks(t, adaptersRoot, name)
 		})
@@ -147,7 +145,7 @@ func assertHostCapabilitiesSection(t *testing.T, text, path string) {
 
 func assertFlowMappings(t *testing.T, text, path string) {
 	t.Helper()
-	for _, flow := range []string{"change new", "change shape", "standard discover", "promote"} {
+	for _, flow := range []string{"change new", "change assess-intake", "change assess-decomposition", "change decomposition-plan", "change decomposition-apply", "change shape", "standard discover", "promote"} {
 		if !strings.Contains(text, flow) {
 			t.Fatalf("%s missing conversational flow mapping for %q", path, flow)
 		}
@@ -165,7 +163,7 @@ func assertStandardDiscoverMappings(t *testing.T, text, path string) {
 
 func checkAdapterFlowPlaybooks(t *testing.T, base, name string) {
 	t.Helper()
-	required := []string{"change-new.md", "change-shape.md", "standard-discover.md", "promote.md"}
+	required := []string{"change-new.md", "change-assess-intake.md", "change-assess-decomposition.md", "change-decomposition-plan.md", "change-decomposition-apply.md", "change-shape.md", "standard-discover.md", "promote.md"}
 	for _, file := range required {
 		path := filepath.Join(base, "flows", file)
 		content, err := os.ReadFile(path)

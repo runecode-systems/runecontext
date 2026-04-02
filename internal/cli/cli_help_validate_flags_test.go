@@ -104,6 +104,9 @@ func TestRunNoCommand(t *testing.T) {
 	if !strings.Contains(stdout.String(), "runectx change update CHANGE_ID --status verified --verification-status passed") {
 		t.Fatalf("expected change update example in help output, got %q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), "runectx change decomposition-apply UMBRELLA_CHANGE_ID --sub-change CHANGE_ID") {
+		t.Fatalf("expected decomposition-apply example in help output, got %q", stdout.String())
+	}
 	if stderr.String() != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())
 	}

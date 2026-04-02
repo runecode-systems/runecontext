@@ -24,7 +24,7 @@ func adapterCommandMetadata() CommandMetadata {
 				Flags: writeCommandFlags([]FlagMetadata{{Name: "--role", Value: enumValueSpec(hostNativeKindFlowAsset, hostNativeKindDiscoverabilityShim)}}),
 				Positionals: []PositionalMetadata{
 					{Name: "tool", Value: textValueWithSuggestionSpec(suggestionProviderAdapterNamesShellInjection)},
-					{Name: "operation", Value: enumValueSpec("change-new", "change-shape", "index", "promote", "standard-discover")},
+					{Name: "operation", Value: enumValueSpec("change-assess-decomposition", "change-assess-intake", "change-decomposition-apply", "change-decomposition-plan", "change-new", "change-shape", "index", "promote", "standard-discover")},
 				},
 			},
 		},

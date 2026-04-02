@@ -160,6 +160,8 @@ func TestCompletionMetadataSurfaceParity(t *testing.T) {
 	assertEnumValues(t, enums, "change new|--type", []string{"bug", "chore", "feature", "project", "standard"})
 	assertEnumValues(t, enums, "change new|--size", []string{"large", "medium", "small"})
 	assertEnumValues(t, enums, "change close|--verification-status", []string{"failed", "passed", "skipped"})
+	assertEnumValues(t, enums, "change assess-intake|--type", []string{"bug", "chore", "feature", "project", "standard"})
+	assertEnumValues(t, enums, "change assess-intake|--size", []string{"large", "medium", "small"})
 	assertNoValueFlagPresent(t, "change close|--recursive")
 	assertNoValueFlagPresent(t, "change update|--recursive")
 }

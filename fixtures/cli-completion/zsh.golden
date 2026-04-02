@@ -16,7 +16,11 @@ _runectx_has_command() {
     'bundle') return 0 ;;
     'bundle resolve') return 0 ;;
     'change') return 0 ;;
+    'change assess-decomposition') return 0 ;;
+    'change assess-intake') return 0 ;;
     'change close') return 0 ;;
+    'change decomposition-apply') return 0 ;;
+    'change decomposition-plan') return 0 ;;
     'change new') return 0 ;;
     'change reallocate') return 0 ;;
     'change shape') return 0 ;;
@@ -32,7 +36,10 @@ _runectx_has_command() {
     'metadata') return 0 ;;
     'promote') return 0 ;;
     'standard') return 0 ;;
+    'standard create') return 0 ;;
     'standard discover') return 0 ;;
+    'standard list') return 0 ;;
+    'standard update') return 0 ;;
     'status') return 0 ;;
     'upgrade') return 0 ;;
     'upgrade apply') return 0 ;;
@@ -58,8 +65,12 @@ _runectx_subcommands_for() {
     'assurance enable') echo '' ;;
     'bundle') echo 'resolve' ;;
     'bundle resolve') echo '' ;;
-    'change') echo 'close new reallocate shape update' ;;
+    'change') echo 'assess-decomposition assess-intake close decomposition-apply decomposition-plan new reallocate shape update' ;;
+    'change assess-decomposition') echo '' ;;
+    'change assess-intake') echo '' ;;
     'change close') echo '' ;;
+    'change decomposition-apply') echo '' ;;
+    'change decomposition-plan') echo '' ;;
     'change new') echo '' ;;
     'change reallocate') echo '' ;;
     'change shape') echo '' ;;
@@ -74,8 +85,11 @@ _runectx_subcommands_for() {
     'init') echo '' ;;
     'metadata') echo '' ;;
     'promote') echo '' ;;
-    'standard') echo 'discover' ;;
+    'standard') echo 'create discover list update' ;;
+    'standard create') echo '' ;;
     'standard discover') echo '' ;;
+    'standard list') echo '' ;;
+    'standard update') echo '' ;;
     'status') echo '' ;;
     'upgrade') echo 'apply cli' ;;
     'upgrade apply') echo '' ;;
@@ -101,19 +115,26 @@ _runectx_flags_for() {
     'bundle') echo '--explain --json --non-interactive' ;;
     'bundle resolve') echo '--explain --json --non-interactive --path' ;;
     'change') echo '--dry-run --explain --json --non-interactive' ;;
+    'change assess-decomposition') echo '--explain --json --non-interactive --path' ;;
+    'change assess-intake') echo '--bundle --description --explain --json --non-interactive --path --size --title --type' ;;
     'change close') echo '--closed-at --dry-run --explain --json --non-interactive --path --recursive --superseded-by --verification-status' ;;
+    'change decomposition-apply') echo '--depends-on --dry-run --explain --json --non-interactive --path --sub-change' ;;
+    'change decomposition-plan') echo '--depends-on --explain --json --non-interactive --path --sub-change' ;;
     'change new') echo '--bundle --description --dry-run --explain --json --non-interactive --path --shape --size --title --type' ;;
     'change reallocate') echo '--dry-run --explain --json --non-interactive --path' ;;
     'change shape') echo '--design --dry-run --explain --json --non-interactive --path --reference --task --verification' ;;
-    'change update') echo '--dry-run --explain --json --non-interactive --path --recursive --status --verification-status' ;;
+    'change update') echo '--add-related-change --dry-run --explain --json --non-interactive --path --recursive --remove-related-change --status --verification-status' ;;
     'completion suggest') echo '--path --prefix' ;;
     'doctor') echo '--explain --json --non-interactive --path' ;;
     'generate') echo '--explain --json --non-interactive' ;;
     'generate indexes') echo '--explain --json --non-interactive --path' ;;
     'init') echo '--dry-run --explain --json --mode --non-interactive --path --seed-bundle' ;;
     'promote') echo '--accept --complete --dry-run --explain --json --non-interactive --path --target' ;;
-    'standard') echo '--explain --json --non-interactive' ;;
+    'standard') echo '--dry-run --explain --json --non-interactive' ;;
+    'standard create') echo '--alias --body --dry-run --explain --id --json --non-interactive --path --project-path --replaced-by --status --suggested-context-bundle --title' ;;
     'standard discover') echo '--change --confirm-handoff --explain --focus --json --non-interactive --path --scope-path --target' ;;
+    'standard list') echo '--explain --focus --json --non-interactive --path --scope-path --status' ;;
+    'standard update') echo '--alias --clear-replaced-by --dry-run --explain --json --non-interactive --path --project-path --replace-aliases --replace-suggested-context-bundles --replaced-by --status --suggested-context-bundle --title' ;;
     'status') echo '--explain --json --non-interactive --path' ;;
     'upgrade') echo '--explain --json --non-interactive --path --target-version' ;;
     'upgrade apply') echo '--explain --json --non-interactive --path --target-version' ;;
@@ -133,10 +154,23 @@ _runectx_flag_takes_value() {
     'assurance capture|--path') return 0 ;;
     'assurance enable|--path') return 0 ;;
     'bundle resolve|--path') return 0 ;;
+    'change assess-decomposition|--path') return 0 ;;
+    'change assess-intake|--bundle') return 0 ;;
+    'change assess-intake|--description') return 0 ;;
+    'change assess-intake|--path') return 0 ;;
+    'change assess-intake|--size') return 0 ;;
+    'change assess-intake|--title') return 0 ;;
+    'change assess-intake|--type') return 0 ;;
     'change close|--closed-at') return 0 ;;
     'change close|--path') return 0 ;;
     'change close|--superseded-by') return 0 ;;
     'change close|--verification-status') return 0 ;;
+    'change decomposition-apply|--depends-on') return 0 ;;
+    'change decomposition-apply|--path') return 0 ;;
+    'change decomposition-apply|--sub-change') return 0 ;;
+    'change decomposition-plan|--depends-on') return 0 ;;
+    'change decomposition-plan|--path') return 0 ;;
+    'change decomposition-plan|--sub-change') return 0 ;;
     'change new|--bundle') return 0 ;;
     'change new|--description') return 0 ;;
     'change new|--path') return 0 ;;
@@ -150,7 +184,9 @@ _runectx_flag_takes_value() {
     'change shape|--reference') return 0 ;;
     'change shape|--task') return 0 ;;
     'change shape|--verification') return 0 ;;
+    'change update|--add-related-change') return 0 ;;
     'change update|--path') return 0 ;;
+    'change update|--remove-related-change') return 0 ;;
     'change update|--status') return 0 ;;
     'change update|--verification-status') return 0 ;;
     'completion suggest|--path') return 0 ;;
@@ -162,11 +198,31 @@ _runectx_flag_takes_value() {
     'init|--seed-bundle') return 0 ;;
     'promote|--path') return 0 ;;
     'promote|--target') return 0 ;;
+    'standard create|--alias') return 0 ;;
+    'standard create|--body') return 0 ;;
+    'standard create|--id') return 0 ;;
+    'standard create|--path') return 0 ;;
+    'standard create|--project-path') return 0 ;;
+    'standard create|--replaced-by') return 0 ;;
+    'standard create|--status') return 0 ;;
+    'standard create|--suggested-context-bundle') return 0 ;;
+    'standard create|--title') return 0 ;;
     'standard discover|--change') return 0 ;;
     'standard discover|--focus') return 0 ;;
     'standard discover|--path') return 0 ;;
     'standard discover|--scope-path') return 0 ;;
     'standard discover|--target') return 0 ;;
+    'standard list|--focus') return 0 ;;
+    'standard list|--path') return 0 ;;
+    'standard list|--scope-path') return 0 ;;
+    'standard list|--status') return 0 ;;
+    'standard update|--alias') return 0 ;;
+    'standard update|--path') return 0 ;;
+    'standard update|--project-path') return 0 ;;
+    'standard update|--replaced-by') return 0 ;;
+    'standard update|--status') return 0 ;;
+    'standard update|--suggested-context-bundle') return 0 ;;
+    'standard update|--title') return 0 ;;
     'status|--path') return 0 ;;
     'upgrade apply|--path') return 0 ;;
     'upgrade apply|--target-version') return 0 ;;
@@ -183,6 +239,8 @@ _runectx_flag_takes_value() {
 _runectx_enum_for_flag() {
   case "$1" in
     'adapter render-host-native|--role') echo 'discoverability_shim flow_asset' ;;
+    'change assess-intake|--size') echo 'large medium small' ;;
+    'change assess-intake|--type') echo 'bug chore feature project standard' ;;
     'change close|--verification-status') echo 'failed passed skipped' ;;
     'change new|--shape') echo 'full minimum' ;;
     'change new|--size') echo 'large medium small' ;;
@@ -190,25 +248,35 @@ _runectx_enum_for_flag() {
     'change update|--status') echo 'implemented planned verified' ;;
     'change update|--verification-status') echo 'failed passed skipped' ;;
     'init|--mode') echo 'embedded linked' ;;
+    'standard create|--status') echo 'active deprecated draft' ;;
+    'standard list|--status') echo 'active deprecated draft' ;;
+    'standard update|--status') echo 'active deprecated draft' ;;
     *) echo '' ;;
   esac
 }
 
 _runectx_suggest_provider_for_flag() {
   case "$1" in
+    'change assess-intake|--bundle') echo 'bundle-ids' ;;
     'change close|--superseded-by') echo 'change-ids' ;;
+    'change decomposition-apply|--sub-change') echo 'change-ids' ;;
+    'change decomposition-plan|--sub-change') echo 'change-ids' ;;
     'change new|--bundle') echo 'bundle-ids' ;;
+    'change update|--add-related-change') echo 'change-ids' ;;
+    'change update|--remove-related-change') echo 'change-ids' ;;
     'init|--seed-bundle') echo 'bundle-ids' ;;
     'promote|--target') echo 'promotion-targets' ;;
+    'standard create|--suggested-context-bundle') echo 'bundle-ids' ;;
     'standard discover|--change') echo 'change-ids' ;;
     'standard discover|--target') echo 'promotion-targets' ;;
+    'standard update|--suggested-context-bundle') echo 'bundle-ids' ;;
     *) echo '' ;;
   esac
 }
 
 _runectx_positional_enum() {
   case "$1" in
-    'adapter render-host-native|2') echo 'change-new change-shape index promote standard-discover' ;;
+    'adapter render-host-native|2') echo 'change-assess-decomposition change-assess-intake change-decomposition-apply change-decomposition-plan change-new change-shape index promote standard-discover' ;;
     'assurance capture|1') echo 'context-pack' ;;
     'assurance enable|1') echo 'verified' ;;
     'completion suggest|1') echo 'adapter-names adapter-names-shell-injection bundle-ids change-ids promotion-targets' ;;
@@ -223,7 +291,10 @@ _runectx_suggest_provider_for_positional() {
     'adapter sync|1') echo 'adapter-names' ;;
     'assurance capture|2') echo 'bundle-ids' ;;
     'bundle resolve|1') echo 'bundle-ids' ;;
+    'change assess-decomposition|1') echo 'change-ids' ;;
     'change close|1') echo 'change-ids' ;;
+    'change decomposition-apply|1') echo 'change-ids' ;;
+    'change decomposition-plan|1') echo 'change-ids' ;;
     'change reallocate|1') echo 'change-ids' ;;
     'change shape|1') echo 'change-ids' ;;
     'change update|1') echo 'change-ids' ;;

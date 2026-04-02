@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-001-fdc1-add-advisory-intake-and-decomposition-assessment-commands
 title: Add advisory intake and decomposition assessment commands
-status: proposed
+status: implemented
 type: feature
 size: large
 verification_status: pending

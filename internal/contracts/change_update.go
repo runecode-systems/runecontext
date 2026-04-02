@@ -24,6 +24,7 @@ type updateChangeContext struct {
 	record               *ChangeRecord
 	status               LifecycleStatus
 	changedFiles         []FileMutation
+	relatedChanges       []string
 	recursive            bool
 	recursiveTargetIDs   []string
 	recursiveTargetCount int
@@ -40,7 +41,12 @@ func prepareUpdateChange(v *Validator, loaded *LoadedProject, changeID string, o
 	if err != nil {
 		return nil, nil, updateChangeContext{}, err
 	}
-	updated, statusWrites, changedFiles, err := buildUpdateTargetWrites(v, index, writableRoot, targets, changeID, nextStatus, options.VerificationStatus)
+	relatedTargets, relatedTargetIDs, err := resolveRelatedChangeTargets(index, record, options.AddRelatedChanges, options.RemoveRelatedChanges)
+	if err != nil {
+		return nil, nil, updateChangeContext{}, err
+	}
+	relationshipEditRequested := len(options.AddRelatedChanges) > 0 || len(options.RemoveRelatedChanges) > 0
+	updated, statusWrites, changedFiles, err := buildUpdateTargetWrites(v, index, writableRoot, targets, relatedTargets, changeID, nextStatus, options.VerificationStatus, relatedTargetIDs, relationshipEditRequested)
 	if err != nil {
 		return nil, nil, updateChangeContext{}, err
 	}
@@ -51,35 +57,71 @@ func prepareUpdateChange(v *Validator, loaded *LoadedProject, changeID string, o
 		record:               record,
 		status:               nextStatus,
 		changedFiles:         changedFiles,
+		relatedChanges:       extractStringList(updated["related_changes"]),
 		recursive:            options.Recursive,
 		recursiveTargetIDs:   recursiveTargetIDs,
 		recursiveTargetCount: len(recursiveTargetIDs),
 	}, nil
 }
 
-func buildUpdateTargetWrites(v *Validator, index *ProjectIndex, writableRoot string, targets []*ChangeRecord, changeID string, nextStatus LifecycleStatus, requestedVerificationStatus string) (map[string]any, []fileRewrite, []FileMutation, error) {
+func buildUpdateTargetWrites(v *Validator, index *ProjectIndex, writableRoot string, targets []*ChangeRecord, relatedTargets []*ChangeRecord, changeID string, nextStatus LifecycleStatus, requestedVerificationStatus string, relatedTargetIDs []string, relationshipEditRequested bool) (map[string]any, []fileRewrite, []FileMutation, error) {
 	verificationStatus := strings.TrimSpace(requestedVerificationStatus)
+	statusWrites, changedFiles, writesByPath, updated, err := buildLifecycleTargetWrites(v, index, writableRoot, targets, changeID, nextStatus, verificationStatus, relatedTargetIDs, relationshipEditRequested)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if !relationshipEditRequested {
+		sortFileMutations(changedFiles)
+		return updated, statusWrites, changedFiles, nil
+	}
+	relatedWrites, relatedChangedFiles, err := buildReciprocalRelatedChangeWrites(v, index, writableRoot, relatedTargets, changeID, relatedTargetIDs)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	mergeRelatedWrites(&statusWrites, &changedFiles, writesByPath, relatedWrites, relatedChangedFiles)
+	sortFileMutations(changedFiles)
+	return updated, statusWrites, changedFiles, nil
+}
+
+func buildLifecycleTargetWrites(v *Validator, index *ProjectIndex, writableRoot string, targets []*ChangeRecord, changeID string, nextStatus LifecycleStatus, verificationStatus string, relatedTargetIDs []string, relationshipEditRequested bool) ([]fileRewrite, []FileMutation, map[string]int, map[string]any, error) {
 	statusWrites := make([]fileRewrite, 0, len(targets))
 	changedFiles := make([]FileMutation, 0, len(targets))
+	writesByPath := map[string]int{}
 	updated := map[string]any{}
 	for _, target := range targets {
-		targetStatus := cloneMap(index.StatusFiles[target.StatusPath].Data)
-		targetStatus["status"] = string(nextStatus)
-		if verificationStatus != "" {
-			targetStatus["verification_status"] = verificationStatus
-		}
+		targetStatus := lifecycleTargetStatus(index, target, changeID, nextStatus, verificationStatus, relatedTargetIDs, relationshipEditRequested)
 		statusWrite, _, err := buildPrimaryCloseStatusWrite(v, writableRoot, target, targetStatus)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
-		statusWrites = append(statusWrites, statusWrite)
-		changedFiles = append(changedFiles, FileMutation{Path: runeContextRelativePath(writableRoot, target.StatusPath), Action: "updated"})
+		insertOrReplaceStatusWrite(&statusWrites, writesByPath, statusWrite)
+		insertOrReplaceChangedFile(&changedFiles, writableRoot, target.StatusPath)
 		if target.ID == changeID {
 			updated = targetStatus
 		}
 	}
-	sortFileMutations(changedFiles)
-	return updated, statusWrites, changedFiles, nil
+	return statusWrites, changedFiles, writesByPath, updated, nil
+}
+
+func lifecycleTargetStatus(index *ProjectIndex, target *ChangeRecord, changeID string, nextStatus LifecycleStatus, verificationStatus string, relatedTargetIDs []string, relationshipEditRequested bool) map[string]any {
+	targetStatus := cloneMap(index.StatusFiles[target.StatusPath].Data)
+	targetStatus["status"] = string(nextStatus)
+	if verificationStatus != "" {
+		targetStatus["verification_status"] = verificationStatus
+	}
+	if relationshipEditRequested && target.ID == changeID {
+		targetStatus["related_changes"] = stringSliceToAny(relatedTargetIDs)
+	}
+	return targetStatus
+}
+
+func mergeRelatedWrites(statusWrites *[]fileRewrite, changedFiles *[]FileMutation, writesByPath map[string]int, relatedWrites []fileRewrite, relatedChangedFiles []FileMutation) {
+	for _, write := range relatedWrites {
+		insertOrReplaceStatusWrite(statusWrites, writesByPath, write)
+	}
+	for _, changed := range relatedChangedFiles {
+		insertOrReplaceChangedFileEntry(changedFiles, changed)
+	}
 }
 
 func collectRecursiveTargetIDs(targets []*ChangeRecord, rootID string) []string {
@@ -172,6 +214,7 @@ func buildUpdateChangeResult(updated map[string]any, context updateChangeContext
 		Mode:                      inferChangeMode(changeDir),
 		RecommendedMode:           inferChangeMode(changeDir),
 		Status:                    string(context.status),
+		RelatedChanges:            append([]string(nil), context.relatedChanges...),
 		ContextBundles:            append([]string(nil), context.record.ContextBundles...),
 		ApplicableStandards:       append([]string(nil), context.record.ApplicableStandards...),
 		ChangedFiles:              append([]FileMutation(nil), context.changedFiles...),

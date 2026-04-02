@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-024-3756-plan-interval-based-real-migration-edge-discovery-for-project-upgrades",
+  "created_at": 1774990635,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-024-3756-plan-interval-based-real-migration-edge-discovery-for-project-upgrades",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-257ebe76-1774990635-750948eb2860",
+  "receipt_hash": "4418558df4a882f118866a1dfe21bf04bb6eecd038000bdb8f71242ae4b81436",
+  "provenance": "captured_verified"
+}

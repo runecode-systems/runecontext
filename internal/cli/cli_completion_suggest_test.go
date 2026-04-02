@@ -53,11 +53,8 @@ func TestRunCompletionSuggestSoftFailsOutsideRuneContextProject(t *testing.T) {
 }
 
 func TestRunCompletionSuggestAdapterNamesShellInjection(t *testing.T) {
-	root, err := repoRootForTests()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Chdir(root)
+	workspaceRoot, _ := stageGeneratedAdapterWorkspaceForTests(t)
+	t.Chdir(workspaceRoot)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -123,11 +120,8 @@ func assertCompletionSuggestInvalid(t *testing.T, args []string, wantSubstring s
 }
 
 func TestRunCompletionSuggestAdapterNames(t *testing.T) {
-	root, err := repoRootForTests()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Chdir(root)
+	workspaceRoot, _ := stageGeneratedAdapterWorkspaceForTests(t)
+	t.Chdir(workspaceRoot)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -258,33 +252,36 @@ func TestCompletionMetadataIncludesSuggestionProviders(t *testing.T) {
 	metadata := CompletionMetadataRegistry()
 
 	flagProviders := collectFlagSuggestionProviders(metadata)
-	if got := flagProviders["change close|--superseded-by"]; got != suggestionProviderChangeIDs {
-		t.Fatalf("expected change close superseded-by suggestion provider, got %q", got)
-	}
-	if got := flagProviders["promote|--target"]; got != suggestionProviderPromotionTargets {
-		t.Fatalf("expected promote target suggestion provider, got %q", got)
-	}
-	if got := flagProviders["change new|--bundle"]; got != suggestionProviderBundleIDs {
-		t.Fatalf("expected change new bundle suggestion provider, got %q", got)
-	}
-	if got := flagProviders["init|--seed-bundle"]; got != suggestionProviderBundleIDs {
-		t.Fatalf("expected init seed-bundle suggestion provider, got %q", got)
-	}
-	if got := flagProviders["standard discover|--change"]; got != suggestionProviderChangeIDs {
-		t.Fatalf("expected standard discover change suggestion provider, got %q", got)
-	}
+	assertSuggestionProviders(t, flagProviders, []providerExpectation{
+		{key: "change close|--superseded-by", provider: suggestionProviderChangeIDs},
+		{key: "promote|--target", provider: suggestionProviderPromotionTargets},
+		{key: "change new|--bundle", provider: suggestionProviderBundleIDs},
+		{key: "change assess-intake|--bundle", provider: suggestionProviderBundleIDs},
+		{key: "init|--seed-bundle", provider: suggestionProviderBundleIDs},
+		{key: "standard discover|--change", provider: suggestionProviderChangeIDs},
+	})
 	positionalProviders := collectPositionalSuggestionProviders(metadata)
-	if got := positionalProviders["promote|1"]; got != suggestionProviderChangeIDs {
-		t.Fatalf("expected promote positional suggestion provider, got %q", got)
-	}
-	if got := positionalProviders["change shape|1"]; got != suggestionProviderChangeIDs {
-		t.Fatalf("expected change shape positional suggestion provider, got %q", got)
-	}
-	if got := positionalProviders["bundle resolve|1"]; got != suggestionProviderBundleIDs {
-		t.Fatalf("expected bundle resolve positional suggestion provider, got %q", got)
-	}
-	if got := positionalProviders["adapter render-host-native|1"]; got != suggestionProviderAdapterNamesShellInjection {
-		t.Fatalf("expected render-host-native positional suggestion provider, got %q", got)
+	assertSuggestionProviders(t, positionalProviders, []providerExpectation{
+		{key: "promote|1", provider: suggestionProviderChangeIDs},
+		{key: "change shape|1", provider: suggestionProviderChangeIDs},
+		{key: "change decomposition-plan|1", provider: suggestionProviderChangeIDs},
+		{key: "change decomposition-apply|1", provider: suggestionProviderChangeIDs},
+		{key: "bundle resolve|1", provider: suggestionProviderBundleIDs},
+		{key: "adapter render-host-native|1", provider: suggestionProviderAdapterNamesShellInjection},
+	})
+}
+
+type providerExpectation struct {
+	key      string
+	provider string
+}
+
+func assertSuggestionProviders(t *testing.T, actual map[string]string, want []providerExpectation) {
+	t.Helper()
+	for _, expected := range want {
+		if got := actual[expected.key]; got != expected.provider {
+			t.Fatalf("expected %q suggestion provider %q, got %q", expected.key, expected.provider, got)
+		}
 	}
 }
 

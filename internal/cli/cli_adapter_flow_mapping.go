@@ -2,14 +2,18 @@ package cli
 
 import "strings"
 
-func flowByOperation(tool, operation string) (hostNativeFlow, bool) {
+func flowByOperation(tool, operation string) (hostNativeFlow, bool, error) {
 	operation = sanitizeHostNativeOperation(operation)
-	for _, flow := range toolFlowMappings(tool) {
+	flows, err := toolFlowMappings(tool)
+	if err != nil {
+		return hostNativeFlow{}, false, err
+	}
+	for _, flow := range flows {
 		if flow.id == operation {
-			return flow, true
+			return flow, true, nil
 		}
 	}
-	return hostNativeFlow{}, false
+	return hostNativeFlow{}, false, nil
 }
 
 func sanitizeHostNativeOperation(operation string) string {

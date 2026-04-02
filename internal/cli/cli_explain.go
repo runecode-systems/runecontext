@@ -165,7 +165,11 @@ func appendChangeUpdateExplainLines(lines []line, result *contracts.ChangeOperat
 	lines = append(lines,
 		line{"explain_scope", "lifecycle-transition"},
 		line{"explain_lifecycle_status", result.Status},
+		line{"explain_related_change_count", fmt.Sprintf("%d", len(result.RelatedChanges))},
 	)
+	for i, relatedID := range result.RelatedChanges {
+		lines = append(lines, line{fmt.Sprintf("explain_related_change_%d", i+1), relatedID})
+	}
 	if result.Recursive {
 		lines = append(lines,
 			line{"explain_scope_2", "recursive-lifecycle-cascade"},
@@ -175,6 +179,69 @@ func appendChangeUpdateExplainLines(lines []line, result *contracts.ChangeOperat
 			lines = append(lines, line{fmt.Sprintf("explain_recursive_target_%d", i+1), targetID})
 		}
 	}
+	return lines
+}
+
+func appendChangeAssessIntakeExplainLines(lines []line, result *contracts.ChangeAssessIntakeResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "change-intake-advisory"},
+		line{"explain_advisory_only", "true"},
+		line{"explain_recommended_mode", string(result.RecommendedMode)},
+		line{"explain_intake_readiness", result.IntakeReadiness},
+		line{"explain_decomposition_signal", result.DecompositionSignal},
+		line{"explain_clarification_needed", boolString(result.ClarificationNeeded)},
+	)
+	for i, prompt := range result.ClarificationPrompts {
+		lines = append(lines, line{fmt.Sprintf("explain_clarification_prompt_%d", i+1), prompt})
+	}
+	return lines
+}
+
+func appendChangeAssessDecompositionExplainLines(lines []line, result *contracts.ChangeAssessDecompositionResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "change-decomposition-advisory"},
+		line{"explain_advisory_only", "true"},
+		line{"explain_decomposition_signal", result.DecompositionSignal},
+		line{"explain_recommended_mode", string(result.RecommendedMode)},
+		line{"explain_clarification_needed", boolString(result.ClarificationNeeded)},
+		line{"explain_eligible_sub_change_count", fmt.Sprintf("%d", len(result.EligibleSubChangeIDs))},
+		line{"explain_prerequisite_change_count", fmt.Sprintf("%d", len(result.PrerequisiteChangeIDs))},
+	)
+	for i, prompt := range result.ClarificationPrompts {
+		lines = append(lines, line{fmt.Sprintf("explain_clarification_prompt_%d", i+1), prompt})
+	}
+	return lines
+}
+
+func appendChangeDecompositionPlanExplainLines(lines []line, result *contracts.ChangeDecompositionPlanResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "change-decomposition-plan"},
+		line{"explain_advisory_only", "true"},
+		line{"explain_umbrella_change_id", result.UmbrellaID},
+		line{"explain_graph_node_count", fmt.Sprintf("%d", len(result.NodeIDs))},
+	)
+	return lines
+}
+
+func appendChangeDecompositionApplyExplainLines(lines []line, result *contracts.ChangeDecompositionApplyResult) []line {
+	if result == nil {
+		return lines
+	}
+	lines = append(lines,
+		line{"explain_scope", "change-decomposition-apply"},
+		line{"explain_umbrella_change_id", result.UmbrellaID},
+		line{"explain_graph_node_count", fmt.Sprintf("%d", len(result.NodeIDs))},
+		line{"explain_changed_file_count", fmt.Sprintf("%d", len(result.ChangedFiles))},
+	)
 	return lines
 }
 

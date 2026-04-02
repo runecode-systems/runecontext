@@ -36,7 +36,28 @@ func changeUpdateFlags() []FlagMetadata {
 	return []FlagMetadata{
 		{Name: "--status", Value: enumValueSpec("planned", "implemented", "verified"), Required: true},
 		{Name: "--verification-status", Value: enumValueSpec("passed", "failed", "skipped")},
+		{Name: "--add-related-change", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs), Repeatable: true},
+		{Name: "--remove-related-change", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs), Repeatable: true},
 		{Name: "--recursive", Value: noValueSpec()},
+		{Name: "--path", Value: textValueSpec()},
+	}
+}
+
+func changeAssessIntakeFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--title", Value: textValueSpec(), Required: true},
+		{Name: "--type", Value: enumValueSpec("project", "feature", "bug", "standard", "chore"), Required: true},
+		{Name: "--size", Value: enumValueSpec("small", "medium", "large")},
+		{Name: "--bundle", Value: textValueWithSuggestionSpec(suggestionProviderBundleIDs), Repeatable: true},
+		{Name: "--description", Value: textValueSpec()},
+		{Name: "--path", Value: textValueSpec()},
+	}
+}
+
+func changeDecompositionFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--sub-change", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs), Repeatable: true, Required: true},
+		{Name: "--depends-on", Value: textValueSpec(), Repeatable: true},
 		{Name: "--path", Value: textValueSpec()},
 	}
 }
@@ -73,6 +94,44 @@ func standardDiscoverFlags() []FlagMetadata {
 		{Name: "--focus", Value: textValueSpec()},
 		{Name: "--confirm-handoff", Value: noValueSpec()},
 		{Name: "--target", Value: textValueWithSuggestionSpec(suggestionProviderPromotionTargets)},
+	}
+}
+
+func standardListFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--path", Value: textValueSpec()},
+		{Name: "--scope-path", Value: textValueSpec(), Repeatable: true},
+		{Name: "--focus", Value: textValueSpec()},
+		{Name: "--status", Value: enumValueSpec("draft", "active", "deprecated"), Repeatable: true},
+	}
+}
+
+func standardCreateFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--path", Value: textValueSpec(), Required: true},
+		{Name: "--id", Value: textValueSpec()},
+		{Name: "--title", Value: textValueSpec(), Required: true},
+		{Name: "--status", Value: enumValueSpec("draft", "active", "deprecated")},
+		{Name: "--replaced-by", Value: textValueSpec()},
+		{Name: "--alias", Value: textValueSpec(), Repeatable: true},
+		{Name: "--suggested-context-bundle", Value: textValueWithSuggestionSpec(suggestionProviderBundleIDs), Repeatable: true},
+		{Name: "--body", Value: textValueSpec()},
+		{Name: "--project-path", Value: textValueSpec()},
+	}
+}
+
+func standardUpdateFlags() []FlagMetadata {
+	return []FlagMetadata{
+		{Name: "--path", Value: textValueSpec(), Required: true},
+		{Name: "--title", Value: textValueSpec()},
+		{Name: "--status", Value: enumValueSpec("draft", "active", "deprecated")},
+		{Name: "--replaced-by", Value: textValueSpec()},
+		{Name: "--clear-replaced-by", Value: noValueSpec()},
+		{Name: "--replace-aliases", Value: noValueSpec()},
+		{Name: "--alias", Value: textValueSpec(), Repeatable: true},
+		{Name: "--replace-suggested-context-bundles", Value: noValueSpec()},
+		{Name: "--suggested-context-bundle", Value: textValueWithSuggestionSpec(suggestionProviderBundleIDs), Repeatable: true},
+		{Name: "--project-path", Value: textValueSpec()},
 	}
 }
 

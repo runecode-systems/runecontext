@@ -16,6 +16,7 @@ For each pushed release tag, the workflow:
 
 - reruns `just ci`
 - builds the canonical unsigned artifacts with `nix build .#release-artifacts`
+- regenerates adapter packs into `build/generated/adapters` during the build and stages that generated tree into published archives
 - emits the final versioned repo bundles, Linux/macOS `runectx` binary archives,
   `schema-bundle.tar.gz`, adapter-pack archives (`adapter-*.tar.gz`),
   `SHA256SUMS`, and `runecontext_<tag>_release-manifest.json` from the Nix
@@ -178,8 +179,8 @@ If a published release is bad:
 
 ## Notes for future expansion
 
-This initial release flow already ships canonical repo bundles and Linux/macOS
-`runectx` binaries. When future alphas add explicit schema-only bundles,
-adapter-pack bundles, or more platform binaries, extend the workflow and
-verification docs to include them as additional signed and attested release
+This release flow already ships canonical repo bundles, schema bundles,
+adapter-pack bundles, and Linux/macOS `runectx` binaries. When future alphas
+add more platform binaries or other signed bundle variants, extend the workflow
+and verification docs to include them as additional signed and attested release
 assets.

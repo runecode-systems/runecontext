@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-005-d9ca-add-structured-change-update-command-for-safe-status-and-relationship-edits
 title: Add structured change update command for safe status and relationship edits
-status: proposed
+status: implemented
 type: feature
 size: large
 verification_status: pending

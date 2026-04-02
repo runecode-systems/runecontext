@@ -23,6 +23,7 @@ let
         pathString = toString path;
         relativePath = if pathString == root then "." else lib.removePrefix "${root}/" pathString;
         keepPrefixes = releaseMetadata.topLevelDirectories;
+        buildOnlyPrefixes = [ "adapters/source" ];
         matchesPrefix =
           prefix:
           relativePath == prefix
@@ -31,7 +32,8 @@ let
       in
       relativePath == "."
       || lib.elem relativePath releaseMetadata.topLevelFiles
-      || lib.any matchesPrefix keepPrefixes;
+      || lib.any matchesPrefix keepPrefixes
+      || lib.any matchesPrefix buildOnlyPrefixes;
   };
 
   layoutEntriesFile = pkgs.writeText "runecontext-release-layout.txt" (

@@ -1,0 +1,48 @@
+{
+  "id": "change-new",
+  "command_path": "change new",
+  "description": "Create a new RuneContext change",
+  "usage": "runectx change new --title \"<title>\" --type <type> [--size <size>] [--shape <minimum|full>] [--bundle <bundle-id>] [--description \"<text>\"] [--path <project-root>]",
+  "required_outcome": "Create the appropriate RuneContext change record set for the request (single feature, multiple features, or one project plus associated features) and report created change ids.",
+  "guardrails": [
+    "Map every generated suggestion directly to the documented runectx change new command and flags.",
+    "Do not execute a different RuneContext command automatically after change creation.",
+    "Do not implement product code in this flow; create RuneContext change records only.",
+    "Keep all proposed mutations reviewable and explicit to the user."
+  ],
+  "inputs_to_gather": [
+    "requested outcome and scope",
+    "whether work is one feature, multiple features, or one project with feature children",
+    "change titles and types for each change to create",
+    "optional size",
+    "optional shape",
+    "optional bundle",
+    "optional proposal description"
+  ],
+  "decision_rules": [
+    "If required title or type values are missing for any planned change, ask for them before command execution.",
+    "Use one feature change for a single bounded deliverable.",
+    "Use multiple feature changes for multiple unrelated deliverables.",
+    "Use one project change plus associated feature changes for multiple related deliverables.",
+    "If optional values are not provided, omit their flags instead of inventing defaults.",
+    "After command completion, stop and report resulting change ids and paths."
+  ],
+  "workflow_steps": [
+    "Collect missing required and optional inputs and determine the change topology.",
+    "Present the planned set of runectx change new commands for review.",
+    "Execute or instruct execution of runectx change new one or more times as needed for that topology.",
+    "Return created change ids and immediate output fields only."
+  ],
+  "stop_condition": "Stop immediately after reporting created change ids and outputs; recommend next commands only and do not execute them.",
+  "recommended_next_commands": [
+    "runectx change shape <change-id>",
+    "runectx change assess-decomposition <change-id>"
+  ],
+  "examples": [
+    {
+      "scenario": "Create a project with associated feature changes",
+      "user_prompt": "Set up change records for improving adapter workflows across sync, render, and tests.",
+      "assistant_response": "I will create one project change and three associated feature changes by running `runectx change new` multiple times. I will report every created change id and stop without running shape or other commands automatically."
+    }
+  ]
+}

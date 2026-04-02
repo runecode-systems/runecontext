@@ -14,6 +14,8 @@ findutils='@findutils@/bin'
 
 "${coreutils}/mkdir" -p release/payload release/dist
 
+go run ./tools/syncadapters --root . --output build/generated/adapters
+
 archive_records="release/archive-records.ndjson"
 : > "${archive_records}"
 
@@ -54,6 +56,9 @@ while IFS= read -r entry; do
   fi
   "${coreutils}/cp" -R --parents "${entry}" "${bundle_root}"
 done < "@layoutEntriesFile@"
+
+"${coreutils}/rm" -rf "${bundle_root}/adapters"
+"${coreutils}/cp" -R build/generated/adapters "${bundle_root}/adapters"
 
 "${coreutils}/chmod" -R u=rwX,go=rX "${bundle_root}"
 "${findutils}/find" "${bundle_root}" -exec "${coreutils}/touch" -h -d '1980-01-01T00:00:00Z' {} +
@@ -199,7 +204,7 @@ for target in "${targets[@]}"; do
 
   "${coreutils}/cp" LICENSE NOTICE README.md "${package_dir}/"
   "${coreutils}/cp" -R schemas "${share_dir}/schemas"
-  "${coreutils}/cp" -R adapters "${share_dir}/adapters"
+  "${coreutils}/cp" -R build/generated/adapters "${share_dir}/adapters"
   "${coreutils}/chmod" -R u=rwX,go=rX "${package_dir}"
   "${findutils}/find" "${package_dir}" -exec "${coreutils}/touch" -h -d '1980-01-01T00:00:00Z' {} +
 

@@ -93,6 +93,10 @@ func changeCommandMetadata() CommandMetadata {
 			{Name: "close", Path: "change close", Usage: changeCloseUsage, Flags: writeCommandFlags(changeCloseFlags()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
 			{Name: "reallocate", Path: "change reallocate", Usage: changeReallocateUsage, Flags: writeCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
 			{Name: "update", Path: "change update", Usage: changeUpdateUsage, Flags: writeCommandFlags(changeUpdateFlags()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
+			{Name: "assess-intake", Path: "change assess-intake", Usage: changeAssessIntakeUsage, Flags: readOnlyCommandFlags(changeAssessIntakeFlags())},
+			{Name: "assess-decomposition", Path: "change assess-decomposition", Usage: changeAssessDecompUsage, Flags: readOnlyCommandFlags(pathOnlyFlag()), Positionals: []PositionalMetadata{{Name: "CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
+			{Name: "decomposition-plan", Path: "change decomposition-plan", Usage: changeDecompPlanUsage, Flags: readOnlyCommandFlags(changeDecompositionFlags()), Positionals: []PositionalMetadata{{Name: "UMBRELLA_CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
+			{Name: "decomposition-apply", Path: "change decomposition-apply", Usage: changeDecompApplyUsage, Flags: writeCommandFlags(changeDecompositionFlags()), Positionals: []PositionalMetadata{{Name: "UMBRELLA_CHANGE_ID", Value: textValueWithSuggestionSpec(suggestionProviderChangeIDs)}}},
 		},
 	}
 }
@@ -126,9 +130,12 @@ func standardCommandMetadata() CommandMetadata {
 		Name:  "standard",
 		Path:  "standard",
 		Usage: standardUsage,
-		Flags: readMachineFlags(),
+		Flags: writeMachineFlags(),
 		Subcommands: []CommandMetadata{
 			{Name: "discover", Path: "standard discover", Usage: standardDiscoverUsage, Flags: readOnlyCommandFlags(standardDiscoverFlags())},
+			{Name: "list", Path: "standard list", Usage: standardListUsage, Flags: readOnlyCommandFlags(standardListFlags())},
+			{Name: "create", Path: "standard create", Usage: standardCreateUsage, Flags: writeCommandFlags(standardCreateFlags())},
+			{Name: "update", Path: "standard update", Usage: standardUpdateUsage, Flags: writeCommandFlags(standardUpdateFlags())},
 		},
 	}
 }

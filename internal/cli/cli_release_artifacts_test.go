@@ -12,6 +12,9 @@ import (
 
 func TestReleaseMetadataDeclaresSchemaBundleAndAdapterPacks(t *testing.T) {
 	metadata := readReleaseFileForTests(t, filepath.Join("nix", "release", "metadata.nix"))
+	if strings.Contains(metadata, `"adapters/source"`) {
+		t.Fatal("expected release metadata to exclude adapters/source from shipped top-level directories")
+	}
 
 	requireSubstrings(t, metadata,
 		`name = "schema-bundle";`,
@@ -45,8 +48,11 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 	requireSubstrings(t, script,
 		`process_pack_archives "schema_bundle"`,
 		`process_pack_archives "adapter_pack"`,
+		`go run ./tools/syncadapters --root . --output build/generated/adapters`,
+		`"${coreutils}/rm" -rf "${bundle_root}/adapters"`,
+		`"${coreutils}/cp" -R build/generated/adapters "${bundle_root}/adapters"`,
 		`"${coreutils}/cp" -R schemas "${share_dir}/schemas"`,
-		`"${coreutils}/cp" -R adapters "${share_dir}/adapters"`,
+		`"${coreutils}/cp" -R build/generated/adapters "${share_dir}/adapters"`,
 		`"${host_metadata_binary}" metadata > "release/metadata-descriptor.json"`,
 		`if ! @jq@/bin/jq -e '`,
 		`invalid metadata descriptor payload: release/metadata-descriptor.json`,
@@ -57,6 +63,19 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 		`metadata_descriptor: $metadata_descriptor[0],`,
 		`release_files=( *.tar.gz *.zip *.json *.sh *.ps1 )`,
 	)
+}
+
+func TestReleaseArtifactsPackageIncludesBuildOnlyAdapterSourceInput(t *testing.T) {
+	packageNix := readReleaseFileForTests(t, filepath.Join("nix", "packages", "release-artifacts.nix"))
+	requireSubstrings(t, packageNix,
+		`buildOnlyPrefixes = [ "adapters/source" ];`,
+		`|| lib.any matchesPrefix buildOnlyPrefixes;`,
+	)
+
+	metadata := readReleaseFileForTests(t, filepath.Join("nix", "release", "metadata.nix"))
+	if strings.Contains(metadata, `"adapters/source"`) {
+		t.Fatal("expected adapters/source to remain excluded from shipped release layout")
+	}
 }
 
 func TestInstallScriptsInstallRuntimeAssets(t *testing.T) {

@@ -30,6 +30,11 @@ the release manifest:
 nix build --no-link .#release-artifacts
 ```
 
+During that build, adapter packs are regenerated from canonical adapter source
+definitions into `build/generated/adapters` and staged into release archives.
+Installed runtime layouts still place adapters at
+`share/runecontext/adapters`.
+
 The release workflow generates the SBOM afterward, then signs and attests it
 separately. The canonical `SHA256SUMS` file covers the unsigned archives,
 schema bundle, adapter packs, and release manifest.
@@ -207,7 +212,7 @@ If you prefer not to resolve `latest`, set the version explicitly and run the
 same flow.
 
 ```bash
-VERSION="v0.1.0-alpha.8"
+VERSION="v0.1.0-alpha.14"
 ```
 
 Replace the `VERSION=...` line in the previous script with the pinned tag you
@@ -292,7 +297,7 @@ try {
 
 ## Windows PowerShell: installing `runectx`
 
-Windows binary archives are not published yet in the current alpha.8 asset set. Use
+Windows binary archives are not published yet in the current alpha.14 asset set. Use
 the repo bundle flow on Windows for now, or build `runectx` locally from source.
 
 ## Windows PowerShell: pinned release, full verification, extract
@@ -301,7 +306,7 @@ If you prefer not to resolve `latest`, set the version explicitly and run the
 same flow.
 
 ```powershell
-$Version = "v0.1.0-alpha.8"
+$Version = "v0.1.0-alpha.14"
 ```
 
 Replace the `$Version=...` line in the previous script with the pinned tag you

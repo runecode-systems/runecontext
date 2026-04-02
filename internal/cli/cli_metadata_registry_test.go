@@ -73,6 +73,89 @@ func TestCommandMetadataRegistryIncludesChangeUpdate(t *testing.T) {
 	validateChangeUpdateFlags(t, update)
 }
 
+func TestCommandMetadataRegistryIncludesChangeAssessCommands(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	change := commandMetadataByPath(registry.Commands, "change")
+	if change == nil {
+		t.Fatalf("expected change command in registry")
+	}
+	assessIntake := commandMetadataByPath(change.Subcommands, "change assess-intake")
+	if assessIntake == nil {
+		t.Fatalf("expected change assess-intake subcommand in registry")
+	}
+	if assessIntake.Usage != changeAssessIntakeUsage {
+		t.Fatalf("expected change assess-intake usage %q, got %q", changeAssessIntakeUsage, assessIntake.Usage)
+	}
+	if len(assessIntake.Positionals) != 0 {
+		t.Fatalf("expected no positionals for assess-intake, got %#v", assessIntake.Positionals)
+	}
+	assessDecomp := commandMetadataByPath(change.Subcommands, "change assess-decomposition")
+	if assessDecomp == nil {
+		t.Fatalf("expected change assess-decomposition subcommand in registry")
+	}
+	if assessDecomp.Usage != changeAssessDecompUsage {
+		t.Fatalf("expected change assess-decomposition usage %q, got %q", changeAssessDecompUsage, assessDecomp.Usage)
+	}
+	if len(assessDecomp.Positionals) != 1 || assessDecomp.Positionals[0].Name != "CHANGE_ID" {
+		t.Fatalf("expected one CHANGE_ID positional for assess-decomposition, got %#v", assessDecomp.Positionals)
+	}
+}
+
+func TestCommandMetadataRegistryIncludesChangeDecompositionCommands(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	change := commandMetadataByPath(registry.Commands, "change")
+	if change == nil {
+		t.Fatalf("expected change command in registry")
+	}
+	assertChangeDecompositionCommandMetadata(t, change, "change decomposition-plan", changeDecompPlanUsage)
+	assertChangeDecompositionCommandMetadata(t, change, "change decomposition-apply", changeDecompApplyUsage)
+}
+
+func TestCommandMetadataRegistryIncludesAdapterRenderDecompositionOperations(t *testing.T) {
+	registry := CommandMetadataRegistry()
+	adapter := commandMetadataByPath(registry.Commands, "adapter")
+	if adapter == nil {
+		t.Fatalf("expected adapter command in registry")
+	}
+	render := commandMetadataByPath(adapter.Subcommands, "adapter render-host-native")
+	if render == nil {
+		t.Fatalf("expected adapter render-host-native subcommand in registry")
+	}
+	if len(render.Positionals) < 2 {
+		t.Fatalf("expected tool and operation positionals for adapter render-host-native, got %#v", render.Positionals)
+	}
+	operations := render.Positionals[1].Value.EnumValues
+	for _, op := range []string{"change-decomposition-plan", "change-decomposition-apply"} {
+		if !slices.Contains(operations, op) {
+			t.Fatalf("expected adapter render-host-native operation enum to include %q, got %#v", op, operations)
+		}
+	}
+}
+
+func assertChangeDecompositionCommandMetadata(t *testing.T, change *CommandMetadata, path, usage string) {
+	t.Helper()
+	metadata := commandMetadataByPath(change.Subcommands, path)
+	if metadata == nil {
+		t.Fatalf("expected %s subcommand in registry", path)
+	}
+	if metadata.Usage != usage {
+		t.Fatalf("expected %s usage %q, got %q", path, usage, metadata.Usage)
+	}
+	if len(metadata.Positionals) != 1 || metadata.Positionals[0].Name != "UMBRELLA_CHANGE_ID" {
+		t.Fatalf("expected one UMBRELLA_CHANGE_ID positional for %s, got %#v", path, metadata.Positionals)
+	}
+	assertCommandHasFlags(t, metadata.Flags, path, []string{"--sub-change", "--depends-on"})
+}
+
+func assertCommandHasFlags(t *testing.T, flags []FlagMetadata, commandPath string, names []string) {
+	t.Helper()
+	for _, name := range names {
+		if flagMetadataByName(flags, name) == nil {
+			t.Fatalf("expected %s flag for %s", name, commandPath)
+		}
+	}
+}
+
 func validateChangeUpdateFlags(t *testing.T, update *CommandMetadata) {
 	status := flagMetadataByName(update.Flags, "--status")
 	if status == nil {
@@ -94,12 +177,28 @@ func validateChangeUpdateFlags(t *testing.T, update *CommandMetadata) {
 	if got := verification.Value.EnumValues; !slices.Equal(got, []string{"failed", "passed", "skipped"}) {
 		t.Fatalf("expected verification_status enums [failed passed skipped], got %#v", got)
 	}
+	validateChangeUpdateRelationshipFlag(t, update, "--add-related-change")
+	validateChangeUpdateRelationshipFlag(t, update, "--remove-related-change")
 	recursive := flagMetadataByName(update.Flags, "--recursive")
 	if recursive == nil {
 		t.Fatalf("expected --recursive flag for change update")
 	}
 	if recursive.Value.Kind != ValueKindNone {
 		t.Fatalf("expected --recursive to be a no-value flag")
+	}
+}
+
+func validateChangeUpdateRelationshipFlag(t *testing.T, update *CommandMetadata, name string) {
+	t.Helper()
+	flag := flagMetadataByName(update.Flags, name)
+	if flag == nil {
+		t.Fatalf("expected %s flag for change update", name)
+	}
+	if flag.Required {
+		t.Fatalf("expected %s to be optional", name)
+	}
+	if !flag.Repeatable {
+		t.Fatalf("expected %s to be repeatable", name)
 	}
 }
 

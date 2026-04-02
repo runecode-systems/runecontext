@@ -38,6 +38,7 @@ effectively in the `runecontext` repository.
 - Run main local CI gate: `just ci`
 - Run full Nix CI gate: `just nix-ci`
 - Run flake checks only: `just check`
+- Regenerate adapter packs: `just sync-adapters`
 - Build release artifacts only: `just release` or `just release-check`
 
 ## What Those Commands Do
@@ -53,6 +54,7 @@ effectively in the `runecontext` repository.
 - `just test` runs `go test ./...`.
 - `just ci` runs `just lint` and `just test`.
 - `just nix-ci` runs lint, tests, release build checks, and flake checks.
+- `just sync-adapters` runs `go run ./tools/syncadapters --root . --output build/generated/adapters`.
 
 ## Fast Targeted Test Commands
 
@@ -68,7 +70,9 @@ effectively in the `runecontext` repository.
 - Small focused Go change: run the affected package tests first.
 - CLI behavior change: run `go test ./internal/cli` and then `just lint`.
 - Contract/resolution/change-workflow change: run `go test ./internal/contracts` and then `just lint`.
+- Adapter source or host-native adapter rendering change: run `go test ./tools/syncadapters ./internal/cli`, then `just sync-adapters`, then `just lint`.
 - Tooling or source-quality checker change: run the relevant tool tests, then `just lint`, then `go test ./...`.
+- Release packaging or install/release-doc change: run `go test ./internal/cli -run 'TestRelease|TestCompatibilityMatrix|TestInstallScripts'` and `just release-check`.
 - Before finishing a non-trivial change: prefer at least `just lint` and `just test`.
 
 ## Repository Layout
@@ -77,8 +81,11 @@ effectively in the `runecontext` repository.
 - `internal/cli/`: CLI parsing, output contracts, and command behavior.
 - `internal/contracts/`: core validation, resolution, change workflow, bundles, packs, promotion.
 - `tools/`: repo-owned developer tooling such as `gofmtcheck` and `checksourcequality`.
+- `adapters/source/`: canonical adapter flow/tool definitions and passthrough inputs used by generation.
+- `build/generated/adapters/`: generated adapter packs for local/release staging; treat as ephemeral build output.
 - `fixtures/`: shared test fixtures and golden inputs.
 - `docs/`: implementation plan, install docs, release docs, and policy docs.
+- `runecontext/standards/`: normative standards and policy requirements.
 - `schemas/` and `core/`: normative contract surfaces.
 
 ## Code Organization Conventions
@@ -175,10 +182,12 @@ effectively in the `runecontext` repository.
 ## Protected / High-Trust Surfaces
 
 - `flake.nix` and `flake.lock`: high-trust local tooling and release inputs.
+- `nix/release/metadata.nix`: canonical release version/tag metadata.
 - `.golangci.yml`: linter policy.
 - `justfile`: canonical developer command surface.
 - `.source-quality-config.json` and `.source-quality-baseline.json`: quality policy.
 - `tools/checksourcequality/**` and `tools/gofmtcheck/**`: policy-enforcement tools.
+- `runecontext/standards/`: normative standards surface.
 - `schemas/` and `core/`: normative contract surfaces.
 - `docs/implementation-plan/`: current milestone contract and planning guidance.
 
@@ -187,5 +196,6 @@ effectively in the `runecontext` repository.
 - Prefer minimal, targeted changes that fit existing patterns.
 - Do not silently broaden scope by editing protected policy files unless required.
 - If you change command behavior, update tests and relevant docs in the same patch.
+- If you change adapter source or host-native adapter behavior, regenerate with `just sync-adapters`, update related tests/docs, and do not commit `build/generated/adapters/` outputs.
 - If you change a protected surface, call it out explicitly in your summary.
 - If you commit, use DCO sign-off: `git commit -s`.

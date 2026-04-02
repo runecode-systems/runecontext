@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "receipt",
+  "subject_id": "changes/CHG-2026-025-7854-migrate-assurance-artifacts-under-runecontext-for-alpha13-upgrades",
+  "created_at": 1774990654,
+  "canonicalization": "runecontext-canonical-json-v1",
+  "value": {
+    "change_id": "CHG-2026-025-7854-migrate-assurance-artifacts-under-runecontext-for-alpha13-upgrades",
+    "change_status": "closed",
+    "receipt_family": "changes",
+    "verification_status": "passed"
+  },
+  "receipt_id": "changes-ddcbd9ab-1774990654-dac1daf17ec2",
+  "receipt_hash": "bd66e6912b32a46ddaefb5094d8a0d030f8260caa45571e8ae093f6e2def92a8",
+  "provenance": "captured_verified"
+}

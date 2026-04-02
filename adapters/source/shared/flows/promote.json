@@ -1,0 +1,43 @@
+{
+  "id": "promote",
+  "command_path": "promote",
+  "description": "Advance RuneContext promotion state",
+  "usage": "runectx promote [--json] [--non-interactive] [--dry-run] [--explain] CHANGE_ID [--accept | --complete] [--target TYPE:PATH (summary auto-filled per target type)] [--path PATH]",
+  "required_outcome": "Advance promotion workflow state for the requested target set and report canonical results.",
+  "guardrails": [
+    "Only promote explicit change ids and optional targets surfaced by RuneContext workflows.",
+    "Do not fabricate target identifiers outside the CLI contract.",
+    "Stop after promote output and avoid chaining additional mutations.",
+    "Do not create standards, discover standards, or implement product code in this flow."
+  ],
+  "inputs_to_gather": [
+    "change id",
+    "optional promote mode (accept or complete)",
+    "optional promotion target",
+    "optional project path"
+  ],
+  "decision_rules": [
+    "Require CHANGE_ID before proposing command execution.",
+    "When promote mode is omitted, do not add --accept or --complete automatically.",
+    "If target is provided, preserve TYPE:PATH formatting in the proposed command.",
+    "Stop after presenting promotion results and follow-up guidance."
+  ],
+  "workflow_steps": [
+    "Gather CHANGE_ID and optional promote mode, target, and project path inputs.",
+    "Propose and run runectx promote with explicit flags.",
+    "Report promotion status and any required follow-up actions.",
+    "Conclude without automatic secondary command execution."
+  ],
+  "stop_condition": "Stop after the immediate promote command result is emitted.",
+  "recommended_next_commands": [
+    "runectx validate --path <project-root>",
+    "runectx change shape <change-id> --task \"<text>\""
+  ],
+  "examples": [
+    {
+      "scenario": "Promote an explicitly selected standard",
+      "user_prompt": "For CHG-2026-001-1234, accept and promote standard standards/global/structured-cli-contracts.md.",
+      "assistant_response": "I will run `runectx promote CHG-2026-001-1234 --accept --target standard:standards/global/structured-cli-contracts.md` and return the promote output."
+    }
+  ]
+}

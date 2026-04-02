@@ -1,7 +1,7 @@
 schema_version: 1
 id: CHG-2026-002-5739-add-guided-adapter-native-change-workflows
 title: Add guided adapter-native change workflows
-status: proposed
+status: implemented
 type: project
 size: large
 verification_status: pending
@@ -14,6 +14,10 @@ related_changes:
   - CHG-2026-004-5b03-add-first-class-change-decomposition-planning-and-apply-operations
   - CHG-2026-005-d9ca-add-structured-change-update-command-for-safe-status-and-relationship-edits
   - CHG-2026-006-5aaf-add-first-class-standard-authoring-commands
+  - CHG-2026-026-041d-add-canonical-adapter-source-generation-and-rendering-pipeline
+  - CHG-2026-027-762d-stage-generated-adapter-packs-in-tests-and-release-builds
+  - CHG-2026-028-1c18-stop-committing-rendered-adapter-packs-and-adopt-build-generated-outputs
+  - CHG-2026-029-010a-add-generated-structured-adapter-workflow-contracts
 depends_on: []
 informed_by: []
 supersedes: []

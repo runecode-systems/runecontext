@@ -68,8 +68,24 @@
           "token": "change"
         },
         {
+          "path": "change assess-decomposition",
+          "token": "change_assess_decomposition"
+        },
+        {
+          "path": "change assess-intake",
+          "token": "change_assess_intake"
+        },
+        {
           "path": "change close",
           "token": "change_close"
+        },
+        {
+          "path": "change decomposition-apply",
+          "token": "change_decomposition_apply"
+        },
+        {
+          "path": "change decomposition-plan",
+          "token": "change_decomposition_plan"
         },
         {
           "path": "change new",
@@ -132,8 +148,20 @@
           "token": "standard"
         },
         {
+          "path": "standard create",
+          "token": "standard_create"
+        },
+        {
           "path": "standard discover",
           "token": "standard_discover"
+        },
+        {
+          "path": "standard list",
+          "token": "standard_list"
+        },
+        {
+          "path": "standard update",
+          "token": "standard_update"
         },
         {
           "path": "status",
@@ -181,13 +209,13 @@
       ]
     },
     "compatibility": {
-      "default_project_version": "0.1.0-alpha.13",
+      "default_project_version": "0.1.0-alpha.14",
       "directly_supported_project_versions": [
         "0.1.0-alpha.5",
         "0.1.0-alpha.6",
         "0.1.0-alpha.7",
         "0.1.0-alpha.8",
-        "0.1.0-alpha.13"
+        "0.1.0-alpha.14"
       ],
       "explicit_upgrade_edges": [
         {
@@ -202,7 +230,7 @@
     },
     "distribution_layouts": [
       {
-        "adapters_path": "adapters",
+        "adapters_path": "build/generated/adapters",
         "profile": "repo_bundle",
         "schema_path": "schemas"
       },
@@ -238,8 +266,8 @@
     ],
     "release": {
       "package_name": "runecontext",
-      "tag": "v0.1.0-alpha.13",
-      "version": "0.1.0-alpha.13"
+      "tag": "v0.1.0-alpha.14",
+      "version": "0.1.0-alpha.14"
     },
     "resolution": {
       "source_modes": [
@@ -258,6 +286,6 @@
     "schema_version": 2
   },
   "package_name": "runecontext",
-  "tag": "v0.1.0-alpha.13",
-  "version": "0.1.0-alpha.13"
+  "tag": "v0.1.0-alpha.14",
+  "version": "0.1.0-alpha.14"
 }

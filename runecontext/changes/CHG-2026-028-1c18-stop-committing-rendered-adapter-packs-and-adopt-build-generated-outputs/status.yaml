@@ -1,0 +1,23 @@
+schema_version: 1
+id: CHG-2026-028-1c18-stop-committing-rendered-adapter-packs-and-adopt-build-generated-outputs
+title: Stop committing rendered adapter packs and adopt build generated outputs
+status: implemented
+type: chore
+size: medium
+verification_status: pending
+context_bundles: []
+related_specs: []
+related_decisions: []
+related_changes:
+  - CHG-2026-002-5739-add-guided-adapter-native-change-workflows
+depends_on:
+  - CHG-2026-026-041d-add-canonical-adapter-source-generation-and-rendering-pipeline
+  - CHG-2026-027-762d-stage-generated-adapter-packs-in-tests-and-release-builds
+informed_by: []
+supersedes: []
+superseded_by: []
+created_at: "2026-04-01"
+closed_at: null
+promotion_assessment:
+  status: pending
+  suggested_targets: []

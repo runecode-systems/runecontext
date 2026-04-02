@@ -1,12 +1,12 @@
 # RuneContext - Portable, markdown-first project knowledge, standards, and context bundles
 
-[![CI](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml/badge.svg)](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml) [![Status: alpha.13](https://img.shields.io/badge/status-alpha.13-orange)](docs/implementation-plan/README.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![CI](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml/badge.svg)](https://github.com/runecode-systems/runecontext/actions/workflows/ci.yml) [![Status: alpha.14](https://img.shields.io/badge/status-alpha.14-orange)](docs/implementation-plan/README.md) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 RuneContext is a portable, markdown-first, git-native system for project knowledge, standards, changes, and reusable context bundles. It is AI-tooling-agnostic by design, so teams can use the same source artifacts with different tools or manual workflows without turning the format into a product-specific silo.
 
 ## Status
 
-RuneContext is still pre-MVP and not production-ready. The current repository now includes the alpha.1 through alpha.13 slices: frozen core contracts and versioned schemas, embedded/git/path source resolution with monorepo discovery, signed-tag verification with explicit trusted-signer input, deterministic bundle semantics, standards linkage and traceability, stable change IDs, deterministic context-pack generation and hashing, generated indexes/manifests, reviewable promotion assessment, local-first `init`, `bundle resolve`, `doctor`, explicit `promote`, advisory `standard discover`, verified assurance enable/backfill/capture flows, canonical completion metadata and dynamic suggestions, thin generic/tool adapters, repo-local host-native adapter sync, preview-first `runectx upgrade` / `runectx upgrade apply`, explicit `runectx upgrade cli` / `runectx upgrade cli apply` self-update flows, human-friendly grouped upgrade rendering, version-bump-only alpha upgrade semantics where no migration logic is required, real staged migration-edge execution for on-disk layout updates, synced-tool-only host-native refresh behavior during upgrade, richer human-friendly `runectx status` output, checked-in standards under `runecontext/standards/`, canonical release artifacts and verification docs, compatibility guidance, and MVP readiness/reference-fixture coverage. Remaining work toward `v0.1.0` is final stabilization and sign-off.
+RuneContext is still pre-MVP and not production-ready. The current repository now includes the alpha.1 through alpha.14 slices: frozen core contracts and versioned schemas, embedded/git/path source resolution with monorepo discovery, signed-tag verification with explicit trusted-signer input, deterministic bundle semantics, standards linkage and traceability, stable change IDs, deterministic context-pack generation and hashing, generated indexes/manifests, reviewable promotion assessment, local-first `init`, `bundle resolve`, `doctor`, explicit `promote`, advisory `standard discover`, verified assurance enable/backfill/capture flows, canonical completion metadata and dynamic suggestions, thin generic/tool adapters, repo-local host-native adapter sync, preview-first `runectx upgrade` / `runectx upgrade apply`, explicit `runectx upgrade cli` / `runectx upgrade cli apply` self-update flows, human-friendly grouped upgrade rendering, version-bump-only alpha upgrade semantics where no migration logic is required, real staged migration-edge execution for on-disk layout updates, synced-tool-only host-native refresh behavior during upgrade, richer human-friendly `runectx status` output, generated structured adapter workflow contracts and host-native render guidance, checked-in standards under `runecontext/standards/`, canonical release artifacts and verification docs, compatibility guidance, and MVP readiness/reference-fixture coverage. Remaining work toward `v0.1.0` is final stabilization and sign-off.
 
 ## Quick Start
 
@@ -26,7 +26,7 @@ bin/runectx doctor --path /path/to/project
 
 ## Install / Try The CLI
 
-With alpha.13 upgrade UX, CLI self-update, release/runtime metadata alignment, portability hardening, and assurance-layout migration support now implemented, `runectx` is the primary supported interface for installing, initializing, validating, diagnosing, upgrading, and syncing RuneContext-managed project assets.
+With alpha.14 release/runtime metadata alignment, adapter-pack generation hardening, structured host-native adapter guidance, portability hardening, upgrade UX, and assurance-layout migration support now implemented, `runectx` is the primary supported interface for installing, initializing, validating, diagnosing, upgrading, and syncing RuneContext-managed project assets.
 
 RuneContext is distributed as reviewable repo bundles from GitHub Releases, and those bundles remain the canonical release contents. The standalone `runectx` binary archive is only an optional delivery format; once RuneContext is installed or vendored, the CLI is the normal way to manage it inside projects. In day-to-day use, project setup and maintenance are centered on `runectx init`, `runectx validate`, `runectx doctor`, `runectx adapter sync`, and `runectx upgrade` / `runectx upgrade apply`.
 
@@ -49,7 +49,7 @@ bash install-runectx.sh
 Pinned version example:
 
 ```sh
-TAG="v0.1.0-alpha.13"
+TAG="v0.1.0-alpha.14"
 curl -fsSLO "https://github.com/runecode-systems/runecontext/releases/download/${TAG}/install-runectx.sh"
 bash install-runectx.sh --version "$TAG"
 ```
@@ -66,7 +66,7 @@ powershell -ExecutionPolicy Bypass -File .\install-runectx.ps1
 Pinned version example:
 
 ```powershell
-$Tag = "v0.1.0-alpha.13"
+$Tag = "v0.1.0-alpha.14"
 Invoke-WebRequest -Uri "https://github.com/runecode-systems/runecontext/releases/download/$Tag/install-runectx.ps1" -OutFile install-runectx.ps1
 powershell -ExecutionPolicy Bypass -File .\install-runectx.ps1 -Version $Tag
 ```
@@ -123,7 +123,7 @@ For release verification and maintainer workflow details, see `docs/install-veri
 - Stable generated `manifest.yaml`, `indexes/changes-by-status.yaml`, and `indexes/bundles.yaml` artifacts plus reviewable close-time promotion assessment suggestions and explicit promotion transitions.
 - CLI support for `runectx version`, `runectx init`, `runectx validate`, `runectx status`, `runectx change new`, `runectx change shape`, `runectx change close`, `runectx change reallocate`, `runectx change update`, `runectx bundle resolve`, `runectx doctor`, `runectx metadata`, `runectx upgrade`, `runectx upgrade apply`, `runectx upgrade cli`, `runectx upgrade cli apply`, `runectx promote`, `runectx standard discover`, `runectx assurance enable|backfill|capture`, `runectx adapter sync`, `runectx adapter render-host-native`, `runectx completion <bash|zsh|fish>`, `runectx completion suggest`, and `runectx completion metadata`.
 - Shared machine-facing CLI behavior across command operations with stable `key=value` output by default plus `--json`, `--non-interactive`, `--dry-run` for write flows, and incremental `--explain` support (`runectx completion` is the plain-text script-output exception).
-- Repo-local host-native adapter artifacts for OpenCode, Claude Code, and Codex with strict ownership headers, fail-closed overwrite protection, stale cleanup by scan, and shell-output injection support for supported hosts.
+- Repo-local host-native adapter artifacts for OpenCode, Claude Code, and Codex with strict ownership headers, fail-closed overwrite protection, stale cleanup by scan, shell-output injection support for supported hosts, and generated structured workflow contracts rendered from canonical adapter sources.
 - Canonical `nix build .#release-artifacts` packaging with repo bundles, schema bundle, adapter packs, Linux/macOS `runectx` archives, checksums, release manifest, signatures, attestations, and verification docs.
 - Nix, `just`, and GitHub Actions scaffolding for repeatable development, checks, and release work.
 
@@ -258,7 +258,7 @@ Current CLI scope:
 - `fixtures/` - shared fixture families for schema, markdown, traceability, source/bundle resolution, and change-workflow validation.
 - `cmd/runectx/` - the Go CLI entrypoint for `runectx`.
 - `internal/` - shared Go implementation packages for validation, source resolution, and change workflow.
-- `adapters/` - tool-specific adapter packs and docs as that surface grows.
+- `adapters/` - canonical adapter sources, tool capability definitions, and passthrough adapter content used to generate tool-specific packs.
 - `docs/` - design, planning, installation, and release-process documentation.
 - `tools/` - repository-owned quality and maintenance tooling.
 - `nix/` - canonical dev-shell, check, and release-artifact definitions.

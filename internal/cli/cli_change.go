@@ -25,7 +25,10 @@ func runChange(args []string, stdout, stderr io.Writer) int {
 		emitOutput(stdout, machine, appendMachineOptionLines([]line{{"result", "ok"}, {"command", "change"}, {"usage", changeUsage}}, machine), exitOK, failureClassNone)
 		return exitOK
 	}
+	return runChangeSubcommand(remaining, machine, stdout, stderr)
+}
 
+func runChangeSubcommand(remaining []string, machine machineOptions, stdout, stderr io.Writer) int {
 	switch remaining[0] {
 	case "new":
 		return runChangeNew(remaining[1:], machine, stdout, stderr)
@@ -37,6 +40,14 @@ func runChange(args []string, stdout, stderr io.Writer) int {
 		return runChangeReallocate(remaining[1:], machine, stdout, stderr)
 	case "update":
 		return runChangeUpdate(remaining[1:], machine, stdout, stderr)
+	case "assess-intake":
+		return runChangeAssessIntake(remaining[1:], machine, stdout, stderr)
+	case "assess-decomposition":
+		return runChangeAssessDecomposition(remaining[1:], machine, stdout, stderr)
+	case "decomposition-plan":
+		return runChangeDecompositionPlan(remaining[1:], machine, stdout, stderr)
+	case "decomposition-apply":
+		return runChangeDecompositionApply(remaining[1:], machine, stdout, stderr)
 	default:
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandUsageErrorLines("change", changeUsage, fmt.Errorf("unknown change subcommand %q", remaining[0])), machine), exitUsage, failureClassUsage)
 		return exitUsage
@@ -180,7 +191,7 @@ func runChangeUpdate(args []string, machine machineOptions, stdout, stderr io.Wr
 	}
 	defer project.close()
 	result, err := runChangeOperation(project, machine, func(v *contracts.Validator, loaded *contracts.LoadedProject) (*contracts.ChangeOperationResult, error) {
-		return contracts.UpdateChange(v, loaded, request.changeID, contracts.ChangeUpdateOptions{Status: request.status, VerificationStatus: request.verificationStatus, Recursive: request.recursive})
+		return contracts.UpdateChange(v, loaded, request.changeID, contracts.ChangeUpdateOptions{Status: request.status, VerificationStatus: request.verificationStatus, AddRelatedChanges: request.addRelatedChanges, RemoveRelatedChanges: request.removeRelatedChanges, Recursive: request.recursive})
 	})
 	if err != nil {
 		emitOutput(stderr, machine, appendMachineOptionLines(buildCommandInvalidLines("change_update", project.absRoot, err), machine), exitInvalid, failureClassInvalid)

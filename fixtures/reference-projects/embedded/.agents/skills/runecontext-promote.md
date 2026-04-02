@@ -8,7 +8,7 @@ description: Advance RuneContext promotion state
 <!-- runecontext-id: runecontext:promote -->
 # RuneContext Skill: promote
 
-- canonical_flow_source: `adapters/codex/flows/promote.md`
+- canonical_flow_source: `build/generated/adapters/codex/flows/promote.md`
 - adapter_role: `flow_asset`
 - operation_identifier: `runecontext:promote`
 - command_path: `promote`

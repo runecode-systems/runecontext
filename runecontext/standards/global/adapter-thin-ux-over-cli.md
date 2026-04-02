@@ -19,9 +19,13 @@ Keep adapter-specific experiences conversational and ergonomic without creating 
 ## Requirements
 
 - Adapters must treat the CLI and core contracts as the source of truth for semantics and mutation behavior.
-- Adapter-native assets may gather context, ask clarifying questions, and present next steps, but they must not invent hidden state or alternate workflow rules.
+- Adapter-native assets may gather context and present next steps, but they must not invent hidden state or alternate workflow rules.
 - Host-specific generated files must remain additive tool UX layers rather than authoritative project data.
 - Adapter flows should prefer reviewable command proposals and structured CLI outputs over opaque prompt-only behavior.
+- Generated host-native adapter assets must not depend on host-specific interactive question primitives.
+- Generated adapter workflows must stay within one explicit RuneContext command family per invoked flow; they may repeat the same RuneContext command when needed, but must not auto-chain into a different command.
+- Generated adapter workflows must stop after the immediate RuneContext outcome and recommend next commands instead of executing them automatically.
+- Generated adapter guidance must not drift into product-code implementation behavior when the immediate RuneContext workflow outcome has been reached.
 
 ## Rationale
 
