@@ -7,7 +7,9 @@
   "guardrails": [
     "Never apply relationship changes in plan mode.",
     "Require explicit sub-change ids and dependency edges from the user.",
-    "Keep plan output reviewable before any apply step."
+    "Keep plan output reviewable before any apply step.",
+    "Do not create missing sub-changes in this flow; plan only among existing change ids.",
+    "Do not implement product code in this flow."
   ],
   "inputs_to_gather": [
     "umbrella change id",
@@ -16,6 +18,7 @@
   ],
   "decision_rules": [
     "If no sub-change values are provided, request at least one before command proposal.",
+    "If required sub-changes do not exist yet, stop and ask the user to create those changes before planning decomposition.",
     "Render dependency edges exactly in <sub-change-id>:<change-id> form.",
     "Stop after showing the decomposition plan output."
   ],
@@ -28,7 +31,7 @@
   "stop_condition": "Stop after plan output is reported and do not execute apply automatically.",
   "recommended_next_commands": [
     "runectx change decomposition-apply <umbrella-change-id> --sub-change <id>",
-    "runectx change shape <change-id> --task \"<text>\""
+    "runectx change new --title \"<title>\" --type feature"
   ],
   "examples": [
     {

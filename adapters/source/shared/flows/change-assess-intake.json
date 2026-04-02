@@ -7,7 +7,8 @@
   "guardrails": [
     "Treat assess-intake as advisory and do not mutate repository state.",
     "Preserve exact advisory fields from CLI output when summarizing.",
-    "Do not auto-run change new after intake assessment."
+    "Do not auto-run change new after intake assessment.",
+    "Do not implement product code in this flow."
   ],
   "inputs_to_gather": [
     "proposed title",
@@ -19,6 +20,7 @@
   "decision_rules": [
     "Gather required title and type before proposing the command.",
     "Surface advisory output as-is and keep recommendations clearly non-authoritative.",
+    "Use advisory output to recommend one feature, multiple features, or project-plus-features where applicable.",
     "Stop after reporting intake assessment results."
   ],
   "workflow_steps": [
@@ -30,7 +32,7 @@
   "stop_condition": "Stop after presenting intake advisory output and suggested next command options.",
   "recommended_next_commands": [
     "runectx change new --title \"<title>\" --type <type>",
-    "runectx change assess-decomposition <change-id>"
+    "runectx standard discover --scope-path <path>"
   ],
   "examples": [
     {

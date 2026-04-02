@@ -7,7 +7,8 @@
   "guardrails": [
     "Only promote explicit change ids and optional targets surfaced by RuneContext workflows.",
     "Do not fabricate target identifiers outside the CLI contract.",
-    "Stop after promote output and avoid chaining additional mutations."
+    "Stop after promote output and avoid chaining additional mutations.",
+    "Do not create standards, discover standards, or implement product code in this flow."
   ],
   "inputs_to_gather": [
     "change id",

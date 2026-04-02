@@ -7,7 +7,9 @@
   "guardrails": [
     "Treat discovery results as advisory candidates, not automatic promotions.",
     "Use explicit scope-path and change inputs when supplied, and avoid hidden implicit scope assumptions.",
-    "Do not execute promote automatically after discovery."
+    "Do not execute promote automatically after discovery.",
+    "Do not create or update standards in this flow.",
+    "Do not implement product code in this flow."
   ],
   "inputs_to_gather": [
     "optional project path",
@@ -31,7 +33,7 @@
   ],
   "stop_condition": "Stop after discovery output is summarized and candidate targets are listed.",
   "recommended_next_commands": [
-    "runectx promote --target standard:<path>",
+    "runectx promote <change-id> --target standard:<path>",
     "runectx validate --path <project-root>"
   ],
   "examples": [

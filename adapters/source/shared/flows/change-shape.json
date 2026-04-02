@@ -7,7 +7,8 @@
   "guardrails": [
     "Require explicit change id and scoped shape inputs.",
     "Do not rewrite unrelated change artifacts during shaping.",
-    "Stop after shape output without chaining more edits automatically."
+    "Stop after shape output without chaining more edits automatically.",
+    "Do not implement product code in this flow."
   ],
   "inputs_to_gather": [
     "target change id",

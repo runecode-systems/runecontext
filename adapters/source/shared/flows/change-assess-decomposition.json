@@ -7,7 +7,8 @@
   "guardrails": [
     "Require an explicit change id; never infer mutation targets.",
     "Treat output as advisory and avoid modifying relationships in this step.",
-    "Do not auto-run decomposition plan or apply commands."
+    "Do not auto-run decomposition plan or apply commands.",
+    "Do not implement product code in this flow."
   ],
   "inputs_to_gather": [
     "change id"

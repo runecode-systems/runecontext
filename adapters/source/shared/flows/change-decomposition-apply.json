@@ -7,7 +7,8 @@
   "guardrails": [
     "Require explicit umbrella and sub-change identifiers before mutation.",
     "Keep the operation bounded to provided relationship edits only.",
-    "Stop after the apply result and do not auto-run validation or promotion."
+    "Stop after the apply result and do not auto-run validation or promotion.",
+    "Do not implement product code in this flow."
   ],
   "inputs_to_gather": [
     "umbrella change id",
@@ -28,7 +29,7 @@
   "stop_condition": "Stop after apply output is delivered for the requested decomposition mutation.",
   "recommended_next_commands": [
     "runectx validate --path <project-root>",
-    "runectx promote"
+    "runectx promote <change-id> --accept"
   ],
   "examples": [
     {
