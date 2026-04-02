@@ -8,6 +8,7 @@ Canonical adapter definitions live under `adapters/source/`.
 
 Rendered adapter packs are build-generated at `build/generated/adapters/` via `just sync-adapters`.
 Those generated outputs are ephemeral and must not be committed.
+Generated packs include per-tool `capabilities.yaml`, generated flow markdown under `flows/`, and a machine-readable `workflow.json` contract used by host-native rendering.
 
 Contributor workflow:
 

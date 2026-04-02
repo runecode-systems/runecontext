@@ -212,7 +212,7 @@ If you prefer not to resolve `latest`, set the version explicitly and run the
 same flow.
 
 ```bash
-VERSION="v0.1.0-alpha.8"
+VERSION="v0.1.0-alpha.14"
 ```
 
 Replace the `VERSION=...` line in the previous script with the pinned tag you
@@ -297,7 +297,7 @@ try {
 
 ## Windows PowerShell: installing `runectx`
 
-Windows binary archives are not published yet in the current alpha.8 asset set. Use
+Windows binary archives are not published yet in the current alpha.14 asset set. Use
 the repo bundle flow on Windows for now, or build `runectx` locally from source.
 
 ## Windows PowerShell: pinned release, full verification, extract
@@ -306,7 +306,7 @@ If you prefer not to resolve `latest`, set the version explicitly and run the
 same flow.
 
 ```powershell
-$Version = "v0.1.0-alpha.8"
+$Version = "v0.1.0-alpha.14"
 ```
 
 Replace the `$Version=...` line in the previous script with the pinned tag you

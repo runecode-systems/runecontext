@@ -7,7 +7,7 @@ compatibility gate for project upgrades and runtime wiring.
 
 | RuneCode release | Acceptable `runecontext_version` range | Adapter-pack compatibility | Notes |
 | --- | --- | --- | --- |
-| `v0.1.0-alpha.*` | `0.1.0-alpha.5` – `0.1.0-alpha.8` | `adapter-generic`, `adapter-codex`, `adapter-claude-code`, `adapter-opencode` (same release tag) | Alpha flows remain repo-first; RuneCode should require matching release-line assets from the same signed release set. |
+| `v0.1.0-alpha.14` | `0.1.0-alpha.5`, `0.1.0-alpha.6`, `0.1.0-alpha.7`, `0.1.0-alpha.8`, `0.1.0-alpha.14` | `adapter-generic`, `adapter-codex`, `adapter-claude-code`, `adapter-opencode` (same release tag) | Matches the current `runectx metadata` compatibility descriptor: alpha.14 directly supports the legacy alpha.5-alpha.8 project line plus alpha.14 itself. |
 | `v0.1.0` | `0.1.0` (planned GA) | Same adapter packs plus any GA follow-up adapters | At GA, compatibility freezes to the GA contract and older alpha `runecontext_version` values should be rejected. |
 
 If a project reports an out-of-range `runecontext_version`, validation and

@@ -179,8 +179,8 @@ If a published release is bad:
 
 ## Notes for future expansion
 
-This initial release flow already ships canonical repo bundles and Linux/macOS
-`runectx` binaries. When future alphas add explicit schema-only bundles,
-adapter-pack bundles, or more platform binaries, extend the workflow and
-verification docs to include them as additional signed and attested release
+This release flow already ships canonical repo bundles, schema bundles,
+adapter-pack bundles, and Linux/macOS `runectx` binaries. When future alphas
+add more platform binaries or other signed bundle variants, extend the workflow
+and verification docs to include them as additional signed and attested release
 assets.
