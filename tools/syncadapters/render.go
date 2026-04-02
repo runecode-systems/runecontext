@@ -103,10 +103,41 @@ func resolveOutput(absRoot, output string) (string, error) {
 	} else {
 		absOutput = filepath.Clean(filepath.Join(canonicalRoot, output))
 	}
-	if err := validateOutputRoot(canonicalRoot, absOutput); err != nil {
+	canonicalOutput, err := canonicalizePathAllowMissing(absOutput)
+	if err != nil {
 		return "", err
 	}
-	return absOutput, nil
+	if err := validateOutputRoot(canonicalRoot, canonicalOutput); err != nil {
+		return "", err
+	}
+	return canonicalOutput, nil
+}
+
+func canonicalizePathAllowMissing(path string) (string, error) {
+	cleanPath := filepath.Clean(path)
+	if !filepath.IsAbs(cleanPath) {
+		return "", fmt.Errorf("path %q must be absolute", path)
+	}
+	current := cleanPath
+	missing := make([]string, 0, 4)
+	for {
+		resolved, err := filepath.EvalSymlinks(current)
+		if err == nil {
+			for i := len(missing) - 1; i >= 0; i-- {
+				resolved = filepath.Join(resolved, missing[i])
+			}
+			return filepath.Clean(resolved), nil
+		}
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("resolve output root symlinks %q: %w", current, err)
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", fmt.Errorf("resolve output root symlinks %q: %w", cleanPath, err)
+		}
+		missing = append(missing, filepath.Base(current))
+		current = parent
+	}
 }
 
 func validateOutputRoot(absRoot, absOutput string) error {

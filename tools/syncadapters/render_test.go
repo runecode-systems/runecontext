@@ -40,6 +40,28 @@ func TestResolveOutputRejectsSymlinkedOutputAncestor(t *testing.T) {
 	}
 }
 
+func TestResolveOutputAllowsAbsoluteSymlinkAliasUnderRepositoryRoot(t *testing.T) {
+	realRoot := t.TempDir()
+	aliasParent := t.TempDir()
+	aliasRoot := filepath.Join(aliasParent, "repo-alias")
+	if err := os.Symlink(realRoot, aliasRoot); err != nil {
+		if os.IsPermission(err) {
+			t.Skipf("symlink creation not permitted: %v", err)
+		}
+		t.Fatalf("create repository alias symlink: %v", err)
+	}
+
+	output := filepath.Join(aliasRoot, "build", "generated", "adapters")
+	got, err := resolveOutput(realRoot, output)
+	if err != nil {
+		t.Fatalf("resolveOutput returned error: %v", err)
+	}
+	expected := filepath.Join(realRoot, "build", "generated", "adapters")
+	if got != expected {
+		t.Fatalf("expected canonical output %q, got %q", expected, got)
+	}
+}
+
 func assertRepositoryDescendantOutput(t *testing.T, root, output string) {
 	t.Helper()
 	t.Run(output, func(t *testing.T) {
