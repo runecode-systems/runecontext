@@ -65,6 +65,19 @@ func TestReleaseArtifactBuilderRecordsManifestAndChecksumCoverage(t *testing.T) 
 	)
 }
 
+func TestReleaseArtifactsPackageIncludesBuildOnlyAdapterSourceInput(t *testing.T) {
+	packageNix := readReleaseFileForTests(t, filepath.Join("nix", "packages", "release-artifacts.nix"))
+	requireSubstrings(t, packageNix,
+		`buildOnlyPrefixes = [ "adapters/source" ];`,
+		`|| lib.any matchesPrefix buildOnlyPrefixes;`,
+	)
+
+	metadata := readReleaseFileForTests(t, filepath.Join("nix", "release", "metadata.nix"))
+	if strings.Contains(metadata, `"adapters/source"`) {
+		t.Fatal("expected adapters/source to remain excluded from shipped release layout")
+	}
+}
+
 func TestInstallScriptsInstallRuntimeAssets(t *testing.T) {
 	sh := readReleaseFileForTests(t, filepath.Join("scripts", "install-runectx.sh"))
 	requireSubstrings(t, sh,
