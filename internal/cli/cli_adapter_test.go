@@ -114,6 +114,41 @@ func TestRunAdapterSyncAppliesHostNativeFiles(t *testing.T) {
 	}
 }
 
+func TestRunAdapterSyncRegeneratesMissingRequestedAdapterPack(t *testing.T) {
+	root, err := repoRootForTests()
+	if err != nil {
+		t.Fatalf("locate repo root: %v", err)
+	}
+	workspaceRoot := t.TempDir()
+	adaptersRoot := filepath.Join(root, "build", "generated", "adapters")
+	t.Cleanup(func() {
+		regen := exec.Command("go", "run", "./tools/syncadapters", "--root", root, "--output", "build/generated/adapters", "--tool", "opencode")
+		regen.Dir = root
+		if output, err := regen.CombinedOutput(); err != nil {
+			t.Fatalf("restore staged opencode pack: %v\n%s", err, string(output))
+		}
+	})
+	if err := os.RemoveAll(filepath.Join(adaptersRoot, "opencode")); err != nil {
+		t.Fatalf("remove staged opencode pack: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(adaptersRoot, "opencode", "workflow.json")); !os.IsNotExist(err) {
+		t.Fatalf("expected opencode workflow contract to be absent before sync, err=%v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"adapter", "sync", "--path", workspaceRoot, "opencode"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected adapter sync to regenerate missing pack, got %d (%s)", code, stderr.String())
+	}
+	if _, err := os.Stat(filepath.Join(adaptersRoot, "opencode", "workflow.json")); err != nil {
+		t.Fatalf("expected opencode workflow contract after sync: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(workspaceRoot, ".opencode", "skills", "runecontext-change-new.md")); err != nil {
+		t.Fatalf("expected synced opencode host-native skill after regeneration: %v", err)
+	}
+}
+
 func TestRunAdapterSyncWritesHostNativeArtifactsByTool(t *testing.T) {
 	projectRoot := t.TempDir()
 

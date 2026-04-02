@@ -10,9 +10,10 @@ import (
 func main() {
 	rootFlag := flag.String("root", ".", "repository root path")
 	outputFlag := flag.String("output", filepath.Join("build", "generated", "adapters"), "rendered adapter output root")
+	toolFlag := flag.String("tool", "", "optional adapter tool id to generate")
 	flag.Parse()
 
-	if err := run(*rootFlag, *outputFlag); err != nil {
+	if err := run(*rootFlag, *outputFlag, *toolFlag); err != nil {
 		fatalf("sync adapters: %v", err)
 	}
 }

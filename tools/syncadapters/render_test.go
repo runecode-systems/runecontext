@@ -63,12 +63,29 @@ func TestRunGeneratesStructuredFlowContracts(t *testing.T) {
 	t.Cleanup(func() {
 		_ = os.RemoveAll(filepath.Join(root, "build", "generated", "adapters-test"))
 	})
-	if err := run(root, output); err != nil {
+	if err := run(root, output, ""); err != nil {
 		t.Fatalf("run syncadapters: %v", err)
 	}
 
 	assertWorkflowContractGenerated(t, output)
 	assertFlowMarkdownSections(t, output)
+}
+
+func TestRunGeneratesSingleRequestedTool(t *testing.T) {
+	root := repoRootForSyncAdaptersTests(t)
+	output := filepath.Join(root, "build", "generated", "adapters-test", t.Name())
+	t.Cleanup(func() {
+		_ = os.RemoveAll(filepath.Join(root, "build", "generated", "adapters-test"))
+	})
+	if err := run(root, output, "opencode"); err != nil {
+		t.Fatalf("run syncadapters for one tool: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(output, "opencode", "workflow.json")); err != nil {
+		t.Fatalf("expected opencode workflow contract: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(output, "codex")); !os.IsNotExist(err) {
+		t.Fatalf("expected only requested tool output, codex err=%v", err)
+	}
 }
 
 func assertWorkflowContractGenerated(t *testing.T, output string) {

@@ -2,6 +2,9 @@ package cli
 
 import (
 	"bytes"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -141,5 +144,45 @@ func TestRunAdapterRenderHostNativeJSONOutput(t *testing.T) {
 		if !strings.Contains(text, token) {
 			t.Fatalf("expected token %q in JSON output, got %q", token, text)
 		}
+	}
+}
+
+func TestRunAdapterRenderHostNativeRegeneratesMissingRequestedPack(t *testing.T) {
+	root, err := repoRootForTests()
+	if err != nil {
+		t.Fatalf("locate repo root: %v", err)
+	}
+	adaptersRoot := filepath.Join(root, "build", "generated", "adapters")
+	t.Cleanup(func() {
+		regen := exec.Command("go", "run", "./tools/syncadapters", "--root", root, "--output", "build/generated/adapters", "--tool", "opencode")
+		regen.Dir = root
+		if output, err := regen.CombinedOutput(); err != nil {
+			t.Fatalf("restore staged opencode pack: %v\n%s", err, string(output))
+		}
+	})
+	if err := os.RemoveAll(filepath.Join(adaptersRoot, "opencode")); err != nil {
+		t.Fatalf("remove staged opencode pack: %v", err)
+	}
+
+	originalWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(originalWD) })
+	if err := os.Chdir(root); err != nil {
+		t.Fatalf("chdir repo root: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := Run([]string{"adapter", "render-host-native", "opencode", "change-new"}, &stdout, &stderr)
+	if code != exitOK {
+		t.Fatalf("expected render-host-native to regenerate missing pack, got %d (%s)", code, stderr.String())
+	}
+	if _, err := os.Stat(filepath.Join(adaptersRoot, "opencode", "workflow.json")); err != nil {
+		t.Fatalf("expected regenerated opencode workflow contract: %v", err)
+	}
+	if !strings.Contains(stdout.String(), "operation_identifier: `runecontext:change-new`") {
+		t.Fatalf("expected rendered change-new output, got %q", stdout.String())
 	}
 }

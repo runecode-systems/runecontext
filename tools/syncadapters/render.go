@@ -10,7 +10,7 @@ import (
 
 const generatedFlowsDir = "flows"
 
-func run(root, output string) error {
+func run(root, output, toolID string) error {
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
 		return fmt.Errorf("resolve root: %w", err)
@@ -27,18 +27,63 @@ func run(root, output string) error {
 	if err != nil {
 		return err
 	}
+	trimmedToolID := strings.TrimSpace(toolID)
+	if trimmedToolID != "" {
+		return runSingleTool(absRoot, absOutput, trimmedToolID, flows, tools)
+	}
 	if err := os.RemoveAll(absOutput); err != nil {
 		return fmt.Errorf("reset output root %q: %w", absOutput, err)
 	}
 	if err := os.MkdirAll(absOutput, 0o755); err != nil {
 		return fmt.Errorf("create output root %q: %w", absOutput, err)
 	}
-	for _, toolID := range sortedToolIDs(tools) {
-		if err := renderTool(absRoot, absOutput, toolID, flows, tools[toolID]); err != nil {
+	for _, id := range sortedToolIDs(tools) {
+		if err := renderTool(absRoot, absOutput, id, flows, tools[id]); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func runSingleTool(absRoot, absOutput, toolID string, flows []flowDefinition, tools map[string]toolDefinition) error {
+	if _, ok := tools[toolID]; !ok {
+		return fmt.Errorf("unknown tool %q", toolID)
+	}
+	if err := prepareSingleToolOutput(absOutput, toolID); err != nil {
+		return err
+	}
+	return renderRequestedTool(absRoot, absOutput, toolID, flows, tools)
+}
+
+func prepareSingleToolOutput(absOutput, toolID string) error {
+	toolDir := filepath.Join(absOutput, strings.TrimSpace(toolID))
+	if err := ensurePathWithinRoot(absOutput, toolDir); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(toolDir); err != nil {
+		return fmt.Errorf("reset adapter output %q: %w", toolDir, err)
+	}
+	return nil
+}
+
+func ensurePathWithinRoot(root, path string) error {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return fmt.Errorf("resolve %q relative to %q: %w", path, root, err)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("path %q must remain under root %q", path, root)
+	}
+	return nil
+}
+
+func renderRequestedTool(absRoot, absOutput, toolID string, flows []flowDefinition, tools map[string]toolDefinition) error {
+	toolID = strings.TrimSpace(toolID)
+	tool, ok := tools[toolID]
+	if !ok {
+		return fmt.Errorf("unknown tool %q", toolID)
+	}
+	return renderTool(absRoot, absOutput, toolID, flows, tool)
 }
 
 func resolveOutput(absRoot, output string) (string, error) {

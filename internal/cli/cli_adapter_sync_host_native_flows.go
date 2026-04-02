@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 type adapterWorkflowDocument struct {
@@ -66,14 +68,9 @@ func toolFlowMappings(tool string) ([]hostNativeFlow, error) {
 }
 
 func loadWorkflowDocument(tool string) (adapterWorkflowDocument, error) {
-	adaptersRoot, err := locateAdaptersRoot()
+	raw, path, err := loadWorkflowContractBytes(tool)
 	if err != nil {
 		return adapterWorkflowDocument{}, err
-	}
-	path := filepath.Join(adaptersRoot, tool, "workflow.json")
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return adapterWorkflowDocument{}, fmt.Errorf("read adapter workflow contract %q: %w", path, err)
 	}
 	var doc adapterWorkflowDocument
 	if err := json.Unmarshal(raw, &doc); err != nil {
@@ -83,6 +80,68 @@ func loadWorkflowDocument(tool string) (adapterWorkflowDocument, error) {
 		return adapterWorkflowDocument{}, fmt.Errorf("invalid adapter workflow contract %q: %w", path, err)
 	}
 	return doc, nil
+}
+
+func loadWorkflowContractBytes(tool string) ([]byte, string, error) {
+	path, err := workflowContractPath(tool)
+	if err != nil {
+		if genErr := ensureGeneratedAdapterPack(tool); genErr != nil {
+			return nil, "", fmt.Errorf("%w (while recovering from %v)", genErr, err)
+		}
+		path, err = workflowContractPath(tool)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+	raw, err := os.ReadFile(path)
+	if err == nil {
+		return raw, path, nil
+	}
+	if !os.IsNotExist(err) {
+		return nil, "", fmt.Errorf("read adapter workflow contract %q: %w", path, err)
+	}
+	if genErr := ensureGeneratedAdapterPack(tool); genErr != nil {
+		return nil, "", fmt.Errorf("read adapter workflow contract %q: %w (regeneration failed: %v)", path, err, genErr)
+	}
+	raw, err = os.ReadFile(path)
+	if err != nil {
+		return nil, "", fmt.Errorf("read adapter workflow contract %q: %w", path, err)
+	}
+	return raw, path, nil
+}
+
+func workflowContractPath(tool string) (string, error) {
+	adaptersRoot, err := locateAdaptersRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(adaptersRoot, tool, "workflow.json"), nil
+}
+
+func ensureGeneratedAdapterPack(tool string) error {
+	tool = strings.TrimSpace(tool)
+	if tool == "" {
+		return fmt.Errorf("adapter tool is required")
+	}
+	schemaRoot, err := locateSchemaRoot()
+	if err != nil {
+		return err
+	}
+	projectRoot := filepath.Dir(schemaRoot)
+	if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err != nil {
+		return fmt.Errorf("could not locate installed adapter packs")
+	}
+	cmd := exec.Command("go", "run", "./tools/syncadapters", "--root", projectRoot, "--output", "build/generated/adapters", "--tool", tool)
+	cmd.Dir = projectRoot
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		message := strings.TrimSpace(string(output))
+		if message == "" {
+			return fmt.Errorf("generate adapter pack %q: %w", tool, err)
+		}
+		return fmt.Errorf("generate adapter pack %q: %w: %s", tool, err, message)
+	}
+	return nil
 }
 
 func workflowMarkdownSource(tool, flowID string) string {
