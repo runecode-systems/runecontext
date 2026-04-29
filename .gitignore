@@ -1,6 +1,6 @@
 .direnv/
 
-.opencode/tmp/
+.opencode/
 
 # OS/editor noise
 .DS_Store
